@@ -15,6 +15,12 @@ serve(async (req) => {
   try {
     const { paymentId, userId } = await req.json()
     
+    console.log('Verificando pagamento:', { paymentId, userId })
+    
+    if (!paymentId || !userId) {
+      throw new Error('PaymentId e UserId são obrigatórios')
+    }
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -27,7 +33,20 @@ serve(async (req) => {
       throw new Error('Chave da API Asaas de produção não configurada')
     }
 
-    console.log('Verificando pagamento no Asaas (produção):', paymentId)
+    // Primeiro, verificar se a assinatura existe no nosso banco
+    const { data: subscription, error: subError } = await supabaseClient
+      .from('subscriptions')
+      .select('*')
+      .eq('payment_id', paymentId)
+      .eq('user_id', userId)
+      .single()
+
+    if (subError || !subscription) {
+      console.error('Assinatura não encontrada:', subError)
+      throw new Error('Assinatura não encontrada no banco de dados')
+    }
+
+    console.log('Assinatura encontrada:', subscription)
 
     // Verificar status do pagamento no Asaas (produção)
     const asaasResponse = await fetch(`https://www.asaas.com/api/v3/payments/${paymentId}`, {
@@ -45,34 +64,51 @@ serve(async (req) => {
     const paymentData = await asaasResponse.json()
     const isPaid = paymentData.status === 'RECEIVED' || paymentData.status === 'CONFIRMED'
 
-    console.log('Status do pagamento:', paymentData.status, 'Pago:', isPaid)
+    console.log('Status do pagamento no Asaas:', paymentData.status, 'Pago:', isPaid)
 
     if (isPaid) {
-      // Atualizar assinatura no banco
-      const expiresAt = new Date()
-      expiresAt.setMonth(expiresAt.getMonth() + 1) // Adicionar 1 mês
+      // Calcular nova data de expiração
+      const now = new Date()
+      const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 dias a partir de agora
 
-      const { error } = await supabaseClient
+      console.log('Atualizando assinatura para ativa até:', expiresAt.toISOString())
+
+      // Atualizar assinatura no banco
+      const { data: updatedSub, error: updateError } = await supabaseClient
         .from('subscriptions')
         .update({
           status: 'active',
-          expires_at: expiresAt.toISOString()
+          expires_at: expiresAt.toISOString(),
+          updated_at: new Date().toISOString()
         })
         .eq('payment_id', paymentId)
         .eq('user_id', userId)
+        .select()
 
-      if (error) {
-        console.error('Erro ao atualizar assinatura:', error)
-        throw error
+      if (updateError) {
+        console.error('Erro ao atualizar assinatura:', updateError)
+        throw new Error(`Erro ao ativar assinatura: ${updateError.message}`)
       }
 
-      console.log('Assinatura ativada com sucesso para o usuário:', userId)
+      console.log('Assinatura atualizada com sucesso:', updatedSub)
+
+      // Verificar se realmente foi atualizada
+      const { data: verifyUpdate } = await supabaseClient
+        .from('subscriptions')
+        .select('*')
+        .eq('payment_id', paymentId)
+        .eq('user_id', userId)
+        .single()
+
+      console.log('Verificação da atualização:', verifyUpdate)
     }
 
     return new Response(
       JSON.stringify({ 
         paid: isPaid,
-        status: paymentData.status 
+        status: paymentData.status,
+        paymentId: paymentId,
+        message: isPaid ? 'Pagamento confirmado e assinatura ativada!' : 'Pagamento ainda pendente'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -80,9 +116,12 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    console.error('Erro geral:', error)
+    console.error('Erro geral na verificação:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        paid: false 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

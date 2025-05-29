@@ -17,14 +17,36 @@ serve(async (req) => {
     
     console.log('Dados recebidos:', { userEmail, amount, userId, cpf })
     
-    if (!cpf) {
-      throw new Error('CPF é obrigatório para gerar PIX')
+    if (!cpf || !userId || !userEmail) {
+      throw new Error('CPF, UserId e Email são obrigatórios para gerar PIX')
     }
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+
+    // Verificar se já existe uma assinatura pendente para este usuário
+    const { data: existingPending } = await supabaseClient
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (existingPending && existingPending.length > 0) {
+      const lastPending = existingPending[0]
+      const createdAt = new Date(lastPending.created_at)
+      const now = new Date()
+      const timeDiff = now.getTime() - createdAt.getTime()
+      const hoursDiff = timeDiff / (1000 * 3600)
+
+      // Se existe uma cobrança pendente criada há menos de 2 horas, retornar erro
+      if (hoursDiff < 2) {
+        throw new Error('Você já tem uma cobrança pendente. Aguarde ou utilize a existente.')
+      }
+    }
 
     // Usar API de produção do Asaas
     const asaasApiKey = Deno.env.get('ASAAS_PROD_API_KEY')
@@ -35,9 +57,6 @@ serve(async (req) => {
 
     console.log('Criando/verificando cliente no Asaas...')
 
-    // Primeiro, criar/verificar cliente no Asaas
-    let customerId
-    
     // Limpar CPF removendo caracteres especiais
     const cleanCpf = cpf.replace(/\D/g, '')
     console.log('CPF limpo:', cleanCpf)
@@ -47,47 +66,52 @@ serve(async (req) => {
       throw new Error('CPF deve ter exatamente 11 dígitos')
     }
 
-    const customerResponse = await fetch('https://www.asaas.com/api/v3/customers', {
-      method: 'POST',
+    // Criar referência externa única combinando userId e timestamp
+    const externalReference = `${userId}-${Date.now()}`
+
+    let customerId
+
+    // Primeiro, buscar cliente existente pelo CPF e email
+    const searchResponse = await fetch(`https://www.asaas.com/api/v3/customers?email=${userEmail}&cpfCnpj=${cleanCpf}`, {
       headers: {
-        'Content-Type': 'application/json',
         'access_token': asaasApiKey
-      },
-      body: JSON.stringify({
-        name: userEmail.split('@')[0],
-        email: userEmail,
-        cpfCnpj: cleanCpf,
-        externalReference: userId
-      })
+      }
     })
+    
+    if (searchResponse.ok) {
+      const searchData = await searchResponse.json()
+      console.log('Busca de cliente:', searchData)
+      if (searchData.data && searchData.data.length > 0) {
+        customerId = searchData.data[0].id
+        console.log('Cliente encontrado:', customerId)
+      }
+    }
 
-    const customerResponseText = await customerResponse.text()
-    console.log('Resposta do cliente:', customerResponseText)
-
-    let customerData
-    if (customerResponse.ok) {
-      customerData = JSON.parse(customerResponseText)
-      customerId = customerData.id
-      console.log('Cliente criado:', customerId)
-    } else {
-      // Se cliente já existe, buscar pelo email ou CPF
-      const searchResponse = await fetch(`https://www.asaas.com/api/v3/customers?email=${userEmail}&cpfCnpj=${cleanCpf}`, {
+    // Se não encontrou, criar novo cliente
+    if (!customerId) {
+      const customerResponse = await fetch('https://www.asaas.com/api/v3/customers', {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'access_token': asaasApiKey
-        }
+        },
+        body: JSON.stringify({
+          name: userEmail.split('@')[0],
+          email: userEmail,
+          cpfCnpj: cleanCpf,
+          externalReference: userId // Usar apenas o userId como referência do cliente
+        })
       })
-      
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json()
-        console.log('Busca de cliente:', searchData)
-        if (searchData.data && searchData.data.length > 0) {
-          customerId = searchData.data[0].id
-          console.log('Cliente encontrado:', customerId)
-        } else {
-          throw new Error('Não foi possível criar ou encontrar cliente no Asaas')
-        }
+
+      const customerResponseText = await customerResponse.text()
+      console.log('Resposta do cliente:', customerResponseText)
+
+      if (customerResponse.ok) {
+        const customerData = JSON.parse(customerResponseText)
+        customerId = customerData.id
+        console.log('Cliente criado:', customerId)
       } else {
-        throw new Error('Erro ao buscar cliente existente no Asaas')
+        throw new Error(`Erro ao criar cliente no Asaas: ${customerResponseText}`)
       }
     }
 
@@ -97,14 +121,14 @@ serve(async (req) => {
 
     console.log('Criando cobrança PIX no Asaas (produção)...')
 
-    // Criar cobrança PIX no Asaas (produção)
+    // Criar cobrança PIX no Asaas (produção) com referência única
     const paymentPayload = {
       customer: customerId,
       billingType: 'PIX',
       value: amount,
-      dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 24 horas
-      description: 'Assinatura FitAI Pro - Mensal',
-      externalReference: userId
+      dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      description: `Assinatura FitAI Pro - ${userEmail}`,
+      externalReference: externalReference // Usar referência única para cada cobrança
     }
 
     console.log('Payload do pagamento:', JSON.stringify(paymentPayload))
@@ -129,7 +153,7 @@ serve(async (req) => {
     const paymentData = JSON.parse(asaasResponseText)
     console.log('Dados do pagamento:', JSON.stringify(paymentData))
 
-    // Aguardar e tentar obter os dados do PIX várias vezes
+    // Aguardar e tentar obter os dados do PIX
     let pixData = null
     let attempts = 0
     const maxAttempts = 10
@@ -138,12 +162,10 @@ serve(async (req) => {
       attempts++
       console.log(`Tentativa ${attempts} de obter dados do PIX...`)
       
-      // Aguardar antes de tentar
       if (attempts > 1) {
         await new Promise(resolve => setTimeout(resolve, 2000))
       }
 
-      // Buscar QR Code PIX
       const pixResponse = await fetch(`https://www.asaas.com/api/v3/payments/${paymentData.id}/pixQrCode`, {
         headers: {
           'access_token': asaasApiKey
@@ -165,10 +187,8 @@ serve(async (req) => {
       }
     }
 
-    // Se não conseguiu obter via API específica, usar dados básicos
     if (!pixData || !pixData.payload) {
       console.log('Usando dados básicos do PIX...')
-      
       pixData = {
         success: true,
         payload: `00020126580014br.gov.bcb.pix0136${paymentData.id}520400005303986540${amount.toFixed(2)}5802BR5925${userEmail.split('@')[0]}6009SAO PAULO62070503***6304`,
@@ -179,14 +199,16 @@ serve(async (req) => {
 
     console.log('Cobrança PIX criada com sucesso:', paymentData.id)
 
-    // Salvar no banco de dados
+    // Salvar no banco de dados com dados mais detalhados
     const { error } = await supabaseClient
       .from('subscriptions')
       .insert([{
         user_id: userId,
         payment_id: paymentData.id,
         amount: amount,
-        status: 'pending'
+        status: 'pending',
+        asaas_customer_id: customerId,
+        payment_method: 'pix'
       }])
 
     if (error) {
@@ -198,7 +220,8 @@ serve(async (req) => {
       paymentId: paymentData.id,
       pixCode: pixData.payload,
       qrCodeImage: pixData.encodedImage ? `data:image/png;base64,${pixData.encodedImage}` : null,
-      expirationDate: pixData.expirationDate
+      expirationDate: pixData.expirationDate,
+      customerId: customerId
     }
 
     console.log('Resposta final:', JSON.stringify(responseData))

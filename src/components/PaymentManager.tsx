@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { QrCode, CreditCard, Check, RefreshCw, Sparkles, User as UserIcon, Copy, AlertCircle } from 'lucide-react';
+import { QrCode, CreditCard, Check, RefreshCw, Sparkles, User as UserIcon, Copy, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface PaymentManagerProps {
   user: User | null;
@@ -19,6 +19,7 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
   const [verifying, setVerifying] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
   const [cpf, setCpf] = useState('');
+  const [lastVerificationStatus, setLastVerificationStatus] = useState<string | null>(null);
   const { toast } = useToast();
 
   const formatCPF = (value: string) => {
@@ -40,7 +41,6 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
       return;
     }
 
-    // Validar CPF (mínimo 11 dígitos)
     const cleanCpf = cpf.replace(/\D/g, '');
     if (cleanCpf.length !== 11) {
       toast({
@@ -52,6 +52,9 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
     }
 
     setLoading(true);
+    setPixData(null);
+    setLastVerificationStatus(null);
+    
     try {
       console.log('Enviando dados para criar assinatura:', {
         userEmail: user.email,
@@ -82,7 +85,6 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
 
       console.log('Dados do PIX recebidos:', response.data);
 
-      // Verificar se temos os dados necessários
       if (!response.data.pixCode) {
         throw new Error('Código PIX não foi gerado. Tente novamente.');
       }
@@ -110,6 +112,8 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
 
     setVerifying(true);
     try {
+      console.log('Verificando pagamento:', { paymentId: pixData.paymentId, userId: user.id });
+
       const response = await supabase.functions.invoke('verify-payment', {
         body: { 
           paymentId: pixData.paymentId,
@@ -117,21 +121,27 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
         }
       });
 
-      if (response.error) throw response.error;
+      console.log('Resposta da verificação:', response);
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Erro ao verificar pagamento');
+      }
+
+      setLastVerificationStatus(response.data.status);
 
       if (response.data.paid) {
         toast({
-          title: "Pagamento confirmado!",
-          description: "Sua assinatura foi ativada com sucesso. Redirecionando...",
+          title: "🎉 Pagamento confirmado!",
+          description: "Sua assinatura foi ativada com sucesso. A página será recarregada em 3 segundos.",
         });
         
         setTimeout(() => {
           window.location.reload();
-        }, 2000);
+        }, 3000);
       } else {
         toast({
-          title: "Pagamento não identificado",
-          description: `Status: ${response.data.status}. O pagamento ainda não foi processado. Tente novamente em alguns instantes.`,
+          title: "Pagamento pendente",
+          description: `Status: ${response.data.status}. ${response.data.message || 'O pagamento ainda não foi processado.'}`,
           variant: "destructive",
         });
       }
@@ -305,6 +315,13 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
                 {pixData.pixCode ? 'Copiar Código PIX' : 'Código PIX não disponível'}
               </Button>
 
+              {lastVerificationStatus && (
+                <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <span className="text-blue-700 text-sm">Último status: {lastVerificationStatus}</span>
+                </div>
+              )}
+
               <Button 
                 onClick={verifyPayment}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3"
@@ -317,7 +334,7 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
                   </>
                 ) : (
                   <>
-                    <Check className="h-4 w-4 mr-2" />
+                    <CheckCircle className="h-4 w-4 mr-2" />
                     Validar Pagamento
                   </>
                 )}
@@ -329,6 +346,11 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
               <p className="mt-2">
                 Após realizar o pagamento via PIX, clique em "Validar Pagamento" para ativar sua assinatura
               </p>
+              {pixData.paymentId && (
+                <p className="mt-1 text-xs text-gray-600">
+                  ID do Pagamento: {pixData.paymentId}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
