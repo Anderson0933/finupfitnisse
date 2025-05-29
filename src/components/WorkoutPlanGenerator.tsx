@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,25 +76,40 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
         throw new Error(error.message || 'Erro ao gerar plano de treino');
       }
 
-      // Correção: verificar se data existe e extrair o plano
       if (!data) {
         throw new Error('Nenhuma resposta foi retornada');
       }
 
-      // Se data é um objeto com plano estruturado, formatá-lo
+      console.log('Dados recebidos:', data);
+
+      // Formatar o plano de treino baseado na estrutura dos dados
       let planText = '';
-      if (data.title && data.exercises) {
-        planText = `${data.title}\n\n${data.description}\n\n`;
-        planText += `DURAÇÃO: ${data.duration_weeks} semanas\n`;
-        planText += `NÍVEL: ${data.difficulty_level}\n\n`;
+      
+      // Verificar se é um objeto estruturado ou string
+      if (typeof data === 'object' && data.title && data.exercises) {
+        planText = `${data.title}\n\n`;
+        
+        if (data.description) {
+          planText += `${data.description}\n\n`;
+        }
+        
+        if (data.duration_weeks) {
+          planText += `DURAÇÃO: ${data.duration_weeks} semanas\n`;
+        }
+        
+        if (data.difficulty_level) {
+          planText += `NÍVEL: ${data.difficulty_level}\n\n`;
+        }
+        
         planText += `EXERCÍCIOS:\n\n`;
         
         data.exercises.forEach((exercise: any, index: number) => {
           planText += `${index + 1}. ${exercise.name}\n`;
-          planText += `   - Séries: ${exercise.sets}\n`;
-          planText += `   - Repetições: ${exercise.reps}\n`;
-          planText += `   - Descanso: ${exercise.rest}\n`;
-          planText += `   - Instruções: ${exercise.instructions}\n\n`;
+          if (exercise.sets) planText += `   - Séries: ${exercise.sets}\n`;
+          if (exercise.reps) planText += `   - Repetições: ${exercise.reps}\n`;
+          if (exercise.rest) planText += `   - Descanso: ${exercise.rest}\n`;
+          if (exercise.instructions) planText += `   - Instruções: ${exercise.instructions}\n`;
+          planText += `\n`;
         });
 
         if (data.nutrition_tips && data.nutrition_tips.length > 0) {
@@ -107,10 +121,16 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       } else if (typeof data === 'string') {
         planText = data;
       } else {
+        // Fallback para qualquer outro formato
         planText = JSON.stringify(data, null, 2);
       }
 
       console.log('Plano formatado:', planText);
+
+      if (!planText || planText.trim() === '') {
+        throw new Error('Plano de treino vazio foi retornado');
+      }
+
       setWorkoutPlan(planText);
       
       toast({
@@ -164,6 +184,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* ... keep existing code (form fields) */}
             {/* Informações pessoais */}
             <div className="grid grid-cols-2 gap-4">
               <div>
