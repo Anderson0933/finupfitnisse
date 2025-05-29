@@ -95,7 +95,7 @@ const PricingSection = () => {
             </div>
             <h4 className="font-semibold text-gray-900 mb-2">Garantia de Satisfação</h4>
             <p className="text-gray-600 text-sm">
-              Experimente por 24h. Se não estiver satisfeito, devolvemos 100% do seu dinheiro.
+              Experimente por 24h. Sem custo.
             </p>
           </div>
         </div>
