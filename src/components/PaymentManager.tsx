@@ -40,8 +40,26 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
       return;
     }
 
+    // Validar CPF (mínimo 11 dígitos)
+    const cleanCpf = cpf.replace(/\D/g, '');
+    if (cleanCpf.length !== 11) {
+      toast({
+        title: "CPF inválido",
+        description: "Por favor, informe um CPF válido com 11 dígitos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('Enviando dados para criar assinatura:', {
+        userEmail: user.email,
+        amount: 69.90,
+        userId: user.id,
+        cpf: cpf
+      });
+
       const response = await supabase.functions.invoke('create-subscription', {
         body: { 
           userEmail: user.email,
@@ -51,7 +69,23 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
         }
       });
 
-      if (response.error) throw response.error;
+      console.log('Resposta da função:', response);
+
+      if (response.error) {
+        console.error('Erro da função:', response.error);
+        throw new Error(response.error.message || 'Erro ao processar pagamento');
+      }
+
+      if (!response.data) {
+        throw new Error('Nenhum dado retornado da função');
+      }
+
+      console.log('Dados do PIX recebidos:', response.data);
+
+      // Verificar se temos os dados necessários
+      if (!response.data.pixCode) {
+        throw new Error('Código PIX não foi gerado. Tente novamente.');
+      }
 
       setPixData(response.data);
       
@@ -63,7 +97,7 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
       console.error('Erro ao gerar PIX:', error);
       toast({
         title: "Erro ao gerar PIX",
-        description: error.message,
+        description: error.message || 'Erro desconhecido ao gerar PIX',
         variant: "destructive",
       });
     } finally {
@@ -204,12 +238,15 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
                 maxLength={14}
                 className="border-blue-200 focus:border-blue-400"
               />
+              {cpf && cpf.replace(/\D/g, '').length !== 11 && (
+                <p className="text-red-500 text-sm mt-1">CPF deve ter 11 dígitos</p>
+              )}
             </div>
 
             <Button 
               onClick={createSubscription} 
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-base md:text-lg"
-              disabled={loading || !cpf}
+              disabled={loading || !cpf || cpf.replace(/\D/g, '').length !== 11}
             >
               {loading ? (
                 <>

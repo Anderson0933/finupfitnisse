@@ -15,6 +15,8 @@ serve(async (req) => {
   try {
     const { userEmail, amount, userId, cpf } = await req.json()
     
+    console.log('Dados recebidos:', { userEmail, amount, userId, cpf })
+    
     if (!cpf) {
       throw new Error('CPF é obrigatório para gerar PIX')
     }
@@ -36,6 +38,10 @@ serve(async (req) => {
     // Primeiro, criar/verificar cliente no Asaas
     let customerId
     
+    // Limpar CPF removendo caracteres especiais
+    const cleanCpf = cpf.replace(/\D/g, '')
+    console.log('CPF limpo:', cleanCpf)
+
     const customerResponse = await fetch('https://www.asaas.com/api/v3/customers', {
       method: 'POST',
       headers: {
@@ -45,19 +51,22 @@ serve(async (req) => {
       body: JSON.stringify({
         name: userEmail.split('@')[0],
         email: userEmail,
-        cpfCnpj: cpf.replace(/\D/g, ''), // Remove caracteres não numéricos
+        cpfCnpj: cleanCpf,
         externalReference: userId
       })
     })
 
+    const customerResponseText = await customerResponse.text()
+    console.log('Resposta do cliente:', customerResponseText)
+
     let customerData
     if (customerResponse.ok) {
-      customerData = await customerResponse.json()
+      customerData = JSON.parse(customerResponseText)
       customerId = customerData.id
       console.log('Cliente criado:', customerId)
     } else {
-      // Se cliente já existe, buscar pelo email
-      const searchResponse = await fetch(`https://www.asaas.com/api/v3/customers?email=${userEmail}`, {
+      // Se cliente já existe, buscar pelo email ou CPF
+      const searchResponse = await fetch(`https://www.asaas.com/api/v3/customers?email=${userEmail}&cpfCnpj=${cleanCpf}`, {
         headers: {
           'access_token': asaasApiKey
         }
@@ -65,40 +74,63 @@ serve(async (req) => {
       
       if (searchResponse.ok) {
         const searchData = await searchResponse.json()
+        console.log('Busca de cliente:', searchData)
         if (searchData.data && searchData.data.length > 0) {
           customerId = searchData.data[0].id
           console.log('Cliente encontrado:', customerId)
+        } else {
+          throw new Error('Não foi possível criar ou encontrar cliente no Asaas')
         }
+      } else {
+        throw new Error('Erro ao buscar cliente existente no Asaas')
       }
+    }
+
+    if (!customerId) {
+      throw new Error('ID do cliente não foi definido')
     }
 
     console.log('Criando cobrança PIX no Asaas (produção)...')
 
     // Criar cobrança PIX no Asaas (produção)
+    const paymentPayload = {
+      customer: customerId,
+      billingType: 'PIX',
+      value: amount,
+      dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 24 horas
+      description: 'Assinatura FitAI Pro - Mensal',
+      externalReference: userId
+    }
+
+    console.log('Payload do pagamento:', JSON.stringify(paymentPayload))
+
     const asaasResponse = await fetch('https://www.asaas.com/api/v3/payments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'access_token': asaasApiKey
       },
-      body: JSON.stringify({
-        customer: customerId,
-        billingType: 'PIX',
-        value: amount,
-        dueDate: new Date().toISOString().split('T')[0],
-        description: 'Assinatura FitAI Pro - Mensal',
-        externalReference: userId
-      })
+      body: JSON.stringify(paymentPayload)
     })
 
+    const asaasResponseText = await asaasResponse.text()
+    console.log('Resposta do pagamento:', asaasResponseText)
+
     if (!asaasResponse.ok) {
-      const errorText = await asaasResponse.text()
-      console.error('Erro na resposta do Asaas:', errorText)
-      throw new Error('Erro ao criar cobrança no Asaas')
+      console.error('Erro na resposta do Asaas:', asaasResponseText)
+      throw new Error(`Erro ao criar cobrança no Asaas: ${asaasResponseText}`)
     }
 
-    const paymentData = await asaasResponse.json()
-    console.log('Cobrança criada com sucesso:', paymentData.id)
+    const paymentData = JSON.parse(asaasResponseText)
+    console.log('Dados do pagamento:', JSON.stringify(paymentData))
+
+    // Verificar se temos os dados do PIX
+    if (!paymentData.pixTransaction || !paymentData.pixTransaction.payload) {
+      console.error('Dados do PIX não encontrados na resposta:', paymentData)
+      throw new Error('Dados do PIX não foram gerados. Verifique a configuração do Asaas.')
+    }
+
+    console.log('Cobrança PIX criada com sucesso:', paymentData.id)
 
     // Salvar no banco de dados
     const { error } = await supabaseClient
@@ -115,13 +147,17 @@ serve(async (req) => {
       throw error
     }
 
+    const responseData = {
+      paymentId: paymentData.id,
+      pixCode: paymentData.pixTransaction?.payload || null,
+      qrCodeImage: paymentData.pixTransaction?.qrCodeImage || null,
+      expirationDate: paymentData.pixTransaction?.expirationDate || null
+    }
+
+    console.log('Resposta final:', JSON.stringify(responseData))
+
     return new Response(
-      JSON.stringify({
-        paymentId: paymentData.id,
-        pixCode: paymentData.pixTransaction?.payload,
-        qrCodeImage: paymentData.pixTransaction?.qrCodeImage,
-        expirationDate: paymentData.pixTransaction?.expirationDate
-      }),
+      JSON.stringify(responseData),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
