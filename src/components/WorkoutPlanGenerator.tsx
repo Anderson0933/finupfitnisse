@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,16 +60,23 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     setWorkoutPlan(''); // Limpar plano anterior
     
     try {
-      console.log('Enviando dados para gerar plano:', { userProfile: formData, userId: user.id });
+      console.log('Enviando dados para gerar plano:', formData);
 
-      // Mapear fitnessLevel para o formato correto esperado pela função
+      // Mapear dados do formulário para o formato esperado
       const mappedFormData = {
-        ...formData,
+        age: formData.age,
+        gender: formData.gender,
+        weight: formData.weight,
+        height: formData.height,
         fitness_level: formData.fitnessLevel,
         fitness_goals: [formData.goals],
         available_days: 3,
-        session_duration: parseInt(formData.availableTime) || 60
+        session_duration: parseInt(formData.availableTime) || 60,
+        equipment: formData.equipment,
+        limitations: formData.limitations
       };
+
+      console.log('Dados mapeados:', mappedFormData);
 
       const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
         body: { 
@@ -90,44 +96,48 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
         throw new Error('Nenhuma resposta foi retornada');
       }
 
-      console.log('Dados recebidos:', data);
+      console.log('Dados recebidos completos:', JSON.stringify(data, null, 2));
 
-      // Formatar o plano de treino baseado na estrutura dos dados
+      // Formatar o plano de treino
       let planText = '';
       
-      // Verificar se é um objeto estruturado ou string
-      if (typeof data === 'object' && data !== null) {
+      if (data && typeof data === 'object') {
+        // Se temos um título, adicionar
         if (data.title) {
-          planText = `${data.title}\n\n`;
+          planText += `📋 ${data.title}\n\n`;
         }
         
+        // Se temos uma descrição, adicionar
         if (data.description) {
-          planText += `${data.description}\n\n`;
+          planText += `📝 ${data.description}\n\n`;
         }
         
+        // Informações do plano
         if (data.duration_weeks) {
-          planText += `DURAÇÃO: ${data.duration_weeks} semanas\n`;
+          planText += `⏱️ DURAÇÃO: ${data.duration_weeks} semanas\n`;
         }
         
         if (data.difficulty_level) {
-          planText += `NÍVEL: ${data.difficulty_level}\n\n`;
+          planText += `📊 NÍVEL: ${data.difficulty_level.toUpperCase()}\n\n`;
         }
         
-        if (data.exercises && Array.isArray(data.exercises)) {
-          planText += `EXERCÍCIOS:\n\n`;
+        // Exercícios
+        if (data.exercises && Array.isArray(data.exercises) && data.exercises.length > 0) {
+          planText += `💪 EXERCÍCIOS:\n\n`;
           
           data.exercises.forEach((exercise: any, index: number) => {
-            planText += `${index + 1}. ${exercise.name}\n`;
-            if (exercise.sets) planText += `   - Séries: ${exercise.sets}\n`;
-            if (exercise.reps) planText += `   - Repetições: ${exercise.reps}\n`;
-            if (exercise.rest) planText += `   - Descanso: ${exercise.rest}\n`;
-            if (exercise.instructions) planText += `   - Instruções: ${exercise.instructions}\n`;
-            planText += `\n`;
+            planText += `${index + 1}. ${exercise.name || 'Exercício'}\n`;
+            if (exercise.sets) planText += `   📊 Séries: ${exercise.sets}\n`;
+            if (exercise.reps) planText += `   🔢 Repetições: ${exercise.reps}\n`;
+            if (exercise.rest) planText += `   ⏰ Descanso: ${exercise.rest}\n`;
+            if (exercise.instructions) planText += `   📋 Instruções: ${exercise.instructions}\n`;
+            planText += '\n';
           });
         }
 
+        // Dicas nutricionais
         if (data.nutrition_tips && Array.isArray(data.nutrition_tips) && data.nutrition_tips.length > 0) {
-          planText += `DICAS NUTRICIONAIS:\n\n`;
+          planText += `🥗 DICAS NUTRICIONAIS:\n\n`;
           data.nutrition_tips.forEach((tip: string, index: number) => {
             planText += `${index + 1}. ${tip}\n`;
           });
@@ -135,13 +145,13 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       } else if (typeof data === 'string') {
         planText = data;
       } else {
-        // Fallback para qualquer outro formato
+        // Último recurso - converter para string
         planText = JSON.stringify(data, null, 2);
       }
 
-      console.log('Plano formatado:', planText);
+      console.log('Plano formatado final:', planText);
 
-      if (!planText || planText.trim() === '') {
+      if (!planText || planText.trim() === '' || planText.trim() === '{}') {
         throw new Error('Plano de treino vazio foi retornado');
       }
 
