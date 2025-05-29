@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Plus, Edit, Trash2 } from 'lucide-react';
+import { Dumbbell, Plus, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface WorkoutPlan {
   id: string;
@@ -18,6 +17,7 @@ interface WorkoutPlan {
   difficulty_level: string;
   duration_weeks: number;
   exercises: Exercise[];
+  nutrition_tips?: string[];
   created_at: string;
 }
 
@@ -38,9 +38,9 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Dados do formulário
   const [formData, setFormData] = useState({
     age: '',
     gender: '',
@@ -81,7 +81,8 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     if (data) {
       const formattedPlans = data.map(plan => ({
         ...plan,
-        exercises: Array.isArray(plan.exercises) ? plan.exercises as unknown as Exercise[] : []
+        exercises: Array.isArray(plan.exercises) ? plan.exercises as unknown as Exercise[] : [],
+        nutrition_tips: Array.isArray(plan.nutrition_tips) ? plan.nutrition_tips as unknown as string[] : []
       }));
       setWorkoutPlans(formattedPlans);
     }
@@ -163,6 +164,10 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     });
 
     fetchWorkoutPlans();
+  };
+
+  const togglePlanExpansion = (planId: string) => {
+    setExpandedPlan(expandedPlan === planId ? null : planId);
   };
 
   if (showForm) {
@@ -309,13 +314,26 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
             <Card key={plan.id} className="glass border-white/20">
               <CardHeader>
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1">
                     <CardTitle className="text-white">{plan.title}</CardTitle>
-                    <CardDescription className="text-blue-200">
+                    <CardDescription className="text-blue-200 mt-1">
                       {plan.description}
                     </CardDescription>
+                    <div className="flex gap-4 text-sm text-blue-200 mt-2">
+                      <span>Nível: {plan.difficulty_level}</span>
+                      <span>Duração: {plan.duration_weeks} semanas</span>
+                      <span>Exercícios: {plan.exercises?.length || 0}</span>
+                    </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => togglePlanExpansion(plan.id)}
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      {expandedPlan === plan.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
                     <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -330,13 +348,50 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="flex gap-4 text-sm text-blue-200">
-                  <span>Nível: {plan.difficulty_level}</span>
-                  <span>Duração: {plan.duration_weeks} semanas</span>
-                  <span>Exercícios: {plan.exercises?.length || 0}</span>
-                </div>
-              </CardContent>
+              
+              {expandedPlan === plan.id && (
+                <CardContent className="pt-0">
+                  <div className="space-y-6">
+                    {/* Exercícios */}
+                    {plan.exercises && plan.exercises.length > 0 && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-3">Exercícios:</h4>
+                        <div className="space-y-4">
+                          {plan.exercises.map((exercise, index) => (
+                            <div key={index} className="bg-white/5 p-4 rounded-lg border border-white/10">
+                              <div className="flex justify-between items-start mb-2">
+                                <h5 className="text-white font-medium">{exercise.name}</h5>
+                                <div className="text-sm text-blue-200">
+                                  {exercise.sets} séries × {exercise.reps} reps
+                                </div>
+                              </div>
+                              <p className="text-blue-200 text-sm mb-2">{exercise.instructions}</p>
+                              <p className="text-xs text-blue-300">Descanso: {exercise.rest}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Dicas de Nutrição */}
+                    {plan.nutrition_tips && plan.nutrition_tips.length > 0 && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-3">Dicas de Nutrição:</h4>
+                        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                          <ul className="space-y-2">
+                            {plan.nutrition_tips.map((tip, index) => (
+                              <li key={index} className="text-blue-200 text-sm flex items-start">
+                                <span className="text-green-400 mr-2">•</span>
+                                {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              )}
             </Card>
           ))}
         </div>
