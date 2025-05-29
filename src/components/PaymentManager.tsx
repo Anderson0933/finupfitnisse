@@ -4,8 +4,10 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { QrCode, CreditCard, Check, RefreshCw, Sparkles } from 'lucide-react';
+import { QrCode, CreditCard, Check, RefreshCw, Sparkles, User as UserIcon } from 'lucide-react';
 
 interface PaymentManagerProps {
   user: User | null;
@@ -16,10 +18,27 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+  const [cpf, setCpf] = useState('');
   const { toast } = useToast();
 
+  const formatCPF = (value: string) => {
+    const cleaned = value.replace(/\D/g, '');
+    const match = cleaned.match(/^(\d{3})(\d{3})(\d{3})(\d{2})$/);
+    if (match) {
+      return `${match[1]}.${match[2]}.${match[3]}-${match[4]}`;
+    }
+    return cleaned;
+  };
+
   const createSubscription = async () => {
-    if (!user) return;
+    if (!user || !cpf) {
+      toast({
+        title: "CPF obrigatório",
+        description: "Por favor, informe seu CPF para gerar o PIX.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -27,7 +46,8 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
         body: { 
           userEmail: user.email,
           amount: 69.90,
-          userId: user.id
+          userId: user.id,
+          cpf: cpf
         }
       });
 
@@ -71,7 +91,6 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
           description: "Sua assinatura foi ativada com sucesso. Redirecionando...",
         });
         
-        // Recarregar a página para atualizar o status da assinatura
         setTimeout(() => {
           window.location.reload();
         }, 2000);
@@ -142,7 +161,7 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
             <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
               <CreditCard className="h-8 w-8 text-white" />
             </div>
-            <CardTitle className="text-blue-800 text-xl md:text-2xl">Renovar Assinatura</CardTitle>
+            <CardTitle className="text-blue-800 text-xl md:text-2xl">Ativar Assinatura</CardTitle>
             <CardDescription className="text-blue-600">
               Continue aproveitando todos os recursos do FitAI Pro
             </CardDescription>
@@ -172,10 +191,25 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
               </div>
             </div>
 
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <UserIcon className="h-4 w-4 text-blue-600" />
+                <Label className="text-blue-800 font-medium">CPF (obrigatório para PIX)</Label>
+              </div>
+              <Input
+                type="text"
+                placeholder="000.000.000-00"
+                value={cpf}
+                onChange={(e) => setCpf(formatCPF(e.target.value))}
+                maxLength={14}
+                className="border-blue-200 focus:border-blue-400"
+              />
+            </div>
+
             <Button 
               onClick={createSubscription} 
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-base md:text-lg"
-              disabled={loading}
+              disabled={loading || !cpf}
             >
               {loading ? (
                 <>

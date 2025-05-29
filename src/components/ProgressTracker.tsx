@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, TrendingUp, Calendar, User as UserIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface ProgressEntry {
@@ -118,20 +118,31 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Acompanhamento de Evolução</h2>
-        <Button onClick={() => setShowForm(true)} className="glow-button">
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold text-blue-800">Acompanhamento de Evolução</h2>
+          <p className="text-blue-600 mt-1">Registre e acompanhe seu progresso</p>
+        </div>
+        <Button 
+          onClick={() => setShowForm(true)} 
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Registrar Progresso
         </Button>
       </div>
 
+      {/* Form */}
       {showForm && (
-        <Card className="glass border-white/20">
+        <Card className="bg-white border-blue-200 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-white">Registrar Progresso</CardTitle>
-            <CardDescription className="text-blue-200">
+            <CardTitle className="text-blue-800 flex items-center gap-2">
+              <UserIcon className="h-5 w-5" />
+              Registrar Progresso
+            </CardTitle>
+            <CardDescription className="text-blue-600">
               Acompanhe sua evolução registrando suas medidas
             </CardDescription>
           </CardHeader>
@@ -139,67 +150,71 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white">Data</Label>
+                  <Label className="text-blue-800">Data</Label>
                   <Input
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({...formData, date: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white"
+                    className="border-blue-200 focus:border-blue-400"
                     required
                   />
                 </div>
                 <div>
-                  <Label className="text-white">Peso (kg)</Label>
+                  <Label className="text-blue-800">Peso (kg)</Label>
                   <Input
                     type="number"
                     step="0.1"
                     value={formData.weight}
                     onChange={(e) => setFormData({...formData, weight: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white"
+                    className="border-blue-200 focus:border-blue-400"
                     placeholder="Ex: 70.5"
                   />
                 </div>
                 <div>
-                  <Label className="text-white">% Gordura Corporal</Label>
+                  <Label className="text-blue-800">% Gordura Corporal</Label>
                   <Input
                     type="number"
                     step="0.1"
                     value={formData.body_fat_percentage}
                     onChange={(e) => setFormData({...formData, body_fat_percentage: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white"
+                    className="border-blue-200 focus:border-blue-400"
                     placeholder="Ex: 15.5"
                   />
                 </div>
                 <div>
-                  <Label className="text-white">Massa Muscular (kg)</Label>
+                  <Label className="text-blue-800">Massa Muscular (kg)</Label>
                   <Input
                     type="number"
                     step="0.1"
                     value={formData.muscle_mass}
                     onChange={(e) => setFormData({...formData, muscle_mass: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white"
+                    className="border-blue-200 focus:border-blue-400"
                     placeholder="Ex: 45.2"
                   />
                 </div>
               </div>
               <div>
-                <Label className="text-white">Observações</Label>
+                <Label className="text-blue-800">Observações</Label>
                 <Textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  className="bg-white/10 border-white/20 text-white"
+                  className="border-blue-200 focus:border-blue-400"
                   placeholder="Como você se sente? Alguma observação sobre o treino?"
                 />
               </div>
               <div className="flex gap-4">
-                <Button type="submit" disabled={loading} className="glow-button">
+                <Button 
+                  type="submit" 
+                  disabled={loading} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
                   {loading ? 'Salvando...' : 'Salvar Progresso'}
                 </Button>
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => setShowForm(false)}
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
                 >
                   Cancelar
                 </Button>
@@ -209,10 +224,11 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
         </Card>
       )}
 
+      {/* Chart */}
       {progressData.length > 0 && (
-        <Card className="glass border-white/20">
+        <Card className="bg-white border-blue-200 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-blue-800 flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
               Gráfico de Evolução
             </CardTitle>
@@ -221,13 +237,13 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="date" stroke="rgba(255,255,255,0.7)" />
-                  <YAxis stroke="rgba(255,255,255,0.7)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
+                  <XAxis dataKey="date" stroke="#1e40af" />
+                  <YAxis stroke="#1e40af" />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: 'rgba(0,0,0,0.8)', 
-                      border: '1px solid rgba(255,255,255,0.2)',
+                      backgroundColor: 'white', 
+                      border: '1px solid #3b82f6',
                       borderRadius: '8px'
                     }}
                   />
@@ -241,34 +257,39 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
         </Card>
       )}
 
+      {/* Recent entries */}
       <div className="grid gap-4">
         {progressData.slice(-5).reverse().map((entry) => (
-          <Card key={entry.id} className="glass border-white/20">
+          <Card key={entry.id} className="bg-white border-blue-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 text-white">
+                <div className="flex items-center gap-2 text-blue-800">
                   <Calendar className="h-4 w-4" />
                   {new Date(entry.date).toLocaleDateString('pt-BR')}
                 </div>
-                <div className="text-blue-200 text-sm">
+                <div className="text-blue-600 text-sm font-medium">
                   Peso: {entry.weight}kg
                 </div>
               </div>
               {entry.notes && (
-                <p className="text-blue-200 text-sm">{entry.notes}</p>
+                <p className="text-blue-600 text-sm">{entry.notes}</p>
               )}
             </CardContent>
           </Card>
         ))}
       </div>
 
+      {/* Empty state */}
       {progressData.length === 0 && (
-        <Card className="glass border-white/20">
+        <Card className="bg-white border-blue-200 shadow-lg">
           <CardContent className="p-8 text-center">
-            <TrendingUp className="h-16 w-16 text-white/50 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Nenhum registro encontrado</h3>
-            <p className="text-blue-200 mb-4">Comece a registrar seu progresso para acompanhar sua evolução</p>
-            <Button onClick={() => setShowForm(true)} className="glow-button">
+            <TrendingUp className="h-16 w-16 text-blue-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-blue-800 mb-2">Nenhum registro encontrado</h3>
+            <p className="text-blue-600 mb-4">Comece a registrar seu progresso para acompanhar sua evolução</p>
+            <Button 
+              onClick={() => setShowForm(true)} 
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
               Primeiro Registro
             </Button>
           </CardContent>

@@ -13,7 +13,11 @@ serve(async (req) => {
   }
 
   try {
-    const { userEmail, amount, userId } = await req.json()
+    const { userEmail, amount, userId, cpf } = await req.json()
+    
+    if (!cpf) {
+      throw new Error('CPF é obrigatório para gerar PIX')
+    }
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -30,7 +34,7 @@ serve(async (req) => {
     console.log('Criando/verificando cliente no Asaas...')
 
     // Primeiro, criar/verificar cliente no Asaas
-    let customerId = userEmail.replace('@', '_').replace('.', '_')
+    let customerId
     
     const customerResponse = await fetch('https://www.asaas.com/api/v3/customers', {
       method: 'POST',
@@ -41,6 +45,7 @@ serve(async (req) => {
       body: JSON.stringify({
         name: userEmail.split('@')[0],
         email: userEmail,
+        cpfCnpj: cpf.replace(/\D/g, ''), // Remove caracteres não numéricos
         externalReference: userId
       })
     })

@@ -6,7 +6,7 @@ import { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard } from 'lucide-react';
+import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock } from 'lucide-react';
 import WorkoutPlanGenerator from '@/components/WorkoutPlanGenerator';
 import AIAssistant from '@/components/AIAssistant';
 import ProgressTracker from '@/components/ProgressTracker';
@@ -85,6 +85,36 @@ const Dashboard = () => {
     navigate('/');
   };
 
+  const hasAccess = hasActiveSubscription || isInTrialPeriod;
+
+  const LockedFeature = ({ children, title }: { children: React.ReactNode, title: string }) => {
+    if (hasAccess) {
+      return <>{children}</>;
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-50 rounded-lg">
+        <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center mb-4">
+          <Lock className="h-8 w-8 text-gray-500" />
+        </div>
+        <h3 className="text-xl font-semibold text-gray-700 mb-2">{title} Bloqueado</h3>
+        <p className="text-gray-600 mb-4">
+          Sua assinatura expirou. Renove para continuar usando este recurso.
+        </p>
+        <Button 
+          onClick={() => {
+            const paymentTab = document.querySelector('[data-value="payment"]') as HTMLElement;
+            paymentTab?.click();
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <CreditCard className="h-4 w-4 mr-2" />
+          Renovar Assinatura
+        </Button>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
@@ -117,7 +147,7 @@ const Dashboard = () => {
             <div className="flex items-center space-x-2 md:space-x-4">
               <div className="text-right hidden md:block">
                 <p className="text-blue-800 font-medium text-sm md:text-base">Olá, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}</p>
-                {isInTrialPeriod && (
+                {isInTrialPeriod && !hasActiveSubscription && (
                   <span className="text-blue-700 text-xs md:text-sm font-medium bg-blue-100 px-2 py-1 rounded-full">
                     🎉 Período gratuito ativo
                   </span>
@@ -125,6 +155,11 @@ const Dashboard = () => {
                 {hasActiveSubscription && (
                   <span className="text-green-700 text-xs md:text-sm font-medium bg-green-100 px-2 py-1 rounded-full">
                     ✅ Plano ativo
+                  </span>
+                )}
+                {!hasAccess && (
+                  <span className="text-red-700 text-xs md:text-sm font-medium bg-red-100 px-2 py-1 rounded-full">
+                    ⚠️ Assinatura expirada
                   </span>
                 )}
               </div>
@@ -153,11 +188,14 @@ const Dashboard = () => {
                     Bem-vindo ao seu centro de fitness!
                   </h2>
                   <p className="text-blue-600 text-sm md:text-base">
-                    Explore nossos assistentes de IA para transformar seus objetivos em resultados
+                    {hasAccess 
+                      ? "Explore nossos assistentes de IA para transformar seus objetivos em resultados"
+                      : "Sua assinatura expirou. Renove para continuar aproveitando todos os recursos."
+                    }
                   </p>
                   {/* Status mobile */}
                   <div className="mt-2 md:hidden">
-                    {isInTrialPeriod && (
+                    {isInTrialPeriod && !hasActiveSubscription && (
                       <span className="text-blue-700 text-xs font-medium bg-blue-100 px-2 py-1 rounded-full">
                         🎉 Período gratuito ativo
                       </span>
@@ -165,6 +203,11 @@ const Dashboard = () => {
                     {hasActiveSubscription && (
                       <span className="text-green-700 text-xs font-medium bg-green-100 px-2 py-1 rounded-full">
                         ✅ Plano ativo
+                      </span>
+                    )}
+                    {!hasAccess && (
+                      <span className="text-red-700 text-xs font-medium bg-red-100 px-2 py-1 rounded-full">
+                        ⚠️ Assinatura expirada
                       </span>
                     )}
                   </div>
@@ -179,11 +222,12 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="workout" className="w-full">
+        <Tabs defaultValue={hasAccess ? "workout" : "payment"} className="w-full">
           <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
             <TabsTrigger 
               value="workout" 
               className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
+              disabled={!hasAccess}
             >
               <Dumbbell className="h-4 w-4" />
               <span className="text-xs md:text-sm">Treinos</span>
@@ -191,6 +235,7 @@ const Dashboard = () => {
             <TabsTrigger 
               value="assistant" 
               className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
+              disabled={!hasAccess}
             >
               <MessageCircle className="h-4 w-4" />
               <span className="text-xs md:text-sm">Assistente</span>
@@ -198,6 +243,7 @@ const Dashboard = () => {
             <TabsTrigger 
               value="progress" 
               className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
+              disabled={!hasAccess}
             >
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs md:text-sm">Evolução</span>
@@ -205,12 +251,14 @@ const Dashboard = () => {
             <TabsTrigger 
               value="nutrition" 
               className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
+              disabled={!hasAccess}
             >
               <Apple className="h-4 w-4" />
               <span className="text-xs md:text-sm">Nutrição</span>
             </TabsTrigger>
             <TabsTrigger 
               value="payment" 
+              data-value="payment"
               className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
             >
               <CreditCard className="h-4 w-4" />
@@ -219,19 +267,27 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="workout">
-            <WorkoutPlanGenerator user={user} />
+            <LockedFeature title="Treinos">
+              <WorkoutPlanGenerator user={user} />
+            </LockedFeature>
           </TabsContent>
 
           <TabsContent value="assistant">
-            <AIAssistant user={user} />
+            <LockedFeature title="Assistente">
+              <AIAssistant user={user} />
+            </LockedFeature>
           </TabsContent>
 
           <TabsContent value="progress">
-            <ProgressTracker user={user} />
+            <LockedFeature title="Evolução">
+              <ProgressTracker user={user} />
+            </LockedFeature>
           </TabsContent>
 
           <TabsContent value="nutrition">
-            <NutritionAssistant user={user} />
+            <LockedFeature title="Nutrição">
+              <NutritionAssistant user={user} />
+            </LockedFeature>
           </TabsContent>
 
           <TabsContent value="payment">
