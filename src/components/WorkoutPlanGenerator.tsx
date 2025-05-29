@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -113,6 +112,36 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       }));
       setWorkoutPlans(formattedPlans);
     }
+  };
+
+  const togglePlanExpansion = (planId: string) => {
+    setExpandedPlan(expandedPlan === planId ? null : planId);
+  };
+
+  const deletePlan = async (planId: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('workout_plans')
+      .delete()
+      .eq('id', planId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast({
+        title: "Erro ao deletar plano",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Plano deletado",
+      description: "O plano de treino foi removido com sucesso.",
+    });
+
+    fetchWorkoutPlans();
   };
 
   const handleGoalChange = (goal: string, checked: boolean) => {
@@ -291,7 +320,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               </div>
             )}
 
-            {/* Etapa 2: Objetivos e Foco */}
             {currentStep === 2 && (
               <div className="space-y-6">
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
@@ -367,7 +395,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               </div>
             )}
 
-            {/* Etapa 3: Disponibilidade */}
             {currentStep === 3 && (
               <div className="space-y-6">
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
@@ -453,7 +480,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               </div>
             )}
 
-            {/* Etapa 4: Limitações e Preferências */}
             {currentStep === 4 && (
               <div className="space-y-6">
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
