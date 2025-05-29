@@ -41,9 +41,10 @@ serve(async (req) => {
       const timeDiff = now.getTime() - createdAt.getTime()
       const minutesDiff = timeDiff / (1000 * 60)
 
-      // Se existe uma cobrança pendente criada há menos de 5 minutos, retornar erro
+      // Se existe uma cobrança pendente criada há menos de 5 minutos, retornar erro específico
       if (minutesDiff < 5) {
-        throw new Error('Você já tem uma cobrança pendente recente. Aguarde ou utilize a existente.')
+        const timeLeft = Math.ceil(5 - minutesDiff)
+        throw new Error(`Você já tem uma cobrança PIX pendente. Aguarde ${timeLeft} minuto(s) ou complete o pagamento da cobrança atual antes de gerar uma nova.`)
       } else {
         // Se passou mais de 5 minutos, cancelar a cobrança antiga
         await supabaseClient
