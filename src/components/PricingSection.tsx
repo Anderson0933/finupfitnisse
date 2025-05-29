@@ -73,12 +73,14 @@ const PricingSection = () => {
 
             {/* CTA Button */}
             <Button 
-              size="lg" 
-              className="w-full bg-white text-blue-600 hover:bg-gray-100 font-bold py-4 text-lg glow-button"
+             size="lg" 
+             className="w-full bg-white text-blue-600 hover:bg-gray-100 font-bold py-4 text-lg glow-button"
+             onClick={() => window.location.href = '/auth'}
             >
-              <Zap className="h-5 w-5 mr-2" />
-              Começar Minha Transformação
+            <Zap className="h-5 w-5 mr-2" />
+            Começar Minha Transformação
             </Button>
+
 
             {/* Guarantee */}
             <div className="text-center mt-6 text-sm text-blue-200">
