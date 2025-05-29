@@ -8,9 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface WorkoutPlanGeneratorProps {
   user: User | null;
@@ -30,10 +30,12 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     limitations: ''
   });
   const [workoutPlan, setWorkoutPlan] = useState('');
+  const [debugInfo, setDebugInfo] = useState('');
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    console.log(`Campo ${field} atualizado para:`, value);
   };
 
   const generateWorkoutPlan = async () => {
@@ -52,7 +54,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     if (missingFields.length > 0) {
       toast({
         title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        description: `Por favor, preencha: ${missingFields.join(', ')}`,
         variant: "destructive",
       });
       return;
@@ -60,9 +62,11 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
 
     setLoading(true);
     setWorkoutPlan('');
+    setDebugInfo('Iniciando geração do plano...');
     
     try {
-      console.log('Enviando dados para gerar plano:', formData);
+      console.log('🔥 INICIANDO GERAÇÃO DO PLANO');
+      console.log('📋 Dados do formulário:', formData);
 
       const sessionDuration = formData.availableTime ? parseInt(formData.availableTime.replace(/\D/g, '')) || 60 : 60;
 
@@ -82,24 +86,27 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
         userId: user.id 
       };
 
-      console.log('Dados da requisição:', requestData);
+      console.log('📤 Enviando para a API:', requestData);
+      setDebugInfo(prev => prev + '\nEnviando dados para API...');
 
       const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
         body: requestData
       });
 
-      console.log('Resposta da função:', { data, error });
+      console.log('📥 Resposta da API:', { data, error });
+      setDebugInfo(prev => prev + `\nResposta recebida: ${JSON.stringify({ data, error })}`);
 
       if (error) {
-        console.error('Erro da função:', error);
+        console.error('❌ Erro da função:', error);
         throw new Error(error.message || 'Erro ao gerar plano de treino');
       }
 
       if (!data) {
+        console.error('❌ Nenhuma resposta foi retornada');
         throw new Error('Nenhuma resposta foi retornada');
       }
 
-      console.log('Dados recebidos:', data);
+      console.log('✅ Dados recebidos da API:', data);
 
       let planText = '';
       
@@ -145,20 +152,32 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
         planText = JSON.stringify(data, null, 2);
       }
 
-      console.log('Plano formatado:', planText);
+      console.log('📋 Plano formatado final:', planText);
+      setDebugInfo(prev => prev + `\nPlano formatado: ${planText.substring(0, 100)}...`);
 
       if (!planText || planText.trim() === '' || planText.trim() === '{}') {
+        console.error('❌ Plano de treino vazio');
         throw new Error('Plano de treino vazio foi retornado');
       }
 
+      console.log('✅ DEFININDO PLANO NO STATE:', planText);
       setWorkoutPlan(planText);
+      setDebugInfo(prev => prev + '\n✅ Plano definido no state com sucesso!');
       
       toast({
         title: "Plano gerado com sucesso!",
         description: "Seu plano de treino personalizado está pronto. Veja na aba 'Seu Plano'.",
       });
+
+      // Forçar mudança para a aba do plano
+      setTimeout(() => {
+        const planTab = document.querySelector('[value="plan"]') as HTMLElement;
+        planTab?.click();
+      }, 500);
+
     } catch (error: any) {
-      console.error('Erro ao gerar plano:', error);
+      console.error('💥 Erro ao gerar plano:', error);
+      setDebugInfo(prev => prev + `\n❌ ERRO: ${error.message}`);
       toast({
         title: "Erro ao gerar plano",
         description: error.message || 'Erro desconhecido ao gerar plano de treino',
@@ -321,56 +340,77 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               </div>
 
               <div>
-                <Label htmlFor="goals" className="text-blue-700 font-medium flex items-center gap-2">
+                <Label className="text-blue-700 font-medium flex items-center gap-2">
                   <Target className="h-4 w-4" />
-                  Objetivos *
+                  Objetivo Principal *
                 </Label>
-                <Textarea
-                  id="goals"
-                  placeholder="Ex: Perder peso, ganhar massa muscular, melhorar condicionamento..."
-                  value={formData.goals}
-                  onChange={(e) => handleInputChange('goals', e.target.value)}
-                  className="border-blue-200 focus:border-blue-400 mt-2"
-                  rows={3}
-                />
+                <Select value={formData.goals} onValueChange={(value) => handleInputChange('goals', value)}>
+                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
+                    <SelectValue placeholder="Selecione seu objetivo principal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="perder_peso">🔥 Perder peso</SelectItem>
+                    <SelectItem value="ganhar_massa">💪 Ganhar massa muscular</SelectItem>
+                    <SelectItem value="tonificar">⚡ Tonificar o corpo</SelectItem>
+                    <SelectItem value="condicionamento">🏃 Melhorar condicionamento</SelectItem>
+                    <SelectItem value="forca">🏋️ Aumentar força</SelectItem>
+                    <SelectItem value="flexibilidade">🤸 Melhorar flexibilidade</SelectItem>
+                    <SelectItem value="geral">🎯 Fitness geral</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <Label htmlFor="availableTime" className="text-blue-700 font-medium flex items-center gap-2">
+                <Label className="text-blue-700 font-medium flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   Tempo Disponível por Treino
                 </Label>
-                <Input
-                  id="availableTime"
-                  placeholder="Ex: 60 minutos"
-                  value={formData.availableTime}
-                  onChange={(e) => handleInputChange('availableTime', e.target.value)}
-                  className="border-blue-200 focus:border-blue-400 mt-2"
-                />
+                <Select value={formData.availableTime} onValueChange={(value) => handleInputChange('availableTime', value)}>
+                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
+                    <SelectValue placeholder="Selecione o tempo disponível" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">⏰ 30 minutos</SelectItem>
+                    <SelectItem value="45">⏰ 45 minutos</SelectItem>
+                    <SelectItem value="60">⏰ 60 minutos</SelectItem>
+                    <SelectItem value="90">⏰ 90 minutos</SelectItem>
+                    <SelectItem value="120">⏰ 2 horas</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <Label htmlFor="equipment" className="text-blue-700 font-medium">Equipamentos Disponíveis</Label>
-                <Textarea
-                  id="equipment"
-                  placeholder="Ex: Academia completa, halteres em casa, apenas peso corporal..."
-                  value={formData.equipment}
-                  onChange={(e) => handleInputChange('equipment', e.target.value)}
-                  className="border-blue-200 focus:border-blue-400 mt-2"
-                  rows={2}
-                />
+                <Label className="text-blue-700 font-medium">Equipamentos Disponíveis</Label>
+                <Select value={formData.equipment} onValueChange={(value) => handleInputChange('equipment', value)}>
+                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
+                    <SelectValue placeholder="Selecione os equipamentos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="academia_completa">🏢 Academia completa</SelectItem>
+                    <SelectItem value="casa_halteres">🏠 Casa com halteres</SelectItem>
+                    <SelectItem value="casa_basico">🏠 Casa equipamentos básicos</SelectItem>
+                    <SelectItem value="peso_corporal">🤸 Apenas peso corporal</SelectItem>
+                    <SelectItem value="parque">🌳 Parque/ar livre</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <Label htmlFor="limitations" className="text-blue-700 font-medium">Limitações ou Lesões</Label>
-                <Textarea
-                  id="limitations"
-                  placeholder="Ex: Dor no joelho, problemas nas costas..."
-                  value={formData.limitations}
-                  onChange={(e) => handleInputChange('limitations', e.target.value)}
-                  className="border-blue-200 focus:border-blue-400 mt-2"
-                  rows={2}
-                />
+                <Label className="text-blue-700 font-medium">Limitações Físicas</Label>
+                <Select value={formData.limitations} onValueChange={(value) => handleInputChange('limitations', value)}>
+                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
+                    <SelectValue placeholder="Selecione se possui limitações" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhuma">✅ Nenhuma limitação</SelectItem>
+                    <SelectItem value="joelho">🦵 Problemas no joelho</SelectItem>
+                    <SelectItem value="costas">🔙 Problemas nas costas</SelectItem>
+                    <SelectItem value="ombro">💪 Problemas no ombro</SelectItem>
+                    <SelectItem value="tornozelo">🦶 Problemas no tornozelo</SelectItem>
+                    <SelectItem value="cardiaco">❤️ Problemas cardíacos</SelectItem>
+                    <SelectItem value="outros">⚠️ Outras limitações</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <Button 
@@ -390,6 +430,14 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                   </>
                 )}
               </Button>
+
+              {/* Debug Info */}
+              {debugInfo && (
+                <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+                  <h4 className="font-semibold text-sm text-gray-700 mb-2">Debug Info:</h4>
+                  <pre className="text-xs text-gray-600 whitespace-pre-wrap">{debugInfo}</pre>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -44,7 +45,7 @@ serve(async (req) => {
       // Se existe uma cobrança pendente criada há menos de 5 minutos, retornar erro específico
       if (minutesDiff < 5) {
         const timeLeft = Math.ceil(5 - minutesDiff)
-        throw new Error(`Você já tem uma cobrança PIX pendente. Aguarde ${timeLeft} minuto(s) ou complete o pagamento da cobrança atual antes de gerar uma nova.`)
+        throw new Error(`Você já tem uma cobrança PIX pendente. Aguarde ${timeLeft} minuto(s) para gerar uma nova cobrança ou complete o pagamento da cobrança atual.`)
       } else {
         // Se passou mais de 5 minutos, cancelar a cobrança antiga
         await supabaseClient
@@ -127,14 +128,19 @@ serve(async (req) => {
 
     console.log('Criando cobrança PIX no Asaas (produção)...')
 
-    // Criar cobrança PIX no Asaas (produção) com referência única
+    // Criar cobrança PIX no Asaas (produção) com referência única e SEM notificações automáticas
     const paymentPayload = {
       customer: customerId,
       billingType: 'PIX',
       value: amount,
       dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       description: `Assinatura FitAI Pro - ${userEmail}`,
-      externalReference: externalReference // Usar referência única para cada cobrança
+      externalReference: externalReference, // Usar referência única para cada cobrança
+      // Desabilitar notificações automáticas do Asaas
+      disableNotifications: true,
+      // Configurações de webhook e notificação desabilitadas
+      enableReminder: false,
+      reminderDays: 0
     }
 
     console.log('Payload do pagamento:', JSON.stringify(paymentPayload))
