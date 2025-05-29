@@ -27,6 +27,46 @@ serve(async (req) => {
       throw new Error('Chave da API Asaas de produção não configurada')
     }
 
+    console.log('Criando/verificando cliente no Asaas...')
+
+    // Primeiro, criar/verificar cliente no Asaas
+    let customerId = userEmail.replace('@', '_').replace('.', '_')
+    
+    const customerResponse = await fetch('https://www.asaas.com/api/v3/customers', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'access_token': asaasApiKey
+      },
+      body: JSON.stringify({
+        name: userEmail.split('@')[0],
+        email: userEmail,
+        externalReference: userId
+      })
+    })
+
+    let customerData
+    if (customerResponse.ok) {
+      customerData = await customerResponse.json()
+      customerId = customerData.id
+      console.log('Cliente criado:', customerId)
+    } else {
+      // Se cliente já existe, buscar pelo email
+      const searchResponse = await fetch(`https://www.asaas.com/api/v3/customers?email=${userEmail}`, {
+        headers: {
+          'access_token': asaasApiKey
+        }
+      })
+      
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json()
+        if (searchData.data && searchData.data.length > 0) {
+          customerId = searchData.data[0].id
+          console.log('Cliente encontrado:', customerId)
+        }
+      }
+    }
+
     console.log('Criando cobrança PIX no Asaas (produção)...')
 
     // Criar cobrança PIX no Asaas (produção)
@@ -37,7 +77,7 @@ serve(async (req) => {
         'access_token': asaasApiKey
       },
       body: JSON.stringify({
-        customer: userEmail,
+        customer: customerId,
         billingType: 'PIX',
         value: amount,
         dueDate: new Date().toISOString().split('T')[0],

@@ -63,7 +63,11 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
       const response = await supabase.functions.invoke('nutrition-assistant', {
         body: { 
           message: inputMessage,
-          userId: user.id
+          userId: user.id,
+          conversationHistory: messages.slice(-10).map(m => ({
+            role: m.isUser ? 'user' : 'assistant',
+            content: m.content
+          }))
         }
       });
 
@@ -71,7 +75,7 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: response.data.response,
+        content: response.data.message || 'Desculpe, não consegui processar sua mensagem.',
         isUser: false,
         timestamp: new Date()
       };
@@ -107,10 +111,10 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Card className="bg-gradient-to-br from-orange-600/20 to-red-600/20 border-white/20 backdrop-blur-sm h-[70vh] flex flex-col">
-        <CardHeader className="border-b border-white/10 flex-shrink-0">
-          <CardTitle className="text-white flex items-center gap-2 text-lg md:text-xl">
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-orange-500 rounded-full flex items-center justify-center">
+      <Card className="bg-white border-green-200 shadow-lg h-[70vh] flex flex-col">
+        <CardHeader className="border-b border-green-100 bg-green-50 flex-shrink-0">
+          <CardTitle className="text-green-800 flex items-center gap-2 text-lg md:text-xl">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-green-600 rounded-full flex items-center justify-center">
               <Apple className="h-4 w-4 md:h-5 md:w-5 text-white" />
             </div>
             Nutricionista Virtual
@@ -119,27 +123,27 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
         
         <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
           {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-gray-50">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex gap-3 ${message.isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!message.isUser && (
-                  <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
                     <Bot className="h-4 w-4 text-white" />
                   </div>
                 )}
                 
                 <div
-                  className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
+                  className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 shadow-sm ${
                     message.isUser
                       ? 'bg-green-600 text-white ml-auto'
-                      : 'bg-white/10 text-white backdrop-blur-sm border border-white/20'
+                      : 'bg-white text-gray-800 border border-green-100'
                   }`}
                 >
                   <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
-                  <span className="text-xs opacity-70 mt-1 block">
+                  <span className={`text-xs mt-1 block ${message.isUser ? 'text-green-100' : 'text-gray-500'}`}>
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -154,12 +158,12 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
             
             {loading && (
               <div className="flex gap-3 justify-start">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
                   <Bot className="h-4 w-4 text-white" />
                 </div>
-                <div className="bg-white/10 text-white backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3">
+                <div className="bg-white text-gray-800 border border-green-100 rounded-2xl px-4 py-3 shadow-sm">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin text-green-600" />
                     <span className="text-sm">Analisando...</span>
                   </div>
                 </div>
@@ -171,8 +175,8 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
 
           {/* Quick questions - only show if no messages yet */}
           {messages.length <= 1 && (
-            <div className="px-4 md:px-6 pb-4">
-              <h3 className="text-white text-sm font-medium mb-3">Perguntas Rápidas</h3>
+            <div className="px-4 md:px-6 pb-4 bg-white border-t border-green-100">
+              <h3 className="text-green-800 text-sm font-medium mb-3">Perguntas Rápidas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {quickQuestions.slice(0, 6).map((question, index) => (
                   <Button
@@ -180,7 +184,7 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
                     variant="outline"
                     size="sm"
                     onClick={() => setInputMessage(question)}
-                    className="border-white/20 text-white hover:bg-white/10 text-xs md:text-sm h-auto py-2 px-3 whitespace-normal text-left justify-start"
+                    className="border-green-200 text-green-700 hover:bg-green-50 text-xs md:text-sm h-auto py-2 px-3 whitespace-normal text-left justify-start"
                   >
                     {question}
                   </Button>
@@ -190,20 +194,20 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
           )}
 
           {/* Input area */}
-          <div className="border-t border-white/10 p-4 md:p-6 flex-shrink-0">
+          <div className="border-t border-green-100 p-4 md:p-6 bg-white flex-shrink-0">
             <div className="flex gap-2 md:gap-3">
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Digite sua pergunta sobre nutrição..."
-                className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:border-orange-400 text-sm md:text-base"
+                className="flex-1 border-green-200 focus:border-green-400 text-sm md:text-base"
                 disabled={loading}
               />
               <Button 
                 onClick={sendMessage}
                 disabled={loading || !inputMessage.trim()}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-4"
+                className="bg-green-600 hover:bg-green-700 text-white px-3 md:px-4"
               >
                 <Send className="h-4 w-4" />
                 <span className="sr-only">Enviar</span>

@@ -87,43 +87,43 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-          <div className="text-white text-xl font-semibold">Carregando seu dashboard...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="text-blue-800 text-xl font-semibold">Carregando seu dashboard...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
       {/* Header responsivo */}
-      <header className="border-b border-white/10 bg-black/30 backdrop-blur-xl">
+      <header className="border-b border-blue-200 bg-white/90 backdrop-blur-xl shadow-sm">
         <div className="container mx-auto px-4 py-4 md:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 md:space-x-3">
-              <div className="p-1.5 md:p-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg">
+              <div className="p-1.5 md:p-2 bg-blue-600 rounded-lg shadow-md">
                 <Dumbbell className="h-6 w-6 md:h-8 md:w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-xl md:text-3xl font-bold text-white flex items-center gap-2">
+                <h1 className="text-xl md:text-3xl font-bold text-blue-800 flex items-center gap-2">
                   FitAI Pro
-                  <Sparkles className="h-4 w-4 md:h-6 md:w-6 text-yellow-400" />
+                  <Sparkles className="h-4 w-4 md:h-6 md:w-6 text-blue-500" />
                 </h1>
-                <p className="text-blue-200 text-xs md:text-sm hidden sm:block">Seu assistente pessoal de fitness</p>
+                <p className="text-blue-600 text-xs md:text-sm hidden sm:block">Seu assistente pessoal de fitness</p>
               </div>
             </div>
             <div className="flex items-center space-x-2 md:space-x-4">
               <div className="text-right hidden md:block">
-                <p className="text-white font-medium text-sm md:text-base">Olá, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}</p>
+                <p className="text-blue-800 font-medium text-sm md:text-base">Olá, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}</p>
                 {isInTrialPeriod && (
-                  <span className="text-yellow-300 text-xs md:text-sm font-medium bg-yellow-500/20 px-2 py-1 rounded-full">
+                  <span className="text-blue-700 text-xs md:text-sm font-medium bg-blue-100 px-2 py-1 rounded-full">
                     🎉 Período gratuito ativo
                   </span>
                 )}
                 {hasActiveSubscription && (
-                  <span className="text-green-300 text-xs md:text-sm font-medium bg-green-500/20 px-2 py-1 rounded-full">
+                  <span className="text-green-700 text-xs md:text-sm font-medium bg-green-100 px-2 py-1 rounded-full">
                     ✅ Plano ativo
                   </span>
                 )}
@@ -131,7 +131,7 @@ const Dashboard = () => {
               <Button 
                 variant="outline" 
                 onClick={handleSignOut} 
-                className="border-white/20 text-white hover:bg-white/10 transition-all duration-200 text-xs md:text-sm px-2 md:px-4"
+                className="border-blue-200 text-blue-700 hover:bg-blue-50 transition-all duration-200 text-xs md:text-sm px-2 md:px-4"
                 size="sm"
               >
                 <LogOut className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
@@ -145,32 +145,32 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-4 md:py-8">
         {/* Welcome Section responsiva */}
         <div className="mb-6 md:mb-8">
-          <Card className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-white/20 backdrop-blur-sm">
+          <Card className="bg-white/80 border-blue-200 shadow-lg backdrop-blur-sm">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg md:text-2xl font-bold text-white mb-2">
+                  <h2 className="text-lg md:text-2xl font-bold text-blue-800 mb-2">
                     Bem-vindo ao seu centro de fitness!
                   </h2>
-                  <p className="text-blue-200 text-sm md:text-base">
+                  <p className="text-blue-600 text-sm md:text-base">
                     Explore nossos assistentes de IA para transformar seus objetivos em resultados
                   </p>
                   {/* Status mobile */}
                   <div className="mt-2 md:hidden">
                     {isInTrialPeriod && (
-                      <span className="text-yellow-300 text-xs font-medium bg-yellow-500/20 px-2 py-1 rounded-full">
+                      <span className="text-blue-700 text-xs font-medium bg-blue-100 px-2 py-1 rounded-full">
                         🎉 Período gratuito ativo
                       </span>
                     )}
                     {hasActiveSubscription && (
-                      <span className="text-green-300 text-xs font-medium bg-green-500/20 px-2 py-1 rounded-full">
+                      <span className="text-green-700 text-xs font-medium bg-green-100 px-2 py-1 rounded-full">
                         ✅ Plano ativo
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="hidden md:block">
-                  <div className="w-16 h-16 md:w-24 md:h-24 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                  <div className="w-16 h-16 md:w-24 md:h-24 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
                     <Dumbbell className="h-8 w-8 md:h-12 md:w-12 text-white" />
                   </div>
                 </div>
@@ -180,38 +180,38 @@ const Dashboard = () => {
         </div>
 
         <Tabs defaultValue="workout" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-black/30 backdrop-blur-sm border border-white/20 h-auto">
+          <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
             <TabsTrigger 
               value="workout" 
-              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/70 p-2 md:p-3"
+              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
             >
               <Dumbbell className="h-4 w-4" />
               <span className="text-xs md:text-sm">Treinos</span>
             </TabsTrigger>
             <TabsTrigger 
               value="assistant" 
-              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-white/70 p-2 md:p-3"
+              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
             >
               <MessageCircle className="h-4 w-4" />
               <span className="text-xs md:text-sm">Assistente</span>
             </TabsTrigger>
             <TabsTrigger 
               value="progress" 
-              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-white/70 p-2 md:p-3"
+              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
             >
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs md:text-sm">Evolução</span>
             </TabsTrigger>
             <TabsTrigger 
               value="nutrition" 
-              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white text-white/70 p-2 md:p-3"
+              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
             >
               <Apple className="h-4 w-4" />
               <span className="text-xs md:text-sm">Nutrição</span>
             </TabsTrigger>
             <TabsTrigger 
               value="payment" 
-              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-yellow-600 data-[state=active]:text-white text-white/70 p-2 md:p-3"
+              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3"
             >
               <CreditCard className="h-4 w-4" />
               <span className="text-xs md:text-sm">Pagamento</span>
