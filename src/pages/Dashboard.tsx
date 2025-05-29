@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -6,8 +5,8 @@ import { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock } from 'lucide-react';
-import WorkoutPlanGenerator from '@/components/WorkoutPlanGenerator';
+import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText } from 'lucide-react'; // Added FileText
+import WorkoutPlanGenerator, { WorkoutPlan } from '@/components/WorkoutPlanGenerator'; // Import WorkoutPlan type
 import AIAssistant from '@/components/AIAssistant';
 import ProgressTracker from '@/components/ProgressTracker';
 import NutritionAssistant from '@/components/NutritionAssistant';
@@ -21,6 +20,11 @@ const Dashboard = () => {
   const [isInTrialPeriod, setIsInTrialPeriod] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // --- State Lifting --- 
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null); // State for the generated plan
+  const [activeWorkoutTab, setActiveWorkoutTab] = useState('form'); // State for the internal tabs of WorkoutPlanGenerator
+  // --- End State Lifting ---
 
   useEffect(() => {
     const getSession = async () => {
@@ -104,8 +108,12 @@ const Dashboard = () => {
         </p>
         <Button 
           onClick={() => {
-            const paymentTab = document.querySelector('[data-value="payment"]') as HTMLElement;
-            paymentTab?.click();
+            // Find the main Tabs component and switch to the 'payment' tab
+            const mainTabs = document.querySelector('.main-dashboard-tabs'); // Add a class to the main Tabs component
+            if (mainTabs) {
+              const paymentTrigger = mainTabs.querySelector('[data-value="payment"]') as HTMLElement;
+              paymentTrigger?.click();
+            }
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
@@ -223,7 +231,8 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="payment" className="w-full">
+        {/* Main Dashboard Tabs */}
+        <Tabs defaultValue="workout" className="w-full main-dashboard-tabs"> {/* Added class */} 
           <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
             <TabsTrigger 
               value="workout" 
@@ -273,7 +282,12 @@ const Dashboard = () => {
 
           <TabsContent value="workout">
             <LockedFeature title="Treinos">
-              <WorkoutPlanGenerator user={user} />
+              {/* Pass the lifted state and setter down as props */}
+              <WorkoutPlanGenerator 
+                user={user} 
+                workoutPlan={workoutPlan} 
+                setWorkoutPlan={setWorkoutPlan} 
+              />
             </LockedFeature>
           </TabsContent>
 
@@ -305,3 +319,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
