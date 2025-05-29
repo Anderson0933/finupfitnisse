@@ -25,7 +25,6 @@ serve(async (req) => {
     if (!grokApiKey) {
       console.error('GROK_API_KEY não configurada');
       
-      // Retornar resposta de fallback para nutrição
       const fallbackResponse = "Olá! Sou sua assistente de nutrição. No momento estou com problemas de configuração, mas posso te dar algumas dicas básicas:\n\n🥗 **Alimentação balanceada:**\n• Inclua proteínas em todas as refeições\n• Consuma 5-7 porções de frutas e vegetais por dia\n• Prefira carboidratos integrais\n• Mantenha-se hidratado (2-3L de água/dia)\n\n💡 **Dicas práticas:**\n• Faça 5-6 refeições menores ao dia\n• Evite alimentos ultraprocessados\n• Mastigue bem os alimentos\n\nPor favor, tente novamente em alguns minutos.";
       
       return new Response(
@@ -43,15 +42,27 @@ serve(async (req) => {
     const messages: ChatMessage[] = [
       {
         role: 'assistant',
-        content: 'Você é uma nutricionista especializada em alimentação saudável, planos alimentares, receitas e suplementação. Responda sempre em português de forma clara, prática e científica. Dê conselhos específicos sobre nutrição, receitas saudáveis, planejamento alimentar e orientações sobre suplementos quando apropriado.'
-      },
-      ...conversationHistory.slice(-10).map((msg: any) => ({
-        role: msg.role,
-        content: msg.content
-      }))
+        content: 'Você é uma nutricionista especializada em alimentação saudável, planos alimentares, receitas e suplementação. Responda sempre em português de forma clara, prática e científica. Dê conselhos específicos sobre nutrição, receitas saudáveis, planejamento alimentar e orientações sobre suplementos quando apropriado. Seja sempre positiva e encoraje hábitos alimentares saudáveis.'
+      }
     ];
 
+    // Adicionar histórico da conversa (últimas 10 mensagens)
+    if (conversationHistory && Array.isArray(conversationHistory)) {
+      const recentHistory = conversationHistory.slice(-10);
+      messages.push(...recentHistory.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content
+      })));
+    }
+
+    // Adicionar mensagem atual do usuário
+    messages.push({
+      role: 'user',
+      content: message
+    });
+
     console.log('Enviando para Grok API (nutrição)...');
+    console.log('Número de mensagens:', messages.length);
 
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
@@ -71,9 +82,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro da API Grok (nutrição):', errorText);
+      console.error('Erro da API Grok (nutrição):', response.status, errorText);
       
-      // Retornar resposta de fallback específica baseada na mensagem
       let fallbackResponse = "Desculpe, estou com problemas técnicos no momento. ";
       
       if (message.toLowerCase().includes('receita') || message.toLowerCase().includes('cozinhar')) {
@@ -100,7 +110,22 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const assistantMessage = data.choices[0]?.message?.content || 'Desculpe, não consegui processar sua solicitação sobre nutrição. Tente reformular sua pergunta.';
+    console.log('Resposta recebida do Grok (nutrição)');
+    
+    const assistantMessage = data.choices?.[0]?.message?.content;
+    
+    if (!assistantMessage) {
+      console.error('Resposta vazia do Grok (nutrição)');
+      return new Response(
+        JSON.stringify({ message: 'Desculpe, não consegui gerar uma resposta sobre nutrição no momento. Tente reformular sua pergunta.' }),
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
 
     console.log('Resposta de nutrição processada com sucesso');
 
