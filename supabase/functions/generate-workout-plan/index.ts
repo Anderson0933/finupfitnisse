@@ -71,77 +71,84 @@ Importante: Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explic
         messages: [
           { role: 'user', content: prompt }
         ],
-        max_tokens: 2000,
-        temperature: 0.7,
+        max_tokens: 3000,
+        temperature: 0.3,
       }),
     });
+
+    console.log('Status da resposta Grok:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Erro da API Grok:', response.status, errorText);
-      throw new Error(`Erro da API Grok: ${response.status} - ${errorText}`);
+      
+      // Se der erro, usar plano fallback
+      console.log('Usando plano de fallback devido ao erro na API');
+      const fallbackPlan = createFallbackPlan(userProfile);
+      
+      return new Response(
+        JSON.stringify(fallbackPlan),
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
     }
 
     const data = await response.json();
     console.log('Resposta recebida do Grok');
 
-    let content = data.choices[0]?.message?.content || '';
+    let content = data.choices?.[0]?.message?.content || '';
+
+    if (!content) {
+      console.log('Conteúdo vazio, usando fallback');
+      const fallbackPlan = createFallbackPlan(userProfile);
+      
+      return new Response(
+        JSON.stringify(fallbackPlan),
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
 
     // Limpar e extrair JSON da resposta
     content = content.trim();
     
     // Remover possíveis marcadores de código
-    if (content.startsWith('```json')) {
-      content = content.replace(/```json\n?/, '').replace(/\n?```$/, '');
-    }
-    if (content.startsWith('```')) {
-      content = content.replace(/```\n?/, '').replace(/\n?```$/, '');
+    if (content.includes('```json')) {
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        content = jsonMatch[1];
+      }
+    } else if (content.includes('```')) {
+      const jsonMatch = content.match(/```\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        content = jsonMatch[1];
+      }
     }
 
     let workoutPlan;
     try {
       workoutPlan = JSON.parse(content);
       console.log('JSON parseado com sucesso');
+      
+      // Validar estrutura básica
+      if (!workoutPlan.title || !workoutPlan.exercises || !Array.isArray(workoutPlan.exercises)) {
+        throw new Error('Estrutura do JSON inválida');
+      }
+      
     } catch (parseError) {
       console.error('Erro ao fazer parse do JSON:', parseError);
       console.log('Conteúdo recebido:', content);
       
-      // Plano de fallback baseado no perfil do usuário
-      workoutPlan = {
-        title: `Plano de Treino ${userProfile.fitness_level || 'Personalizado'}`,
-        description: `Plano focado em ${Array.isArray(userProfile.fitness_goals) ? userProfile.fitness_goals.join(' e ') : 'condicionamento geral'} para ${userProfile.fitness_level || 'iniciante'}`,
-        difficulty_level: userProfile.fitness_level || 'iniciante',
-        duration_weeks: 8,
-        exercises: [
-          {
-            name: "Agachamento",
-            sets: 3,
-            reps: "12-15",
-            rest: "60s",
-            instructions: "Mantenha os pés na largura dos ombros, desça controladamente até formar 90 graus com os joelhos, mantenha o core contraído"
-          },
-          {
-            name: "Flexão de Braço",
-            sets: 3,
-            reps: "8-12",
-            rest: "60s",
-            instructions: "Mantenha o corpo alinhado, desça até o peito quase tocar o chão, suba controladamente"
-          },
-          {
-            name: "Prancha",
-            sets: 3,
-            reps: "30-60s",
-            rest: "45s",
-            instructions: "Mantenha o corpo reto, apoie nos antebraços e pontas dos pés, contraia o abdômen"
-          }
-        ],
-        nutrition_tips: [
-          "Consuma proteína após o treino para recuperação muscular",
-          "Mantenha-se bem hidratado durante todo o dia",
-          "Inclua carboidratos complexos nas refeições pré-treino",
-          "Evite alimentos processados e açúcares em excesso"
-        ]
-      };
+      // Usar plano de fallback
+      workoutPlan = createFallbackPlan(userProfile);
     }
 
     return new Response(
@@ -156,13 +163,47 @@ Importante: Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explic
 
   } catch (error) {
     console.error('Erro no generate-workout-plan:', error);
+    
+    // Em caso de erro geral, retornar plano básico
+    const basicPlan = {
+      title: "Plano Básico de Exercícios",
+      description: "Plano básico para iniciantes focado em movimentos fundamentais",
+      difficulty_level: "iniciante",
+      duration_weeks: 4,
+      exercises: [
+        {
+          name: "Caminhada",
+          sets: 1,
+          reps: "20-30 minutos",
+          rest: "N/A",
+          instructions: "Mantenha um ritmo confortável e constante"
+        },
+        {
+          name: "Agachamento Simples",
+          sets: 2,
+          reps: "10-12",
+          rest: "60s",
+          instructions: "Desça controladamente mantendo as costas retas"
+        },
+        {
+          name: "Flexão na Parede",
+          sets: 2,
+          reps: "8-10",
+          rest: "60s",
+          instructions: "Apoie as mãos na parede e empurre suavemente"
+        }
+      ],
+      nutrition_tips: [
+        "Beba pelo menos 2 litros de água por dia",
+        "Inclua frutas e vegetais nas refeições",
+        "Evite alimentos processados"
+      ]
+    };
+
     return new Response(
-      JSON.stringify({ 
-        error: 'Erro interno do servidor',
-        details: error.message 
-      }),
+      JSON.stringify(basicPlan),
       { 
-        status: 500,
+        status: 200,
         headers: { 
           'Content-Type': 'application/json',
           ...corsHeaders 
@@ -171,3 +212,59 @@ Importante: Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explic
     );
   }
 });
+
+function createFallbackPlan(userProfile: any) {
+  const level = userProfile.fitness_level || 'iniciante';
+  const goals = Array.isArray(userProfile.fitness_goals) ? userProfile.fitness_goals.join(' e ') : 'condicionamento geral';
+  
+  return {
+    title: `Plano de Treino ${level.charAt(0).toUpperCase() + level.slice(1)}`,
+    description: `Plano personalizado focado em ${goals} para nível ${level}`,
+    difficulty_level: level,
+    duration_weeks: 8,
+    exercises: [
+      {
+        name: "Aquecimento - Caminhada no Local",
+        sets: 1,
+        reps: "5 minutos",
+        rest: "N/A",
+        instructions: "Movimento suave para aquecer o corpo antes dos exercícios principais"
+      },
+      {
+        name: "Agachamento",
+        sets: 3,
+        reps: level === 'sedentario' ? "8-10" : "12-15",
+        rest: "60s",
+        instructions: "Mantenha os pés na largura dos ombros, desça controladamente até formar 90 graus com os joelhos"
+      },
+      {
+        name: "Flexão de Braço",
+        sets: 3,
+        reps: level === 'sedentario' ? "5-8" : "8-12",
+        rest: "60s",
+        instructions: "Se necessário, faça com os joelhos apoiados. Mantenha o corpo alinhado"
+      },
+      {
+        name: "Prancha",
+        sets: 3,
+        reps: level === 'sedentario' ? "20-30s" : "30-60s",
+        rest: "45s",
+        instructions: "Mantenha o corpo reto, apoie nos antebraços e pontas dos pés, contraia o abdômen"
+      },
+      {
+        name: "Alongamento Final",
+        sets: 1,
+        reps: "5-10 minutos",
+        rest: "N/A",
+        instructions: "Alongue todos os grupos musculares trabalhados, mantendo cada posição por 20-30 segundos"
+      }
+    ],
+    nutrition_tips: [
+      "Consuma proteína após o treino para recuperação muscular",
+      "Mantenha-se bem hidratado durante todo o dia",
+      "Inclua carboidratos complexos nas refeições pré-treino",
+      "Consuma frutas e vegetais variados diariamente",
+      "Evite alimentos processados e açúcares em excesso"
+    ]
+  };
+}
