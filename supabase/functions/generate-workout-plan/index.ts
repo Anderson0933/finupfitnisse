@@ -42,7 +42,7 @@ Retorne APENAS um JSON válido no seguinte formato:
 {
   "title": "Nome do Plano de Treino",
   "description": "Descrição detalhada do plano",
-  "difficulty_level": "iniciante|intermediário|avançado",
+  "difficulty_level": "iniciante",
   "duration_weeks": 8,
   "exercises": [
     {
@@ -56,7 +56,8 @@ Retorne APENAS um JSON válido no seguinte formato:
   "nutrition_tips": ["Dica nutricional 1", "Dica nutricional 2", "Dica nutricional 3"]
 }
 
-Importante: Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explicações.`;
+IMPORTANTE: O campo difficulty_level deve ser exatamente uma dessas opções: "iniciante", "intermediario", "avancado"
+Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explicações.`;
 
     console.log('Enviando requisição para Grok...');
 
@@ -138,6 +139,12 @@ Importante: Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explic
       workoutPlan = JSON.parse(content);
       console.log('JSON parseado com sucesso');
       
+      // Validar e corrigir difficulty_level
+      const validLevels = ['iniciante', 'intermediario', 'avancado'];
+      if (!workoutPlan.difficulty_level || !validLevels.includes(workoutPlan.difficulty_level)) {
+        workoutPlan.difficulty_level = mapFitnessLevelToDifficulty(userProfile.fitness_level);
+      }
+      
       // Validar estrutura básica
       if (!workoutPlan.title || !workoutPlan.exercises || !Array.isArray(workoutPlan.exercises)) {
         throw new Error('Estrutura do JSON inválida');
@@ -165,40 +172,7 @@ Importante: Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explic
     console.error('Erro no generate-workout-plan:', error);
     
     // Em caso de erro geral, retornar plano básico
-    const basicPlan = {
-      title: "Plano Básico de Exercícios",
-      description: "Plano básico para iniciantes focado em movimentos fundamentais",
-      difficulty_level: "iniciante",
-      duration_weeks: 4,
-      exercises: [
-        {
-          name: "Caminhada",
-          sets: 1,
-          reps: "20-30 minutos",
-          rest: "N/A",
-          instructions: "Mantenha um ritmo confortável e constante"
-        },
-        {
-          name: "Agachamento Simples",
-          sets: 2,
-          reps: "10-12",
-          rest: "60s",
-          instructions: "Desça controladamente mantendo as costas retas"
-        },
-        {
-          name: "Flexão na Parede",
-          sets: 2,
-          reps: "8-10",
-          rest: "60s",
-          instructions: "Apoie as mãos na parede e empurre suavemente"
-        }
-      ],
-      nutrition_tips: [
-        "Beba pelo menos 2 litros de água por dia",
-        "Inclua frutas e vegetais nas refeições",
-        "Evite alimentos processados"
-      ]
-    };
+    const basicPlan = createFallbackPlan(null);
 
     return new Response(
       JSON.stringify(basicPlan),
@@ -213,14 +187,30 @@ Importante: Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explic
   }
 });
 
+function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
+  switch (fitnessLevel) {
+    case 'sedentario':
+    case 'pouco_ativo':
+      return 'iniciante';
+    case 'moderado':
+    case 'ativo':
+      return 'intermediario';
+    case 'muito_ativo':
+      return 'avancado';
+    default:
+      return 'iniciante';
+  }
+}
+
 function createFallbackPlan(userProfile: any) {
-  const level = userProfile.fitness_level || 'iniciante';
-  const goals = Array.isArray(userProfile.fitness_goals) ? userProfile.fitness_goals.join(' e ') : 'condicionamento geral';
+  const level = userProfile?.fitness_level || 'sedentario';
+  const goals = Array.isArray(userProfile?.fitness_goals) ? userProfile.fitness_goals.join(' e ') : 'condicionamento geral';
+  const difficultyLevel = mapFitnessLevelToDifficulty(level);
   
   return {
-    title: `Plano de Treino ${level.charAt(0).toUpperCase() + level.slice(1)}`,
-    description: `Plano personalizado focado em ${goals} para nível ${level}`,
-    difficulty_level: level,
+    title: `Plano de Treino ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)}`,
+    description: `Plano personalizado focado em ${goals} para nível ${difficultyLevel}`,
+    difficulty_level: difficultyLevel,
     duration_weeks: 8,
     exercises: [
       {
