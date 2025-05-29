@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_conversations: {
+        Row: {
+          conversation_type: string | null
+          created_at: string | null
+          id: string
+          messages: Json
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_type?: string | null
+          created_at?: string | null
+          id?: string
+          messages?: Json
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_type?: string | null
+          created_at?: string | null
+          id?: string
+          messages?: Json
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           contactNumber: number
@@ -108,12 +135,188 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          amount: number | null
+          asaas_customer_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          payment_id: string | null
+          payment_method: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          asaas_customer_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_id?: string | null
+          payment_method?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          asaas_customer_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_id?: string | null
+          payment_method?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          age: number | null
+          created_at: string | null
+          fitness_goals: Json | null
+          fitness_level: string | null
+          full_name: string | null
+          gender: string | null
+          health_conditions: Json | null
+          height: number | null
+          id: string
+          preferences: Json | null
+          updated_at: string | null
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string | null
+          fitness_goals?: Json | null
+          fitness_level?: string | null
+          full_name?: string | null
+          gender?: string | null
+          health_conditions?: Json | null
+          height?: number | null
+          id?: string
+          preferences?: Json | null
+          updated_at?: string | null
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          age?: number | null
+          created_at?: string | null
+          fitness_goals?: Json | null
+          fitness_level?: string | null
+          full_name?: string | null
+          gender?: string | null
+          health_conditions?: Json | null
+          height?: number | null
+          id?: string
+          preferences?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      user_progress: {
+        Row: {
+          body_fat_percentage: number | null
+          created_at: string | null
+          date: string
+          id: string
+          muscle_mass: number | null
+          notes: string | null
+          photos: Json | null
+          user_id: string
+          weight: number | null
+          workout_plan_id: string | null
+        }
+        Insert: {
+          body_fat_percentage?: number | null
+          created_at?: string | null
+          date: string
+          id?: string
+          muscle_mass?: number | null
+          notes?: string | null
+          photos?: Json | null
+          user_id: string
+          weight?: number | null
+          workout_plan_id?: string | null
+        }
+        Update: {
+          body_fat_percentage?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          muscle_mass?: number | null
+          notes?: string | null
+          photos?: Json | null
+          user_id?: string
+          weight?: number | null
+          workout_plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_workout_plan_id_fkey"
+            columns: ["workout_plan_id"]
+            isOneToOne: false
+            referencedRelation: "workout_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          difficulty_level: string | null
+          duration_weeks: number | null
+          exercises: Json
+          id: string
+          nutrition_tips: Json | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          duration_weeks?: number | null
+          exercises?: Json
+          id?: string
+          nutrition_tips?: Json | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          duration_weeks?: number | null
+          exercises?: Json
+          id?: string
+          nutrition_tips?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_active_subscription: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
