@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,7 +81,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     if (data) {
       const formattedPlans = data.map(plan => ({
         ...plan,
-        exercises: Array.isArray(plan.exercises) ? plan.exercises as Exercise[] : []
+        exercises: Array.isArray(plan.exercises) ? plan.exercises as unknown as Exercise[] : []
       }));
       setWorkoutPlans(formattedPlans);
     }
@@ -117,8 +118,8 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
           description: newPlan.description,
           difficulty_level: newPlan.difficulty_level,
           duration_weeks: newPlan.duration_weeks,
-          exercises: newPlan.exercises,
-          nutrition_tips: newPlan.nutrition_tips
+          exercises: newPlan.exercises as unknown as any,
+          nutrition_tips: newPlan.nutrition_tips as unknown as any
         }]);
 
       if (error) throw error;

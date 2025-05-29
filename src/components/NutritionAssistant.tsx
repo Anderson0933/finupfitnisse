@@ -54,8 +54,8 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
 
     if (data) {
       setConversationId(data.id);
-      const messagesData = Array.isArray(data.messages) ? data.messages : [];
-      setMessages(messagesData as Message[]);
+      const messagesData = Array.isArray(data.messages) ? data.messages as unknown as Message[] : [];
+      setMessages(messagesData);
     } else {
       // Criar nova conversa de nutrição
       const initialMessage: Message = {
@@ -69,7 +69,7 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
         .insert({
           user_id: user.id,
           conversation_type: 'nutrition',
-          messages: [initialMessage]
+          messages: [initialMessage] as unknown as any
         })
         .select()
         .single();
@@ -117,7 +117,7 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
       // Salvar conversa atualizada
       await supabase
         .from('ai_conversations')
-        .update({ messages: finalMessages })
+        .update({ messages: finalMessages as unknown as any })
         .eq('id', conversationId);
 
     } catch (error: any) {

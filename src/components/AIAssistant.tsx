@@ -54,8 +54,8 @@ const AIAssistant = ({ user }: AIAssistantProps) => {
 
     if (data) {
       setConversationId(data.id);
-      const messagesData = Array.isArray(data.messages) ? data.messages : [];
-      setMessages(messagesData as Message[]);
+      const messagesData = Array.isArray(data.messages) ? data.messages as unknown as Message[] : [];
+      setMessages(messagesData);
     } else {
       // Criar nova conversa
       const initialMessage: Message = {
@@ -69,7 +69,7 @@ const AIAssistant = ({ user }: AIAssistantProps) => {
         .insert({
           user_id: user.id,
           conversation_type: 'general',
-          messages: [initialMessage]
+          messages: [initialMessage] as unknown as any
         })
         .select()
         .single();
@@ -117,7 +117,7 @@ const AIAssistant = ({ user }: AIAssistantProps) => {
       // Salvar conversa atualizada
       await supabase
         .from('ai_conversations')
-        .update({ messages: finalMessages })
+        .update({ messages: finalMessages as unknown as any })
         .eq('id', conversationId);
 
     } catch (error: any) {
