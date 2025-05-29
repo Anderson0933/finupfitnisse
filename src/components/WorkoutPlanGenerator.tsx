@@ -15,6 +15,21 @@ interface WorkoutPlanGeneratorProps {
   user: User | null;
 }
 
+interface WorkoutPlan {
+  title: string;
+  description: string;
+  difficulty_level: string;
+  duration_weeks: number;
+  exercises: Array<{
+    name: string;
+    sets: number;
+    reps: string;
+    rest: string;
+    instructions: string;
+  }>;
+  nutrition_tips: string[];
+}
+
 const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -28,13 +43,13 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     equipment: '',
     limitations: ''
   });
-  const [workoutPlan, setWorkoutPlan] = useState('');
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [activeTab, setActiveTab] = useState('form');
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    console.log(`Campo ${field} atualizado para:`, value);
+    console.log(`✅ Campo ${field} atualizado para:`, value);
   };
 
   const generateWorkoutPlan = async () => {
@@ -60,7 +75,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     }
 
     setLoading(true);
-    setWorkoutPlan(''); // Limpa o plano anterior
+    setWorkoutPlan(null);
     
     try {
       console.log('🚀 INICIANDO GERAÇÃO DO PLANO');
@@ -104,65 +119,36 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
 
       console.log('✅ Dados recebidos:', JSON.stringify(data, null, 2));
 
-      // Processar e formatar o plano
-      let planText = '';
-      
-      if (data && typeof data === 'object') {
-        if (data.title) {
-          planText += `🏋️ ${data.title}\n\n`;
-        }
-        
-        if (data.description) {
-          planText += `📝 DESCRIÇÃO:\n${data.description}\n\n`;
-        }
-        
-        if (data.duration_weeks) {
-          planText += `⏱️ DURAÇÃO: ${data.duration_weeks} semanas\n`;
-        }
-        
-        if (data.difficulty_level) {
-          planText += `📊 NÍVEL: ${data.difficulty_level.toUpperCase()}\n\n`;
-        }
-        
-        if (data.exercises && Array.isArray(data.exercises) && data.exercises.length > 0) {
-          planText += `💪 EXERCÍCIOS:\n\n`;
-          
-          data.exercises.forEach((exercise: any, index: number) => {
-            planText += `${index + 1}. ${exercise.name || 'Exercício'}\n`;
-            if (exercise.sets) planText += `   📊 Séries: ${exercise.sets}\n`;
-            if (exercise.reps) planText += `   🔢 Repetições: ${exercise.reps}\n`;
-            if (exercise.rest) planText += `   ⏰ Descanso: ${exercise.rest}\n`;
-            if (exercise.instructions) planText += `   📋 Instruções: ${exercise.instructions}\n`;
-            planText += '\n';
-          });
-        }
-
-        if (data.nutrition_tips && Array.isArray(data.nutrition_tips) && data.nutrition_tips.length > 0) {
-          planText += `🥗 DICAS NUTRICIONAIS:\n\n`;
-          data.nutrition_tips.forEach((tip: string, index: number) => {
-            planText += `${index + 1}. ${tip}\n`;
-          });
-        }
-      } else if (typeof data === 'string') {
-        planText = data;
-      } else {
-        planText = JSON.stringify(data, null, 2);
+      // Verificar se recebemos um plano válido
+      if (!data || typeof data !== 'object') {
+        console.error('❌ Dados inválidos recebidos:', data);
+        throw new Error('Dados inválidos retornados da API');
       }
 
-      console.log('📋 Plano formatado final:', planText);
-
-      if (!planText || planText.trim() === '' || planText.trim() === '{}') {
-        console.error('❌ Plano de treino vazio após formatação');
-        throw new Error('Plano de treino vazio foi gerado');
+      // Validar estrutura mínima do plano
+      if (!data.title && !data.exercises) {
+        console.error('❌ Plano sem estrutura mínima:', data);
+        throw new Error('Plano de treino inválido retornado');
       }
 
-      console.log('✅ DEFININDO PLANO NO STATE');
-      setWorkoutPlan(planText);
+      // Definir o plano no estado
+      const plan: WorkoutPlan = {
+        title: data.title || 'Plano de Treino Personalizado',
+        description: data.description || 'Plano gerado com base no seu perfil',
+        difficulty_level: data.difficulty_level || 'iniciante',
+        duration_weeks: data.duration_weeks || 8,
+        exercises: data.exercises || [],
+        nutrition_tips: data.nutrition_tips || []
+      };
+
+      console.log('✅ Plano processado:', plan);
+      setWorkoutPlan(plan);
       
-      // Forçar mudança para a aba do plano
-      setActiveTab('plan');
-      
-      console.log('✅ Plano definido e aba alterada para "plan"');
+      // Mudar para a aba do plano automaticamente
+      setTimeout(() => {
+        setActiveTab('plan');
+        console.log('✅ Aba alterada para "plan"');
+      }, 100);
       
       toast({
         title: "Plano gerado com sucesso!",
@@ -183,7 +169,28 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
 
   const copyPlan = () => {
     if (workoutPlan) {
-      navigator.clipboard.writeText(workoutPlan);
+      let planText = `🏋️ ${workoutPlan.title}\n\n`;
+      planText += `📝 DESCRIÇÃO:\n${workoutPlan.description}\n\n`;
+      planText += `📊 NÍVEL: ${workoutPlan.difficulty_level.toUpperCase()}\n`;
+      planText += `⏱️ DURAÇÃO: ${workoutPlan.duration_weeks} semanas\n\n`;
+      planText += `💪 EXERCÍCIOS:\n\n`;
+      
+      workoutPlan.exercises.forEach((exercise, index) => {
+        planText += `${index + 1}. ${exercise.name}\n`;
+        planText += `   📊 Séries: ${exercise.sets}\n`;
+        planText += `   🔢 Repetições: ${exercise.reps}\n`;
+        planText += `   ⏰ Descanso: ${exercise.rest}\n`;
+        planText += `   📋 ${exercise.instructions}\n\n`;
+      });
+
+      if (workoutPlan.nutrition_tips.length > 0) {
+        planText += `🥗 DICAS NUTRICIONAIS:\n\n`;
+        workoutPlan.nutrition_tips.forEach((tip, index) => {
+          planText += `${index + 1}. ${tip}\n`;
+        });
+      }
+
+      navigator.clipboard.writeText(planText);
       toast({
         title: "Copiado!",
         description: "Plano de treino copiado para a área de transferência.",
@@ -191,7 +198,12 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     }
   };
 
-  console.log('🔍 Estado atual:', { workoutPlan: workoutPlan.length, activeTab });
+  console.log('🔍 Estado atual:', { 
+    hasWorkoutPlan: !!workoutPlan, 
+    activeTab,
+    planTitle: workoutPlan?.title,
+    exercisesCount: workoutPlan?.exercises?.length || 0
+  });
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -469,12 +481,56 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
             </CardHeader>
             <CardContent>
               {workoutPlan ? (
-                <div className="space-y-4">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-6 max-h-96 overflow-y-auto">
-                    <div className="whitespace-pre-wrap text-sm text-green-800 font-medium leading-relaxed">
-                      {workoutPlan}
+                <div className="space-y-6">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <h3 className="text-xl font-bold text-green-800 mb-3">{workoutPlan.title}</h3>
+                    <p className="text-green-700 mb-4">{workoutPlan.description}</p>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="bg-white p-3 rounded-lg border border-green-200">
+                        <span className="text-sm text-green-600 font-medium">Nível</span>
+                        <p className="text-green-800 font-bold capitalize">{workoutPlan.difficulty_level}</p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-green-200">
+                        <span className="text-sm text-green-600 font-medium">Duração</span>
+                        <p className="text-green-800 font-bold">{workoutPlan.duration_weeks} semanas</p>
+                      </div>
                     </div>
+
+                    {workoutPlan.exercises && workoutPlan.exercises.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-lg font-bold text-green-800 mb-3">💪 Exercícios</h4>
+                        <div className="space-y-4">
+                          {workoutPlan.exercises.map((exercise, index) => (
+                            <div key={index} className="bg-white p-4 rounded-lg border border-green-200">
+                              <h5 className="font-bold text-green-800 mb-2">{index + 1}. {exercise.name}</h5>
+                              <div className="grid grid-cols-3 gap-2 mb-2 text-sm">
+                                <span className="text-green-600">📊 Séries: <strong>{exercise.sets}</strong></span>
+                                <span className="text-green-600">🔢 Reps: <strong>{exercise.reps}</strong></span>
+                                <span className="text-green-600">⏰ Descanso: <strong>{exercise.rest}</strong></span>
+                              </div>
+                              <p className="text-green-700 text-sm">{exercise.instructions}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {workoutPlan.nutrition_tips && workoutPlan.nutrition_tips.length > 0 && (
+                      <div>
+                        <h4 className="text-lg font-bold text-green-800 mb-3">🥗 Dicas Nutricionais</h4>
+                        <ul className="space-y-2">
+                          {workoutPlan.nutrition_tips.map((tip, index) => (
+                            <li key={index} className="text-green-700 flex items-start gap-2">
+                              <span className="text-green-600 font-bold">{index + 1}.</span>
+                              {tip}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
+
                   <div className="flex gap-3">
                     <Button 
                       onClick={copyPlan}
