@@ -36,42 +36,6 @@ export type Database = {
         }
         Relationships: []
       }
-      clients: {
-        Row: {
-          contactNumber: number
-          created_at: string
-          email: string
-          expires: string
-          fullName: string
-          id: number
-          passwordHash: string
-          plan: string
-          recoveryCode: string
-        }
-        Insert: {
-          contactNumber: number
-          created_at?: string
-          email: string
-          expires: string
-          fullName: string
-          id?: number
-          passwordHash: string
-          plan: string
-          recoveryCode: string
-        }
-        Update: {
-          contactNumber?: number
-          created_at?: string
-          email?: string
-          expires?: string
-          fullName?: string
-          id?: number
-          passwordHash?: string
-          plan?: string
-          recoveryCode?: string
-        }
-        Relationships: []
-      }
       orders: {
         Row: {
           created_at: string | null
@@ -268,6 +232,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_workout_plans: {
+        Row: {
+          created_at: string
+          id: string
+          plan_data: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan_data: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan_data?: Json
+          user_id?: string
+        }
+        Relationships: []
       }
       workout_plans: {
         Row: {
