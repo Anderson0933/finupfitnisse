@@ -107,7 +107,7 @@ const FeaturesSection = () => {
             <h3 className="text-2xl font-bold mb-4">Pronto para começar sua transformação?</h3>
             <p className="text-blue-100 mb-6">Junte-se a milhares de pessoas que já estão alcançando seus objetivos com nossa IA.</p>
             <button className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors glow-button">
-              Experimente Grátis por 7 Dias
+              Experimente Grátis por algumas horas.
             </button>
           </div>
         </div>
