@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dumbbell, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -28,13 +29,13 @@ const Header = () => {
         <div className="flex items-center space-x-4">
           <Button 
             variant="outline" 
-            className="hidden md:inline-flex border-white/20 text-white hover:bg-white/10"
+            className="hidden md:inline-flex border-white text-white hover:bg-white hover:text-blue-800 bg-white/10 backdrop-blur-sm"
             onClick={() => window.location.href = '/auth'}
           >
             Entrar
           </Button>
           <Button 
-            className="glow-button"
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold"
             onClick={() => window.location.href = '/auth'}
           >
             Começar Agora
@@ -60,13 +61,13 @@ const Header = () => {
                 <Separator className="bg-white/20" />
                 <Button 
                   variant="outline" 
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="border-white text-white hover:bg-white hover:text-blue-800 bg-white/10"
                   onClick={() => window.location.href = '/auth'}
                 >
                   Entrar
                 </Button>
                 <Button 
-                  className="glow-button"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
                   onClick={() => window.location.href = '/auth'}
                 >
                   Começar Agora

@@ -77,12 +77,41 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
         throw new Error(error.message || 'Erro ao gerar plano de treino');
       }
 
-      if (!data || !data.workoutPlan) {
-        throw new Error('Nenhum plano de treino foi retornado');
+      // Correção: verificar se data existe e extrair o plano
+      if (!data) {
+        throw new Error('Nenhuma resposta foi retornada');
       }
 
-      console.log('Plano gerado:', data.workoutPlan);
-      setWorkoutPlan(data.workoutPlan);
+      // Se data é um objeto com plano estruturado, formatá-lo
+      let planText = '';
+      if (data.title && data.exercises) {
+        planText = `${data.title}\n\n${data.description}\n\n`;
+        planText += `DURAÇÃO: ${data.duration_weeks} semanas\n`;
+        planText += `NÍVEL: ${data.difficulty_level}\n\n`;
+        planText += `EXERCÍCIOS:\n\n`;
+        
+        data.exercises.forEach((exercise: any, index: number) => {
+          planText += `${index + 1}. ${exercise.name}\n`;
+          planText += `   - Séries: ${exercise.sets}\n`;
+          planText += `   - Repetições: ${exercise.reps}\n`;
+          planText += `   - Descanso: ${exercise.rest}\n`;
+          planText += `   - Instruções: ${exercise.instructions}\n\n`;
+        });
+
+        if (data.nutrition_tips && data.nutrition_tips.length > 0) {
+          planText += `DICAS NUTRICIONAIS:\n\n`;
+          data.nutrition_tips.forEach((tip: string, index: number) => {
+            planText += `${index + 1}. ${tip}\n`;
+          });
+        }
+      } else if (typeof data === 'string') {
+        planText = data;
+      } else {
+        planText = JSON.stringify(data, null, 2);
+      }
+
+      console.log('Plano formatado:', planText);
+      setWorkoutPlan(planText);
       
       toast({
         title: "Plano gerado com sucesso!",
