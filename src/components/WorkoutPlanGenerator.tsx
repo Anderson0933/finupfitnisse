@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw } from 'lucide-react';
+import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy } from 'lucide-react';
 
 interface WorkoutPlanGeneratorProps {
   user: User | null;
@@ -58,7 +58,11 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     }
 
     setLoading(true);
+    setWorkoutPlan(''); // Limpar plano anterior
+    
     try {
+      console.log('Enviando dados para gerar plano:', { userProfile: formData, userId: user.id });
+
       const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
         body: { 
           userProfile: formData,
@@ -66,9 +70,20 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
         }
       });
 
-      if (error) throw error;
+      console.log('Resposta da função:', { data, error });
 
+      if (error) {
+        console.error('Erro da função:', error);
+        throw new Error(error.message || 'Erro ao gerar plano de treino');
+      }
+
+      if (!data || !data.workoutPlan) {
+        throw new Error('Nenhum plano de treino foi retornado');
+      }
+
+      console.log('Plano gerado:', data.workoutPlan);
       setWorkoutPlan(data.workoutPlan);
+      
       toast({
         title: "Plano gerado com sucesso!",
         description: "Seu plano de treino personalizado está pronto.",
@@ -82,6 +97,16 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const copyPlan = () => {
+    if (workoutPlan) {
+      navigator.clipboard.writeText(workoutPlan);
+      toast({
+        title: "Copiado!",
+        description: "Plano de treino copiado para a área de transferência.",
+      });
     }
   };
 
@@ -167,7 +192,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               </div>
             </div>
 
-            {/* Nível de condicionamento */}
             <div>
               <Label className="text-blue-700 font-medium flex items-center gap-2">
                 <Zap className="h-4 w-4" />
@@ -205,7 +229,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               </RadioGroup>
             </div>
 
-            {/* Objetivos */}
             <div>
               <Label htmlFor="goals" className="text-blue-700 font-medium flex items-center gap-2">
                 <Target className="h-4 w-4" />
@@ -221,7 +244,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               />
             </div>
 
-            {/* Tempo disponível */}
             <div>
               <Label htmlFor="availableTime" className="text-blue-700 font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4" />
@@ -236,7 +258,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               />
             </div>
 
-            {/* Equipamentos */}
             <div>
               <Label htmlFor="equipment" className="text-blue-700 font-medium">Equipamentos Disponíveis</Label>
               <Textarea
@@ -249,7 +270,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               />
             </div>
 
-            {/* Limitações */}
             <div>
               <Label htmlFor="limitations" className="text-blue-700 font-medium">Limitações ou Lesões</Label>
               <Textarea
@@ -291,24 +311,29 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {workoutPlan ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <RefreshCw className="h-8 w-8 text-white animate-spin" />
+                </div>
+                <h3 className="text-lg font-medium text-blue-700 mb-2">Gerando seu plano...</h3>
+                <p className="text-blue-500">
+                  Nossa IA está criando um plano personalizado para você.
+                </p>
+              </div>
+            ) : workoutPlan ? (
               <div className="space-y-4">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <pre className="whitespace-pre-wrap text-sm text-green-800 font-medium">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  <div className="whitespace-pre-wrap text-sm text-green-800 font-medium">
                     {workoutPlan}
-                  </pre>
+                  </div>
                 </div>
                 <Button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(workoutPlan);
-                    toast({
-                      title: "Copiado!",
-                      description: "Plano de treino copiado para a área de transferência.",
-                    });
-                  }}
+                  onClick={copyPlan}
                   variant="outline"
                   className="w-full border-green-300 text-green-700 hover:bg-green-50"
                 >
+                  <Copy className="h-4 w-4 mr-2" />
                   Copiar Plano
                 </Button>
               </div>

@@ -54,6 +54,7 @@ const Dashboard = () => {
           setIsInTrialPeriod(true);
           setHasActiveSubscription(false);
         } else {
+          // Período expirado - bloquear acesso
           setIsInTrialPeriod(false);
           setHasActiveSubscription(false);
         }
@@ -159,7 +160,7 @@ const Dashboard = () => {
                 )}
                 {!hasAccess && (
                   <span className="text-red-700 text-xs md:text-sm font-medium bg-red-100 px-2 py-1 rounded-full">
-                    ⚠️ Assinatura expirada
+                    ⚠️ Acesso bloqueado - Renove sua assinatura
                   </span>
                 )}
               </div>
@@ -185,7 +186,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg md:text-2xl font-bold text-blue-800 mb-2">
-                    Bem-vindo ao seu centro de fitness!
+                    {hasAccess ? "Bem-vindo ao seu centro de fitness!" : "Acesso Bloqueado"}
                   </h2>
                   <p className="text-blue-600 text-sm md:text-base">
                     {hasAccess 
@@ -207,7 +208,7 @@ const Dashboard = () => {
                     )}
                     {!hasAccess && (
                       <span className="text-red-700 text-xs font-medium bg-red-100 px-2 py-1 rounded-full">
-                        ⚠️ Assinatura expirada
+                        ⚠️ Acesso bloqueado - Renove sua assinatura
                       </span>
                     )}
                   </div>
@@ -222,7 +223,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue={hasAccess ? "workout" : "payment"} className="w-full">
+        <Tabs defaultValue="payment" className="w-full">
           <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
             <TabsTrigger 
               value="workout" 
@@ -231,6 +232,7 @@ const Dashboard = () => {
             >
               <Dumbbell className="h-4 w-4" />
               <span className="text-xs md:text-sm">Treinos</span>
+              {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
             <TabsTrigger 
               value="assistant" 
@@ -239,6 +241,7 @@ const Dashboard = () => {
             >
               <MessageCircle className="h-4 w-4" />
               <span className="text-xs md:text-sm">Assistente</span>
+              {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
             <TabsTrigger 
               value="progress" 
@@ -247,6 +250,7 @@ const Dashboard = () => {
             >
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs md:text-sm">Evolução</span>
+              {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
             <TabsTrigger 
               value="nutrition" 
@@ -255,6 +259,7 @@ const Dashboard = () => {
             >
               <Apple className="h-4 w-4" />
               <span className="text-xs md:text-sm">Nutrição</span>
+              {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
             <TabsTrigger 
               value="payment" 
