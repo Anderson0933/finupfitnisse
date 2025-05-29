@@ -6,124 +6,82 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Send, Bot, User as UserIcon } from 'lucide-react';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-}
+import { Send, MessageCircle, User as UserIcon, Bot, Loader2 } from 'lucide-react';
 
 interface AIAssistantProps {
   user: User | null;
 }
 
+interface Message {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+}
+
 const AIAssistant = ({ user }: AIAssistantProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (user) {
-      loadConversation();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const loadConversation = async () => {
-    if (!user) return;
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-    const { data } = await supabase
-      .from('ai_conversations')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('conversation_type', 'general')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (data) {
-      setConversationId(data.id);
-      const messagesData = Array.isArray(data.messages) ? data.messages as unknown as Message[] : [];
-      setMessages(messagesData);
-    } else {
-      // Criar nova conversa
-      const initialMessage: Message = {
-        role: 'assistant',
-        content: 'Olá! Sou seu assistente de fitness pessoal. Posso te ajudar com dúvidas sobre treinos, exercícios, técnicas e motivação. Como posso te ajudar hoje?',
-        timestamp: new Date().toISOString()
-      };
-
-      const { data: newConversation } = await supabase
-        .from('ai_conversations')
-        .insert({
-          user_id: user.id,
-          conversation_type: 'general',
-          messages: [initialMessage] as unknown as any
-        })
-        .select()
-        .single();
-
-      if (newConversation) {
-        setConversationId(newConversation.id);
-        setMessages([initialMessage]);
-      }
-    }
-  };
+  useEffect(() => {
+    // Mensagem de boas-vindas
+    const welcomeMessage: Message = {
+      id: 'welcome',
+      content: 'Olá! Sou seu assistente de fitness pessoal. Posso te ajudar com dúvidas sobre treinos, exercícios, técnicas e motivação. Como posso te ajudar hoje?',
+      isUser: false,
+      timestamp: new Date()
+    };
+    setMessages([welcomeMessage]);
+  }, []);
 
   const sendMessage = async () => {
-    if (!input.trim() || !user || !conversationId) return;
+    if (!inputMessage.trim() || !user) return;
 
     const userMessage: Message = {
-      role: 'user',
-      content: input,
-      timestamp: new Date().toISOString()
+      id: Date.now().toString(),
+      content: inputMessage,
+      isUser: true,
+      timestamp: new Date()
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    setInput('');
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
     setLoading(true);
 
     try {
       const response = await supabase.functions.invoke('chat-assistant', {
         body: { 
-          message: input,
-          conversationHistory: updatedMessages
+          message: inputMessage,
+          userId: user.id
         }
       });
 
       if (response.error) throw response.error;
 
       const assistantMessage: Message = {
-        role: 'assistant',
-        content: response.data.message,
-        timestamp: new Date().toISOString()
+        id: (Date.now() + 1).toString(),
+        content: response.data.response,
+        isUser: false,
+        timestamp: new Date()
       };
 
-      const finalMessages = [...updatedMessages, assistantMessage];
-      setMessages(finalMessages);
-
-      // Salvar conversa atualizada
-      await supabase
-        .from('ai_conversations')
-        .update({ messages: finalMessages as unknown as any })
-        .eq('id', conversationId);
-
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
+      console.error('Erro ao enviar mensagem:', error);
       toast({
-        title: "Erro ao enviar mensagem",
-        description: error.message,
+        title: "Erro na comunicação",
+        description: "Não foi possível enviar sua mensagem. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -138,77 +96,122 @@ const AIAssistant = ({ user }: AIAssistantProps) => {
     }
   };
 
+  const quickQuestions = [
+    "Como melhorar meu desempenho no treino?",
+    "Dicas para ganhar massa muscular",
+    "Como criar uma rotina de exercícios?",
+    "Exercícios para iniciantes",
+    "Como manter a motivação para treinar?"
+  ];
+
   return (
-    <Card className="glass border-white/20 h-[600px] flex flex-col">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Bot className="h-5 w-5" />
-          Assistente Fitness IA
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`max-w-[80%] p-3 rounded-lg ${
-                message.role === 'user' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white/10 text-white border border-white/20'
-              }`}>
-                <div className="flex items-start gap-2">
-                  {message.role === 'assistant' ? (
-                    <Bot className="h-4 w-4 mt-1 text-blue-400" />
-                  ) : (
-                    <UserIcon className="h-4 w-4 mt-1" />
-                  )}
-                  <div className="flex-1">
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+    <div className="max-w-4xl mx-auto">
+      <Card className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border-white/20 backdrop-blur-sm h-[70vh] flex flex-col">
+        <CardHeader className="border-b border-white/10 flex-shrink-0">
+          <CardTitle className="text-white flex items-center gap-2 text-lg md:text-xl">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-500 rounded-full flex items-center justify-center">
+              <MessageCircle className="h-4 w-4 md:h-5 md:w-5 text-white" />
+            </div>
+            Assistente Fitness IA
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${message.isUser ? 'justify-end' : 'justify-start'}`}
+              >
+                {!message.isUser && (
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Bot className="h-4 w-4 text-white" />
+                  </div>
+                )}
+                
+                <div
+                  className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
+                    message.isUser
+                      ? 'bg-blue-600 text-white ml-auto'
+                      : 'bg-white/10 text-white backdrop-blur-sm border border-white/20'
+                  }`}
+                >
+                  <p className="text-sm md:text-base whitespace-pre-wrap">{message.content}</p>
+                  <span className="text-xs opacity-70 mt-1 block">
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+
+                {message.isUser && (
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <UserIcon className="h-4 w-4 text-white" />
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {loading && (
+              <div className="flex gap-3 justify-start">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-white" />
+                </div>
+                <div className="bg-white/10 text-white backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Digitando...</span>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-white/10 p-3 rounded-lg border border-white/20">
-                <div className="flex items-center gap-2 text-white">
-                  <Bot className="h-4 w-4 text-blue-400" />
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                  </div>
-                </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Quick questions - only show if no messages yet */}
+          {messages.length <= 1 && (
+            <div className="px-4 md:px-6 pb-4">
+              <h3 className="text-white text-sm font-medium mb-3">Perguntas Rápidas</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {quickQuestions.slice(0, 4).map((question, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInputMessage(question)}
+                    className="border-white/20 text-white hover:bg-white/10 text-xs md:text-sm h-auto py-2 px-3 whitespace-normal text-left justify-start"
+                  >
+                    {question}
+                  </Button>
+                ))}
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
-        </div>
-        
-        <div className="p-4 border-t border-white/20">
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Digite sua pergunta sobre fitness..."
-              className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-              disabled={loading}
-            />
-            <Button 
-              onClick={sendMessage} 
-              disabled={loading || !input.trim()}
-              className="glow-button"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+
+          {/* Input area */}
+          <div className="border-t border-white/10 p-4 md:p-6 flex-shrink-0">
+            <div className="flex gap-2 md:gap-3">
+              <Input
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Digite sua pergunta sobre fitness..."
+                className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:border-blue-400 text-sm md:text-base"
+                disabled={loading}
+              />
+              <Button 
+                onClick={sendMessage}
+                disabled={loading || !inputMessage.trim()}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4"
+              >
+                <Send className="h-4 w-4" />
+                <span className="sr-only">Enviar</span>
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
