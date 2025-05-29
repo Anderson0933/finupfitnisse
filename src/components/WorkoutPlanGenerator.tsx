@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +29,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     limitations: ''
   });
   const [workoutPlan, setWorkoutPlan] = useState('');
-  const [debugInfo, setDebugInfo] = useState('');
+  const [activeTab, setActiveTab] = useState('form');
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
@@ -61,40 +60,37 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     }
 
     setLoading(true);
-    setWorkoutPlan('');
-    setDebugInfo('Iniciando geração do plano...');
+    setWorkoutPlan(''); // Limpa o plano anterior
     
     try {
-      console.log('🔥 INICIANDO GERAÇÃO DO PLANO');
-      console.log('📋 Dados do formulário:', formData);
+      console.log('🚀 INICIANDO GERAÇÃO DO PLANO');
+      console.log('📝 Dados do formulário:', formData);
 
-      const sessionDuration = formData.availableTime ? parseInt(formData.availableTime.replace(/\D/g, '')) || 60 : 60;
+      const sessionDuration = formData.availableTime ? parseInt(formData.availableTime) || 60 : 60;
 
       const requestData = {
         userProfile: {
-          age: formData.age,
+          age: parseInt(formData.age),
           gender: formData.gender,
-          weight: formData.weight,
-          height: formData.height,
+          weight: parseInt(formData.weight),
+          height: parseInt(formData.height),
           fitness_level: formData.fitnessLevel,
           fitness_goals: [formData.goals],
           available_days: 3,
           session_duration: sessionDuration,
-          equipment: formData.equipment || 'Equipamentos básicos',
-          limitations: formData.limitations || 'Nenhuma limitação informada'
+          equipment: formData.equipment || 'peso_corporal',
+          limitations: formData.limitations || 'nenhuma'
         },
         userId: user.id 
       };
 
-      console.log('📤 Enviando para a API:', requestData);
-      setDebugInfo(prev => prev + '\nEnviando dados para API...');
+      console.log('📤 Enviando para a API:', JSON.stringify(requestData, null, 2));
 
       const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
         body: requestData
       });
 
-      console.log('📥 Resposta da API:', { data, error });
-      setDebugInfo(prev => prev + `\nResposta recebida: ${JSON.stringify({ data, error })}`);
+      console.log('📥 Resposta completa da API:', { data, error });
 
       if (error) {
         console.error('❌ Erro da função:', error);
@@ -102,12 +98,13 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       }
 
       if (!data) {
-        console.error('❌ Nenhuma resposta foi retornada');
-        throw new Error('Nenhuma resposta foi retornada');
+        console.error('❌ Nenhum dado retornado');
+        throw new Error('Nenhuma resposta foi retornada da API');
       }
 
-      console.log('✅ Dados recebidos da API:', data);
+      console.log('✅ Dados recebidos:', JSON.stringify(data, null, 2));
 
+      // Processar e formatar o plano
       let planText = '';
       
       if (data && typeof data === 'object') {
@@ -153,31 +150,27 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       }
 
       console.log('📋 Plano formatado final:', planText);
-      setDebugInfo(prev => prev + `\nPlano formatado: ${planText.substring(0, 100)}...`);
 
       if (!planText || planText.trim() === '' || planText.trim() === '{}') {
-        console.error('❌ Plano de treino vazio');
-        throw new Error('Plano de treino vazio foi retornado');
+        console.error('❌ Plano de treino vazio após formatação');
+        throw new Error('Plano de treino vazio foi gerado');
       }
 
-      console.log('✅ DEFININDO PLANO NO STATE:', planText);
+      console.log('✅ DEFININDO PLANO NO STATE');
       setWorkoutPlan(planText);
-      setDebugInfo(prev => prev + '\n✅ Plano definido no state com sucesso!');
+      
+      // Forçar mudança para a aba do plano
+      setActiveTab('plan');
+      
+      console.log('✅ Plano definido e aba alterada para "plan"');
       
       toast({
         title: "Plano gerado com sucesso!",
-        description: "Seu plano de treino personalizado está pronto. Veja na aba 'Seu Plano'.",
+        description: "Seu plano de treino personalizado está pronto.",
       });
-
-      // Forçar mudança para a aba do plano
-      setTimeout(() => {
-        const planTab = document.querySelector('[value="plan"]') as HTMLElement;
-        planTab?.click();
-      }, 500);
 
     } catch (error: any) {
       console.error('💥 Erro ao gerar plano:', error);
-      setDebugInfo(prev => prev + `\n❌ ERRO: ${error.message}`);
       toast({
         title: "Erro ao gerar plano",
         description: error.message || 'Erro desconhecido ao gerar plano de treino',
@@ -198,6 +191,8 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     }
   };
 
+  console.log('🔍 Estado atual:', { workoutPlan: workoutPlan.length, activeTab });
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -213,7 +208,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="form" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6 bg-white border border-blue-200 shadow-sm h-12">
           <TabsTrigger 
             value="form" 
@@ -248,15 +243,24 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               {/* Informações pessoais */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="age" className="text-blue-700 font-medium">Idade *</Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    placeholder="Ex: 25"
-                    value={formData.age}
-                    onChange={(e) => handleInputChange('age', e.target.value)}
-                    className="border-blue-200 focus:border-blue-400"
-                  />
+                  <Label className="text-blue-700 font-medium">Idade *</Label>
+                  <Select value={formData.age} onValueChange={(value) => handleInputChange('age', value)}>
+                    <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
+                      <SelectValue placeholder="Selecione sua idade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="18">18 anos</SelectItem>
+                      <SelectItem value="20">20 anos</SelectItem>
+                      <SelectItem value="25">25 anos</SelectItem>
+                      <SelectItem value="30">30 anos</SelectItem>
+                      <SelectItem value="35">35 anos</SelectItem>
+                      <SelectItem value="40">40 anos</SelectItem>
+                      <SelectItem value="45">45 anos</SelectItem>
+                      <SelectItem value="50">50 anos</SelectItem>
+                      <SelectItem value="55">55 anos</SelectItem>
+                      <SelectItem value="60">60 anos</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label className="text-blue-700 font-medium">Sexo *</Label>
@@ -279,26 +283,47 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="height" className="text-blue-700 font-medium">Altura (cm) *</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    placeholder="Ex: 175"
-                    value={formData.height}
-                    onChange={(e) => handleInputChange('height', e.target.value)}
-                    className="border-blue-200 focus:border-blue-400"
-                  />
+                  <Label className="text-blue-700 font-medium">Altura *</Label>
+                  <Select value={formData.height} onValueChange={(value) => handleInputChange('height', value)}>
+                    <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
+                      <SelectValue placeholder="Selecione sua altura" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="150">1,50m</SelectItem>
+                      <SelectItem value="155">1,55m</SelectItem>
+                      <SelectItem value="160">1,60m</SelectItem>
+                      <SelectItem value="165">1,65m</SelectItem>
+                      <SelectItem value="170">1,70m</SelectItem>
+                      <SelectItem value="175">1,75m</SelectItem>
+                      <SelectItem value="180">1,80m</SelectItem>
+                      <SelectItem value="185">1,85m</SelectItem>
+                      <SelectItem value="190">1,90m</SelectItem>
+                      <SelectItem value="195">1,95m</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <Label htmlFor="weight" className="text-blue-700 font-medium">Peso (kg) *</Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    placeholder="Ex: 70"
-                    value={formData.weight}
-                    onChange={(e) => handleInputChange('weight', e.target.value)}
-                    className="border-blue-200 focus:border-blue-400"
-                  />
+                  <Label className="text-blue-700 font-medium">Peso *</Label>
+                  <Select value={formData.weight} onValueChange={(value) => handleInputChange('weight', value)}>
+                    <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
+                      <SelectValue placeholder="Selecione seu peso" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="50">50kg</SelectItem>
+                      <SelectItem value="55">55kg</SelectItem>
+                      <SelectItem value="60">60kg</SelectItem>
+                      <SelectItem value="65">65kg</SelectItem>
+                      <SelectItem value="70">70kg</SelectItem>
+                      <SelectItem value="75">75kg</SelectItem>
+                      <SelectItem value="80">80kg</SelectItem>
+                      <SelectItem value="85">85kg</SelectItem>
+                      <SelectItem value="90">90kg</SelectItem>
+                      <SelectItem value="95">95kg</SelectItem>
+                      <SelectItem value="100">100kg</SelectItem>
+                      <SelectItem value="110">110kg</SelectItem>
+                      <SelectItem value="120">120kg</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -430,14 +455,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                   </>
                 )}
               </Button>
-
-              {/* Debug Info */}
-              {debugInfo && (
-                <div className="mt-4 p-3 bg-gray-100 rounded-lg">
-                  <h4 className="font-semibold text-sm text-gray-700 mb-2">Debug Info:</h4>
-                  <pre className="text-xs text-gray-600 whitespace-pre-wrap">{debugInfo}</pre>
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -468,10 +485,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                       Copiar Plano
                     </Button>
                     <Button 
-                      onClick={() => {
-                        const formTab = document.querySelector('[value="form"]') as HTMLElement;
-                        formTab?.click();
-                      }}
+                      onClick={() => setActiveTab('form')}
                       variant="outline"
                       className="border-blue-300 text-blue-700 hover:bg-blue-50"
                     >
@@ -490,10 +504,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                     Preencha o formulário na aba "Criar Plano" e clique em "Gerar Plano de Treino" para criar seu plano personalizado.
                   </p>
                   <Button 
-                    onClick={() => {
-                      const formTab = document.querySelector('[value="form"]') as HTMLElement;
-                      formTab?.click();
-                    }}
+                    onClick={() => setActiveTab('form')}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Dumbbell className="h-4 w-4 mr-2" />
