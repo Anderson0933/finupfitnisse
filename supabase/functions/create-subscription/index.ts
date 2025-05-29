@@ -13,22 +13,24 @@ serve(async (req) => {
   }
 
   try {
-    const { userEmail, amount } = await req.json()
+    const { userEmail, amount, userId } = await req.json()
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Integração com Asaas API
-    const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || Deno.env.get('ASAAS_SANDBOX_API_KEY')
+    // Usar API de produção do Asaas
+    const asaasApiKey = Deno.env.get('ASAAS_PROD_API_KEY')
     
     if (!asaasApiKey) {
-      throw new Error('Chave da API Asaas não configurada')
+      throw new Error('Chave da API Asaas de produção não configurada')
     }
 
-    // Criar cobrança PIX no Asaas
-    const asaasResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
+    console.log('Criando cobrança PIX no Asaas (produção)...')
+
+    // Criar cobrança PIX no Asaas (produção)
+    const asaasResponse = await fetch('https://www.asaas.com/api/v3/payments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,27 +41,34 @@ serve(async (req) => {
         billingType: 'PIX',
         value: amount,
         dueDate: new Date().toISOString().split('T')[0],
-        description: 'Assinatura FitAI Pro - Mensal'
+        description: 'Assinatura FitAI Pro - Mensal',
+        externalReference: userId
       })
     })
 
     if (!asaasResponse.ok) {
+      const errorText = await asaasResponse.text()
+      console.error('Erro na resposta do Asaas:', errorText)
       throw new Error('Erro ao criar cobrança no Asaas')
     }
 
     const paymentData = await asaasResponse.json()
+    console.log('Cobrança criada com sucesso:', paymentData.id)
 
     // Salvar no banco de dados
     const { error } = await supabaseClient
       .from('subscriptions')
       .insert([{
-        user_id: (await supabaseClient.auth.getUser()).data.user?.id,
+        user_id: userId,
         payment_id: paymentData.id,
         amount: amount,
         status: 'pending'
       }])
 
-    if (error) throw error
+    if (error) {
+      console.error('Erro ao salvar no banco:', error)
+      throw error
+    }
 
     return new Response(
       JSON.stringify({
@@ -74,6 +83,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Erro geral:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

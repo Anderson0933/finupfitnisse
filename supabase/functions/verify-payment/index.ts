@@ -20,25 +20,32 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || Deno.env.get('ASAAS_SANDBOX_API_KEY')
+    // Usar API de produção do Asaas
+    const asaasApiKey = Deno.env.get('ASAAS_PROD_API_KEY')
     
     if (!asaasApiKey) {
-      throw new Error('Chave da API Asaas não configurada')
+      throw new Error('Chave da API Asaas de produção não configurada')
     }
 
-    // Verificar status do pagamento no Asaas
-    const asaasResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${paymentId}`, {
+    console.log('Verificando pagamento no Asaas (produção):', paymentId)
+
+    // Verificar status do pagamento no Asaas (produção)
+    const asaasResponse = await fetch(`https://www.asaas.com/api/v3/payments/${paymentId}`, {
       headers: {
         'access_token': asaasApiKey
       }
     })
 
     if (!asaasResponse.ok) {
+      const errorText = await asaasResponse.text()
+      console.error('Erro na resposta do Asaas:', errorText)
       throw new Error('Erro ao verificar pagamento no Asaas')
     }
 
     const paymentData = await asaasResponse.json()
     const isPaid = paymentData.status === 'RECEIVED' || paymentData.status === 'CONFIRMED'
+
+    console.log('Status do pagamento:', paymentData.status, 'Pago:', isPaid)
 
     if (isPaid) {
       // Atualizar assinatura no banco
@@ -54,7 +61,12 @@ serve(async (req) => {
         .eq('payment_id', paymentId)
         .eq('user_id', userId)
 
-      if (error) throw error
+      if (error) {
+        console.error('Erro ao atualizar assinatura:', error)
+        throw error
+      }
+
+      console.log('Assinatura ativada com sucesso para o usuário:', userId)
     }
 
     return new Response(
@@ -68,6 +80,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Erro geral:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

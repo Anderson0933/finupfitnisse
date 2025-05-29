@@ -18,6 +18,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [isInTrialPeriod, setIsInTrialPeriod] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -40,7 +41,24 @@ const Dashboard = () => {
         .gte('expires_at', new Date().toISOString())
         .single();
 
-      setHasActiveSubscription(!!subscription);
+      if (subscription) {
+        setHasActiveSubscription(true);
+        setIsInTrialPeriod(false);
+      } else {
+        // Verificar se ainda está no período de teste (1 dia após criação da conta)
+        const userCreatedAt = new Date(session.user.created_at);
+        const oneDayLater = new Date(userCreatedAt.getTime() + 24 * 60 * 60 * 1000);
+        const now = new Date();
+
+        if (now <= oneDayLater) {
+          setIsInTrialPeriod(true);
+          setHasActiveSubscription(false);
+        } else {
+          setIsInTrialPeriod(false);
+          setHasActiveSubscription(false);
+        }
+      }
+
       setLoading(false);
     };
 
@@ -75,7 +93,8 @@ const Dashboard = () => {
     );
   }
 
-  if (!hasActiveSubscription) {
+  // Se não tem assinatura ativa e não está no período de teste, mostrar tela de pagamento
+  if (!hasActiveSubscription && !isInTrialPeriod) {
     return <SubscriptionManager user={user} />;
   }
 
@@ -89,6 +108,11 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center space-x-4">
             <span className="text-white">Olá, {user?.user_metadata?.full_name || user?.email}</span>
+            {isInTrialPeriod && (
+              <span className="text-yellow-300 text-sm">
+                Período de teste - 24h gratuitas
+              </span>
+            )}
             <Button variant="outline" onClick={handleSignOut} className="border-white/20 text-white hover:bg-white/10">
               <LogOut className="h-4 w-4 mr-2" />
               Sair

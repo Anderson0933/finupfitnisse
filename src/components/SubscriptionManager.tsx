@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { QrCode, CreditCard, Check, Dumbbell } from 'lucide-react';
+import { QrCode, CreditCard, Check, Dumbbell, Clock } from 'lucide-react';
 
 interface SubscriptionManagerProps {
   user: User | null;
@@ -15,7 +15,34 @@ const SubscriptionManager = ({ user }: SubscriptionManagerProps) => {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+  const [timeLeft, setTimeLeft] = useState<string>('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      // Calcular tempo restante do período de teste
+      const userCreatedAt = new Date(user.created_at);
+      const oneDayLater = new Date(userCreatedAt.getTime() + 24 * 60 * 60 * 1000);
+      
+      const updateTimeLeft = () => {
+        const now = new Date();
+        const timeDiff = oneDayLater.getTime() - now.getTime();
+        
+        if (timeDiff > 0) {
+          const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+          const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+          setTimeLeft(`${hours}h ${minutes}m`);
+        } else {
+          setTimeLeft('Período expirado');
+        }
+      };
+
+      updateTimeLeft();
+      const interval = setInterval(updateTimeLeft, 60000); // Atualizar a cada minuto
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const createSubscription = async () => {
     if (!user) return;
@@ -25,7 +52,8 @@ const SubscriptionManager = ({ user }: SubscriptionManagerProps) => {
       const response = await supabase.functions.invoke('create-subscription', {
         body: { 
           userEmail: user.email,
-          amount: 69.90
+          amount: 69.90,
+          userId: user.id
         }
       });
 
@@ -38,6 +66,7 @@ const SubscriptionManager = ({ user }: SubscriptionManagerProps) => {
         description: "Escaneie o QR Code ou copie o código PIX para realizar o pagamento.",
       });
     } catch (error: any) {
+      console.error('Erro ao gerar PIX:', error);
       toast({
         title: "Erro ao gerar PIX",
         description: error.message,
@@ -75,11 +104,12 @@ const SubscriptionManager = ({ user }: SubscriptionManagerProps) => {
       } else {
         toast({
           title: "Pagamento não identificado",
-          description: "O pagamento ainda não foi processado. Tente novamente em alguns instantes.",
+          description: `Status: ${response.data.status}. O pagamento ainda não foi processado. Tente novamente em alguns instantes.`,
           variant: "destructive",
         });
       }
     } catch (error: any) {
+      console.error('Erro ao verificar pagamento:', error);
       toast({
         title: "Erro ao verificar pagamento",
         description: error.message,
@@ -108,15 +138,21 @@ const SubscriptionManager = ({ user }: SubscriptionManagerProps) => {
             <Dumbbell className="h-12 w-12 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">FitAI Pro</h1>
-          <p className="text-blue-200">Ative sua assinatura para continuar</p>
+          <p className="text-blue-200">Período de teste expirado</p>
+          {timeLeft && (
+            <div className="flex items-center justify-center mt-2 text-yellow-300">
+              <Clock className="h-4 w-4 mr-2" />
+              <span className="text-sm">Teste expira em: {timeLeft}</span>
+            </div>
+          )}
         </div>
 
         {!pixData ? (
           <Card className="glass border-white/20">
             <CardHeader className="text-center">
-              <CardTitle className="text-white">Plano Premium</CardTitle>
+              <CardTitle className="text-white">Continue usando o FitAI Pro</CardTitle>
               <CardDescription className="text-blue-200">
-                Acesso completo a todas as funcionalidades
+                Seu período de teste gratuito expirou. Assine para continuar usando todas as funcionalidades.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -162,7 +198,7 @@ const SubscriptionManager = ({ user }: SubscriptionManagerProps) => {
             <CardHeader className="text-center">
               <CardTitle className="text-white">Pagamento via PIX</CardTitle>
               <CardDescription className="text-blue-200">
-                Escaneie o QR Code ou copie o código PIX
+                Escaneie o QR Code ou copie o código PIX abaixo
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -183,9 +219,10 @@ const SubscriptionManager = ({ user }: SubscriptionManagerProps) => {
                   onClick={copyPixCode}
                   variant="outline"
                   className="w-full border-white/20 text-white hover:bg-white/10"
+                  disabled={!pixData.pixCode}
                 >
                   <QrCode className="h-4 w-4 mr-2" />
-                  Copiar Código PIX
+                  {pixData.pixCode ? 'Copiar Código PIX' : 'Código PIX não disponível'}
                 </Button>
 
                 <Button 
@@ -193,14 +230,14 @@ const SubscriptionManager = ({ user }: SubscriptionManagerProps) => {
                   className="w-full glow-button"
                   disabled={verifying}
                 >
-                  {verifying ? 'Verificando...' : 'Verificar Pagamento'}
+                  {verifying ? 'Verificando pagamento...' : 'Validar Pagamento'}
                 </Button>
               </div>
 
               <div className="text-center text-sm text-blue-200">
                 <p>Valor: R$ 69,90</p>
                 <p className="mt-2">
-                  Após o pagamento, clique em "Verificar Pagamento" para ativar sua assinatura
+                  Após realizar o pagamento via PIX, clique em "Validar Pagamento" para ativar sua assinatura
                 </p>
               </div>
             </CardContent>
