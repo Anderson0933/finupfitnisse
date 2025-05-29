@@ -16,14 +16,25 @@ serve(async (req) => {
     const { userProfile } = await req.json();
     console.log('Dados recebidos:', userProfile);
 
-    const grokApiKey = Deno.env.get('GROK_API_KEY');
+    const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
-    if (!grokApiKey) {
-      console.error('GROK_API_KEY não configurada');
-      throw new Error('GROK_API_KEY não configurada');
+    if (!groqApiKey) {
+      console.error('GROQ_API_KEY não configurada');
+      console.log('Usando plano de fallback devido à chave não configurada');
+      const fallbackPlan = createFallbackPlan(userProfile);
+      
+      return new Response(
+        JSON.stringify(fallbackPlan),
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
     }
 
-    console.log('Chave Grok configurada, gerando prompt...');
+    console.log('Chave Groq configurada, gerando prompt...');
 
     // Criar prompt mais detalhado baseado no perfil do usuário
     const prompt = `Você é um personal trainer experiente. Crie um plano de treino personalizado em português com base nas seguintes informações:
@@ -59,16 +70,16 @@ Retorne APENAS um JSON válido no seguinte formato:
 IMPORTANTE: O campo difficulty_level deve ser exatamente uma dessas opções: "iniciante", "intermediario", "avancado"
 Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explicações.`;
 
-    console.log('Enviando requisição para Grok...');
+    console.log('Enviando requisição para Groq...');
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${grokApiKey}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'grok-beta',
+        model: 'llama-3.1-70b-versatile',
         messages: [
           { role: 'user', content: prompt }
         ],
@@ -77,11 +88,11 @@ Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explicações.`;
       }),
     });
 
-    console.log('Status da resposta Grok:', response.status);
+    console.log('Status da resposta Groq:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro da API Grok:', response.status, errorText);
+      console.error('Erro da API Groq:', response.status, errorText);
       
       // Se der erro, usar plano fallback
       console.log('Usando plano de fallback devido ao erro na API');
@@ -99,7 +110,7 @@ Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explicações.`;
     }
 
     const data = await response.json();
-    console.log('Resposta recebida do Grok');
+    console.log('Resposta recebida do Groq');
 
     let content = data.choices?.[0]?.message?.content || '';
 

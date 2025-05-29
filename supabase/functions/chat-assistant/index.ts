@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
@@ -20,10 +20,10 @@ serve(async (req) => {
     const { message, conversationHistory } = await req.json();
     console.log('Mensagem recebida:', message);
     
-    const grokApiKey = Deno.env.get('GROK_API_KEY');
+    const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
-    if (!grokApiKey) {
-      console.error('GROK_API_KEY não configurada');
+    if (!groqApiKey) {
+      console.error('GROQ_API_KEY não configurada');
       
       const fallbackResponse = "Olá! Sou seu assistente de fitness. No momento estou com problemas de configuração, mas posso te dar algumas dicas básicas:\n\n• Para perder peso: combine exercícios cardiovasculares com musculação\n• Para ganhar massa muscular: foque em exercícios de força com progressão de cargas\n• Para melhorar condicionamento: inclua HIIT e exercícios funcionais\n• Sempre aqueça antes dos treinos e alongue depois\n\nPor favor, tente novamente em alguns minutos.";
       
@@ -38,10 +38,10 @@ serve(async (req) => {
       );
     }
 
-    // Preparar mensagens para o Grok
+    // Preparar mensagens para o Groq
     const messages: ChatMessage[] = [
       {
-        role: 'assistant',
+        role: 'system',
         content: 'Você é um assistente pessoal de fitness especializado em treinos, exercícios, técnicas e motivação. Responda sempre em português de forma clara, motivadora e prática. Dê conselhos específicos e úteis sobre exercícios, técnicas de treino, equipamentos e motivação. Seja sempre positivo e encoraje o usuário a manter uma rotina saudável.'
       }
     ];
@@ -61,28 +61,28 @@ serve(async (req) => {
       content: message
     });
 
-    console.log('Enviando para Grok API...');
+    console.log('Enviando para Groq API...');
     console.log('Número de mensagens:', messages.length);
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${grokApiKey}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'grok-beta',
+        model: 'llama-3.1-70b-versatile',
         messages: messages,
         max_tokens: 1000,
         temperature: 0.7,
       }),
     });
 
-    console.log('Status da resposta Grok:', response.status);
+    console.log('Status da resposta Groq:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro da API Grok:', response.status, errorText);
+      console.error('Erro da API Groq:', response.status, errorText);
       
       let fallbackResponse = "Desculpe, estou com problemas técnicos no momento. ";
       
@@ -108,12 +108,12 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Resposta recebida do Grok');
+    console.log('Resposta recebida do Groq');
     
     const assistantMessage = data.choices?.[0]?.message?.content;
     
     if (!assistantMessage) {
-      console.error('Resposta vazia do Grok');
+      console.error('Resposta vazia do Groq');
       return new Response(
         JSON.stringify({ message: 'Desculpe, não consegui gerar uma resposta no momento. Tente reformular sua pergunta.' }),
         { 
