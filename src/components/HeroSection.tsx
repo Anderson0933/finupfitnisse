@@ -22,7 +22,7 @@ const HeroSection = () => {
             {/* Badge */}
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-sm font-medium mb-6">
               <Zap className="h-4 w-4 mr-2" />
-              IA Avançada para Seus Treinos - 1 Dia Grátis
+              IA Avançada para Seus Treinos
             </div>
 
             {/* Main heading */}
@@ -34,7 +34,7 @@ const HeroSection = () => {
             {/* Description */}
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto lg:mx-0">
               Tenha um personal trainer e nutricionista pessoal 24/7. Nossa IA cria treinos personalizados, 
-              acompanha sua evolução e ajusta seu plano automaticamente. <strong>Teste grátis por 1 dia!</strong>
+              acompanha sua evolução e ajusta seu plano automaticamente. <strong>Teste grátis por algumas horas!</strong>
             </p>
 
             {/* CTA Buttons */}
