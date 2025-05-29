@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { QrCode, CreditCard, Check, RefreshCw, Sparkles, User as UserIcon } from 'lucide-react';
+import { QrCode, CreditCard, Check, RefreshCw, Sparkles, User as UserIcon, Copy, AlertCircle } from 'lucide-react';
 
 interface PaymentManagerProps {
   user: User | null;
@@ -271,17 +271,28 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {pixData.qrCodeImage && (
-              <div className="flex justify-center">
-                <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+            {/* Área do QR Code */}
+            <div className="flex justify-center">
+              <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                {pixData.qrCodeImage ? (
                   <img 
                     src={pixData.qrCodeImage} 
                     alt="QR Code PIX" 
                     className="w-48 h-48 md:w-64 md:h-64"
                   />
-                </div>
+                ) : (
+                  <div className="w-48 h-48 md:w-64 md:h-64 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500">
+                    <AlertCircle className="h-12 w-12 mb-2" />
+                    <p className="text-sm text-center px-4">
+                      QR Code não disponível
+                    </p>
+                    <p className="text-xs text-center px-4 mt-1">
+                      Use o código PIX abaixo
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             <div className="space-y-3">
               <Button 
@@ -290,7 +301,7 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
                 className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
                 disabled={!pixData.pixCode}
               >
-                <QrCode className="h-4 w-4 mr-2" />
+                <Copy className="h-4 w-4 mr-2" />
                 {pixData.pixCode ? 'Copiar Código PIX' : 'Código PIX não disponível'}
               </Button>
 

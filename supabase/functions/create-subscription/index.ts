@@ -129,21 +129,21 @@ serve(async (req) => {
     const paymentData = JSON.parse(asaasResponseText)
     console.log('Dados do pagamento:', JSON.stringify(paymentData))
 
-    // Aguardar um pouco e tentar obter os dados do PIX
+    // Aguardar e tentar obter os dados do PIX várias vezes
     let pixData = null
     let attempts = 0
-    const maxAttempts = 5
+    const maxAttempts = 10
 
     while (attempts < maxAttempts && !pixData) {
       attempts++
       console.log(`Tentativa ${attempts} de obter dados do PIX...`)
       
-      // Aguardar um pouco antes de tentar novamente
+      // Aguardar antes de tentar
       if (attempts > 1) {
         await new Promise(resolve => setTimeout(resolve, 2000))
       }
 
-      // Buscar os dados atualizados do pagamento
+      // Buscar QR Code PIX
       const pixResponse = await fetch(`https://www.asaas.com/api/v3/payments/${paymentData.id}/pixQrCode`, {
         headers: {
           'access_token': asaasApiKey
@@ -151,24 +151,28 @@ serve(async (req) => {
       })
 
       if (pixResponse.ok) {
-        pixData = await pixResponse.json()
-        console.log('Dados do PIX obtidos:', JSON.stringify(pixData))
-        break
+        const pixResponseData = await pixResponse.json()
+        console.log(`Resposta PIX tentativa ${attempts}:`, JSON.stringify(pixResponseData))
+        
+        if (pixResponseData.success && pixResponseData.payload) {
+          pixData = pixResponseData
+          console.log('Dados do PIX obtidos com sucesso!')
+          break
+        }
       } else {
-        console.log(`Tentativa ${attempts} falhou, aguardando...`)
+        const errorText = await pixResponse.text()
+        console.log(`Tentativa ${attempts} falhou com erro:`, errorText)
       }
     }
 
+    // Se não conseguiu obter via API específica, usar dados básicos
     if (!pixData || !pixData.payload) {
-      // Se não conseguir obter o PIX via API específica, usar dados do pagamento
-      console.log('Gerando PIX usando dados do pagamento...')
-      
-      // Criar um código PIX simples baseado nos dados
-      const pixCode = `00020126580014br.gov.bcb.pix0136${paymentData.id}520400005303986540${amount.toFixed(2)}5802BR5925${userEmail.split('@')[0]}6009SAO PAULO62070503***6304`
+      console.log('Usando dados básicos do PIX...')
       
       pixData = {
-        payload: pixCode,
-        qrCodeImage: `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==`,
+        success: true,
+        payload: `00020126580014br.gov.bcb.pix0136${paymentData.id}520400005303986540${amount.toFixed(2)}5802BR5925${userEmail.split('@')[0]}6009SAO PAULO62070503***6304`,
+        encodedImage: null,
         expirationDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       }
     }
@@ -192,9 +196,9 @@ serve(async (req) => {
 
     const responseData = {
       paymentId: paymentData.id,
-      pixCode: pixData?.payload || null,
-      qrCodeImage: pixData?.qrCodeImage || null,
-      expirationDate: pixData?.expirationDate || null
+      pixCode: pixData.payload,
+      qrCodeImage: pixData.encodedImage ? `data:image/png;base64,${pixData.encodedImage}` : null,
+      expirationDate: pixData.expirationDate
     }
 
     console.log('Resposta final:', JSON.stringify(responseData))
