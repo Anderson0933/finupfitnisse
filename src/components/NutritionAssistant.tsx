@@ -11,7 +11,7 @@ import { Send, Apple, Bot, User as UserIcon } from 'lucide-react';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
+  timestamp: string;
 }
 
 interface NutritionAssistantProps {
@@ -54,26 +54,29 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
 
     if (data) {
       setConversationId(data.id);
-      setMessages(data.messages || []);
+      const messagesData = Array.isArray(data.messages) ? data.messages : [];
+      setMessages(messagesData as Message[]);
     } else {
       // Criar nova conversa de nutrição
+      const initialMessage: Message = {
+        role: 'assistant',
+        content: 'Olá! Sou sua assistente de nutrição personalizada. Posso te ajudar com:\n\n🥗 Planos alimentares personalizados\n🍎 Dicas de alimentação saudável\n📊 Contagem de calorias e macronutrientes\n🥘 Receitas saudáveis e práticas\n💡 Orientações sobre suplementação\n\nComo posso te ajudar hoje com sua alimentação?',
+        timestamp: new Date().toISOString()
+      };
+
       const { data: newConversation } = await supabase
         .from('ai_conversations')
-        .insert([{
+        .insert({
           user_id: user.id,
           conversation_type: 'nutrition',
-          messages: [{
-            role: 'assistant',
-            content: 'Olá! Sou sua assistente de nutrição personalizada. Posso te ajudar com:\n\n🥗 Planos alimentares personalizados\n🍎 Dicas de alimentação saudável\n📊 Contagem de calorias e macronutrientes\n🥘 Receitas saudáveis e práticas\n💡 Orientações sobre suplementação\n\nComo posso te ajudar hoje com sua alimentação?',
-            timestamp: new Date()
-          }]
-        }])
+          messages: [initialMessage]
+        })
         .select()
         .single();
 
       if (newConversation) {
         setConversationId(newConversation.id);
-        setMessages(newConversation.messages);
+        setMessages([initialMessage]);
       }
     }
   };
@@ -84,7 +87,7 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
     const userMessage: Message = {
       role: 'user',
       content: input,
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     };
 
     const updatedMessages = [...messages, userMessage];
@@ -105,7 +108,7 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
       const assistantMessage: Message = {
         role: 'assistant',
         content: response.data.message,
-        timestamp: new Date()
+        timestamp: new Date().toISOString()
       };
 
       const finalMessages = [...updatedMessages, assistantMessage];

@@ -11,7 +11,7 @@ import { Send, Bot, User as UserIcon } from 'lucide-react';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
+  timestamp: string;
 }
 
 interface AIAssistantProps {
@@ -54,26 +54,29 @@ const AIAssistant = ({ user }: AIAssistantProps) => {
 
     if (data) {
       setConversationId(data.id);
-      setMessages(data.messages || []);
+      const messagesData = Array.isArray(data.messages) ? data.messages : [];
+      setMessages(messagesData as Message[]);
     } else {
       // Criar nova conversa
+      const initialMessage: Message = {
+        role: 'assistant',
+        content: 'Olá! Sou seu assistente de fitness pessoal. Posso te ajudar com dúvidas sobre treinos, exercícios, técnicas e motivação. Como posso te ajudar hoje?',
+        timestamp: new Date().toISOString()
+      };
+
       const { data: newConversation } = await supabase
         .from('ai_conversations')
-        .insert([{
+        .insert({
           user_id: user.id,
           conversation_type: 'general',
-          messages: [{
-            role: 'assistant',
-            content: 'Olá! Sou seu assistente de fitness pessoal. Posso te ajudar com dúvidas sobre treinos, exercícios, técnicas e motivação. Como posso te ajudar hoje?',
-            timestamp: new Date()
-          }]
-        }])
+          messages: [initialMessage]
+        })
         .select()
         .single();
 
       if (newConversation) {
         setConversationId(newConversation.id);
-        setMessages(newConversation.messages);
+        setMessages([initialMessage]);
       }
     }
   };
@@ -84,7 +87,7 @@ const AIAssistant = ({ user }: AIAssistantProps) => {
     const userMessage: Message = {
       role: 'user',
       content: input,
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     };
 
     const updatedMessages = [...messages, userMessage];
@@ -105,7 +108,7 @@ const AIAssistant = ({ user }: AIAssistantProps) => {
       const assistantMessage: Message = {
         role: 'assistant',
         content: response.data.message,
-        timestamp: new Date()
+        timestamp: new Date().toISOString()
       };
 
       const finalMessages = [...updatedMessages, assistantMessage];

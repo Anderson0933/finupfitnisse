@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,8 +16,16 @@ interface WorkoutPlan {
   description: string;
   difficulty_level: string;
   duration_weeks: number;
-  exercises: any[];
+  exercises: Exercise[];
   created_at: string;
+}
+
+interface Exercise {
+  name: string;
+  sets: number;
+  reps: string;
+  rest: string;
+  instructions: string;
 }
 
 interface WorkoutPlanGeneratorProps {
@@ -70,7 +77,13 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       return;
     }
 
-    setWorkoutPlans(data || []);
+    if (data) {
+      const formattedPlans = data.map(plan => ({
+        ...plan,
+        exercises: Array.isArray(plan.exercises) ? plan.exercises as Exercise[] : []
+      }));
+      setWorkoutPlans(formattedPlans);
+    }
   };
 
   const handleGoalChange = (goal: string, checked: boolean) => {
@@ -164,6 +177,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-white">Idade</Label>
