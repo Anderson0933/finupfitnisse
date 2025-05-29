@@ -40,11 +40,17 @@ serve(async (req) => {
       const createdAt = new Date(lastPending.created_at)
       const now = new Date()
       const timeDiff = now.getTime() - createdAt.getTime()
-      const hoursDiff = timeDiff / (1000 * 3600)
+      const minutesDiff = timeDiff / (1000 * 60)
 
-      // Se existe uma cobrança pendente criada há menos de 2 horas, retornar erro
-      if (hoursDiff < 2) {
-        throw new Error('Você já tem uma cobrança pendente. Aguarde ou utilize a existente.')
+      // Se existe uma cobrança pendente criada há menos de 30 minutos, retornar erro
+      if (minutesDiff < 30) {
+        throw new Error('Você já tem uma cobrança pendente recente. Aguarde ou utilize a existente.')
+      } else {
+        // Se passou mais de 30 minutos, cancelar a cobrança antiga
+        await supabaseClient
+          .from('subscriptions')
+          .update({ status: 'cancelled' })
+          .eq('id', lastPending.id)
       }
     }
 

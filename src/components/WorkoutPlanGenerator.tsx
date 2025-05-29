@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,9 +63,18 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     try {
       console.log('Enviando dados para gerar plano:', { userProfile: formData, userId: user.id });
 
+      // Mapear fitnessLevel para o formato correto esperado pela função
+      const mappedFormData = {
+        ...formData,
+        fitness_level: formData.fitnessLevel,
+        fitness_goals: [formData.goals],
+        available_days: 3,
+        session_duration: parseInt(formData.availableTime) || 60
+      };
+
       const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
         body: { 
-          userProfile: formData,
+          userProfile: mappedFormData,
           userId: user.id 
         }
       });
@@ -86,8 +96,10 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       let planText = '';
       
       // Verificar se é um objeto estruturado ou string
-      if (typeof data === 'object' && data.title && data.exercises) {
-        planText = `${data.title}\n\n`;
+      if (typeof data === 'object' && data !== null) {
+        if (data.title) {
+          planText = `${data.title}\n\n`;
+        }
         
         if (data.description) {
           planText += `${data.description}\n\n`;
@@ -101,18 +113,20 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
           planText += `NÍVEL: ${data.difficulty_level}\n\n`;
         }
         
-        planText += `EXERCÍCIOS:\n\n`;
-        
-        data.exercises.forEach((exercise: any, index: number) => {
-          planText += `${index + 1}. ${exercise.name}\n`;
-          if (exercise.sets) planText += `   - Séries: ${exercise.sets}\n`;
-          if (exercise.reps) planText += `   - Repetições: ${exercise.reps}\n`;
-          if (exercise.rest) planText += `   - Descanso: ${exercise.rest}\n`;
-          if (exercise.instructions) planText += `   - Instruções: ${exercise.instructions}\n`;
-          planText += `\n`;
-        });
+        if (data.exercises && Array.isArray(data.exercises)) {
+          planText += `EXERCÍCIOS:\n\n`;
+          
+          data.exercises.forEach((exercise: any, index: number) => {
+            planText += `${index + 1}. ${exercise.name}\n`;
+            if (exercise.sets) planText += `   - Séries: ${exercise.sets}\n`;
+            if (exercise.reps) planText += `   - Repetições: ${exercise.reps}\n`;
+            if (exercise.rest) planText += `   - Descanso: ${exercise.rest}\n`;
+            if (exercise.instructions) planText += `   - Instruções: ${exercise.instructions}\n`;
+            planText += `\n`;
+          });
+        }
 
-        if (data.nutrition_tips && data.nutrition_tips.length > 0) {
+        if (data.nutrition_tips && Array.isArray(data.nutrition_tips) && data.nutrition_tips.length > 0) {
           planText += `DICAS NUTRICIONAIS:\n\n`;
           data.nutrition_tips.forEach((tip: string, index: number) => {
             planText += `${index + 1}. ${tip}\n`;
@@ -184,7 +198,6 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* ... keep existing code (form fields) */}
             {/* Informações pessoais */}
             <div className="grid grid-cols-2 gap-4">
               <div>
