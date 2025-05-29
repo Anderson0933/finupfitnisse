@@ -1,21 +1,18 @@
-
 import { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Keep Tabs for internal use
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input'; // Import Input component
 
-interface WorkoutPlanGeneratorProps {
-  user: User | null;
-}
-
-interface WorkoutPlan {
+// Define WorkoutPlan interface (can be moved to a shared types file)
+export interface WorkoutPlan {
   title: string;
   description: string;
   difficulty_level: string;
@@ -30,7 +27,17 @@ interface WorkoutPlan {
   nutrition_tips: string[];
 }
 
-const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
+interface WorkoutPlanGeneratorProps {
+  user: User | null;
+  workoutPlan: WorkoutPlan | null; // Receive state from parent
+  setWorkoutPlan: (plan: WorkoutPlan | null) => void; // Receive setter from parent
+}
+
+const WorkoutPlanGenerator = ({ 
+  user, 
+  workoutPlan, // Use prop
+  setWorkoutPlan // Use prop
+}: WorkoutPlanGeneratorProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     age: '',
@@ -43,11 +50,17 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     equipment: '',
     limitations: ''
   });
-  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
-  const [activeTab, setActiveTab] = useState('form');
+  const [activeTab, setActiveTab] = useState('form'); // KEEP internal tab state
   const { toast } = useToast();
 
+  // Updated handler for Input components
   const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    console.log(`✅ Campo ${field} atualizado para:`, value);
+  };
+
+  // Specific handler for Select components (if any remain or are added later)
+  const handleSelectChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     console.log(`✅ Campo ${field} atualizado para:`, value);
   };
@@ -63,7 +76,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     }
 
     const requiredFields = ['age', 'gender', 'weight', 'height', 'fitnessLevel', 'goals'];
-    const missingFields = requiredFields.filter(field => !formData[field]);
+    const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
     
     if (missingFields.length > 0) {
       toast({
@@ -73,9 +86,19 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       });
       return;
     }
+    
+    // Basic validation for numeric fields
+    if (isNaN(parseInt(formData.age)) || isNaN(parseInt(formData.height)) || isNaN(parseInt(formData.weight))) {
+       toast({
+        title: "Valores inválidos",
+        description: "Idade, Altura (cm) e Peso (kg) devem ser números.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
-    setWorkoutPlan(null);
+    setWorkoutPlan(null); // Use prop setter
     
     try {
       console.log('🚀 INICIANDO GERAÇÃO DO PLANO');
@@ -88,10 +111,10 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
           age: parseInt(formData.age),
           gender: formData.gender,
           weight: parseInt(formData.weight),
-          height: parseInt(formData.height),
+          height: parseInt(formData.height), // Assuming height is in cm
           fitness_level: formData.fitnessLevel,
           fitness_goals: [formData.goals],
-          available_days: 3,
+          available_days: 3, // Assuming 3 days, maybe make this configurable?
           session_duration: sessionDuration,
           equipment: formData.equipment || 'peso_corporal',
           limitations: formData.limitations || 'nenhuma'
@@ -131,7 +154,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
         throw new Error('Plano de treino inválido retornado');
       }
 
-      // Definir o plano no estado
+      // Definir o plano no estado (using prop setter)
       const plan: WorkoutPlan = {
         title: data.title || 'Plano de Treino Personalizado',
         description: data.description || 'Plano gerado com base no seu perfil',
@@ -142,12 +165,12 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
       };
 
       console.log('✅ Plano processado:', plan);
-      setWorkoutPlan(plan);
+      setWorkoutPlan(plan); // Use prop setter
       
-      // Mudar para a aba do plano automaticamente
+      // Mudar para a aba do plano automaticamente (using LOCAL setter)
       setTimeout(() => {
-        setActiveTab('plan');
-        console.log('✅ Aba alterada para "plan"');
+        setActiveTab('plan'); // Use LOCAL setter
+        console.log('✅ Aba interna alterada para "plan"');
       }, 100);
       
       toast({
@@ -168,7 +191,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
   };
 
   const copyPlan = () => {
-    if (workoutPlan) {
+    if (workoutPlan) { // Use prop
       let planText = `🏋️ ${workoutPlan.title}\n\n`;
       planText += `📝 DESCRIÇÃO:\n${workoutPlan.description}\n\n`;
       planText += `📊 NÍVEL: ${workoutPlan.difficulty_level.toUpperCase()}\n`;
@@ -198,11 +221,11 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
     }
   };
 
-  console.log('🔍 Estado atual:', { 
-    hasWorkoutPlan: !!workoutPlan, 
-    activeTab,
-    planTitle: workoutPlan?.title,
-    exercisesCount: workoutPlan?.exercises?.length || 0
+  console.log('🔍 Estado (props & local):', { 
+    hasWorkoutPlan: !!workoutPlan, // Use prop
+    activeTab, // Use local state
+    planTitle: workoutPlan?.title, // Use prop
+    exercisesCount: workoutPlan?.exercises?.length || 0 // Use prop
   });
 
   return (
@@ -220,6 +243,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
         </CardHeader>
       </Card>
 
+      {/* Internal Tabs managed by this component */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6 bg-white border border-blue-200 shadow-sm h-12">
           <TabsTrigger 
@@ -235,7 +259,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
           >
             <FileText className="h-4 w-4" />
             Seu Plano
-            {workoutPlan && (
+            {workoutPlan && ( // Use prop to show indicator
               <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full ml-1">
                 Pronto
               </span>
@@ -255,31 +279,23 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               {/* Informações pessoais */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-blue-700 font-medium">Idade *</Label>
-                  <Select value={formData.age} onValueChange={(value) => handleInputChange('age', value)}>
-                    <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
-                      <SelectValue placeholder="Selecione sua idade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="18">18 anos</SelectItem>
-                      <SelectItem value="20">20 anos</SelectItem>
-                      <SelectItem value="25">25 anos</SelectItem>
-                      <SelectItem value="30">30 anos</SelectItem>
-                      <SelectItem value="35">35 anos</SelectItem>
-                      <SelectItem value="40">40 anos</SelectItem>
-                      <SelectItem value="45">45 anos</SelectItem>
-                      <SelectItem value="50">50 anos</SelectItem>
-                      <SelectItem value="55">55 anos</SelectItem>
-                      <SelectItem value="60">60 anos</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="age" className="text-blue-700 font-medium">Idade *</Label>
+                  {/* Changed Select to Input */}
+                  <Input 
+                    id="age"
+                    type="number" 
+                    placeholder="Sua idade em anos" 
+                    value={formData.age} 
+                    onChange={(e) => handleInputChange('age', e.target.value)} 
+                    className="border-blue-200 focus:border-blue-400 mt-2"
+                  />
                 </div>
                 <div>
                   <Label className="text-blue-700 font-medium">Sexo *</Label>
                   <RadioGroup
                     value={formData.gender}
-                    onValueChange={(value) => handleInputChange('gender', value)}
-                    className="flex gap-4 mt-2"
+                    onValueChange={(value) => handleInputChange('gender', value)} // Use standard handler
+                    className="flex flex-wrap gap-4 mt-2"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="masculino" id="masculino" />
@@ -289,56 +305,43 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                       <RadioGroupItem value="feminino" id="feminino" />
                       <Label htmlFor="feminino" className="text-sm">Feminino</Label>
                     </div>
+                    {/* Added "Outros" option */}
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="outro" id="outro" />
+                      <Label htmlFor="outro" className="text-sm">Outro</Label>
+                    </div>
                   </RadioGroup>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-blue-700 font-medium">Altura *</Label>
-                  <Select value={formData.height} onValueChange={(value) => handleInputChange('height', value)}>
-                    <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
-                      <SelectValue placeholder="Selecione sua altura" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="150">1,50m</SelectItem>
-                      <SelectItem value="155">1,55m</SelectItem>
-                      <SelectItem value="160">1,60m</SelectItem>
-                      <SelectItem value="165">1,65m</SelectItem>
-                      <SelectItem value="170">1,70m</SelectItem>
-                      <SelectItem value="175">1,75m</SelectItem>
-                      <SelectItem value="180">1,80m</SelectItem>
-                      <SelectItem value="185">1,85m</SelectItem>
-                      <SelectItem value="190">1,90m</SelectItem>
-                      <SelectItem value="195">1,95m</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="height" className="text-blue-700 font-medium">Altura (cm) *</Label>
+                  {/* Changed Select to Input */}
+                  <Input 
+                    id="height"
+                    type="number" 
+                    placeholder="Sua altura em cm" 
+                    value={formData.height} 
+                    onChange={(e) => handleInputChange('height', e.target.value)} 
+                    className="border-blue-200 focus:border-blue-400 mt-2"
+                  />
                 </div>
                 <div>
-                  <Label className="text-blue-700 font-medium">Peso *</Label>
-                  <Select value={formData.weight} onValueChange={(value) => handleInputChange('weight', value)}>
-                    <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
-                      <SelectValue placeholder="Selecione seu peso" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="50">50kg</SelectItem>
-                      <SelectItem value="55">55kg</SelectItem>
-                      <SelectItem value="60">60kg</SelectItem>
-                      <SelectItem value="65">65kg</SelectItem>
-                      <SelectItem value="70">70kg</SelectItem>
-                      <SelectItem value="75">75kg</SelectItem>
-                      <SelectItem value="80">80kg</SelectItem>
-                      <SelectItem value="85">85kg</SelectItem>
-                      <SelectItem value="90">90kg</SelectItem>
-                      <SelectItem value="95">95kg</SelectItem>
-                      <SelectItem value="100">100kg</SelectItem>
-                      <SelectItem value="110">110kg</SelectItem>
-                      <SelectItem value="120">120kg</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="weight" className="text-blue-700 font-medium">Peso (kg) *</Label>
+                  {/* Changed Select to Input */}
+                  <Input 
+                    id="weight"
+                    type="number" 
+                    placeholder="Seu peso em kg" 
+                    value={formData.weight} 
+                    onChange={(e) => handleInputChange('weight', e.target.value)} 
+                    className="border-blue-200 focus:border-blue-400 mt-2"
+                  />
                 </div>
               </div>
 
+              {/* Rest of the form remains the same */}
               <div>
                 <Label className="text-blue-700 font-medium flex items-center gap-2">
                   <Zap className="h-4 w-4" />
@@ -381,20 +384,42 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                   <Target className="h-4 w-4" />
                   Objetivo Principal *
                 </Label>
-                <Select value={formData.goals} onValueChange={(value) => handleInputChange('goals', value)}>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
-                    <SelectValue placeholder="Selecione seu objetivo principal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="perder_peso">🔥 Perder peso</SelectItem>
-                    <SelectItem value="ganhar_massa">💪 Ganhar massa muscular</SelectItem>
-                    <SelectItem value="tonificar">⚡ Tonificar o corpo</SelectItem>
-                    <SelectItem value="condicionamento">🏃 Melhorar condicionamento</SelectItem>
-                    <SelectItem value="forca">🏋️ Aumentar força</SelectItem>
-                    <SelectItem value="flexibilidade">🤸 Melhorar flexibilidade</SelectItem>
-                    <SelectItem value="geral">🎯 Fitness geral</SelectItem>
-                  </SelectContent>
-                </Select>
+                <RadioGroup
+                  value={formData.goals}
+                  onValueChange={(value) => handleInputChange('goals', value)}
+                  className="mt-3 space-y-3"
+                >
+                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50">
+                    <RadioGroupItem value="perda_peso" id="perda_peso" />
+                    <Label htmlFor="perda_peso" className="flex items-center gap-2 cursor-pointer">
+                      📉 Perda de Peso / Queima de Gordura
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50">
+                    <RadioGroupItem value="ganho_massa" id="ganho_massa" />
+                    <Label htmlFor="ganho_massa" className="flex items-center gap-2 cursor-pointer">
+                      💪 Ganho de Massa Muscular / Hipertrofia
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50">
+                    <RadioGroupItem value="condicionamento" id="condicionamento" />
+                    <Label htmlFor="condicionamento" className="flex items-center gap-2 cursor-pointer">
+                      ❤️ Melhora do Condicionamento Cardiovascular
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50">
+                    <RadioGroupItem value="forca" id="forca" />
+                    <Label htmlFor="forca" className="flex items-center gap-2 cursor-pointer">
+                      ⚡ Aumento de Força
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50">
+                    <RadioGroupItem value="saude_geral" id="saude_geral" />
+                    <Label htmlFor="saude_geral" className="flex items-center gap-2 cursor-pointer">
+                      🧘 Saúde Geral / Manutenção
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               <div>
@@ -402,7 +427,8 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                   <Clock className="h-4 w-4" />
                   Tempo Disponível por Treino
                 </Label>
-                <Select value={formData.availableTime} onValueChange={(value) => handleInputChange('availableTime', value)}>
+                {/* Use handleSelectChange for Select components */}
+                <Select value={formData.availableTime} onValueChange={(value) => handleSelectChange('availableTime', value)}>
                   <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
                     <SelectValue placeholder="Selecione o tempo disponível" />
                   </SelectTrigger>
@@ -418,7 +444,8 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
 
               <div>
                 <Label className="text-blue-700 font-medium">Equipamentos Disponíveis</Label>
-                <Select value={formData.equipment} onValueChange={(value) => handleInputChange('equipment', value)}>
+                 {/* Use handleSelectChange for Select components */}
+                <Select value={formData.equipment} onValueChange={(value) => handleSelectChange('equipment', value)}>
                   <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
                     <SelectValue placeholder="Selecione os equipamentos" />
                   </SelectTrigger>
@@ -434,7 +461,8 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
 
               <div>
                 <Label className="text-blue-700 font-medium">Limitações Físicas</Label>
-                <Select value={formData.limitations} onValueChange={(value) => handleInputChange('limitations', value)}>
+                 {/* Use handleSelectChange for Select components */}
+                <Select value={formData.limitations} onValueChange={(value) => handleSelectChange('limitations', value)}>
                   <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2">
                     <SelectValue placeholder="Selecione se possui limitações" />
                   </SelectTrigger>
@@ -480,7 +508,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {workoutPlan ? (
+              {workoutPlan ? ( // Use prop
                 <div className="space-y-6">
                   <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                     <h3 className="text-xl font-bold text-green-800 mb-3">{workoutPlan.title}</h3>
@@ -541,7 +569,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                       Copiar Plano
                     </Button>
                     <Button 
-                      onClick={() => setActiveTab('form')}
+                      onClick={() => setActiveTab('form')} // Use LOCAL setter
                       variant="outline"
                       className="border-blue-300 text-blue-700 hover:bg-blue-50"
                     >
@@ -560,7 +588,7 @@ const WorkoutPlanGenerator = ({ user }: WorkoutPlanGeneratorProps) => {
                     Preencha o formulário na aba "Criar Plano" e clique em "Gerar Plano de Treino" para criar seu plano personalizado.
                   </p>
                   <Button 
-                    onClick={() => setActiveTab('form')}
+                    onClick={() => setActiveTab('form')} // Use LOCAL setter
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Dumbbell className="h-4 w-4 mr-2" />
