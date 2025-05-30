@@ -99,10 +99,10 @@ const WorkoutPlanGenerator = ({
 
       const { error: insertError } = await supabase
         .from('user_workout_plans')
-        .insert([{
+        .insert({
           user_id: user.id,
-          plan_data: plan // Save the entire plan object as JSONB
-        }]);
+          plan_data: plan as any // Cast to any to satisfy the Json type requirement
+        });
 
       if (insertError) {
         console.error('❌ Erro ao salvar novo plano:', insertError);
