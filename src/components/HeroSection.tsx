@@ -148,7 +148,7 @@ const HeroSection = () => {
             </div>
             <div className="aspect-video bg-black rounded-lg overflow-hidden"> 
               <video 
-                src="https://res.cloudinary.com/dz7g1kzxi/video/upload/v1748609800/ox7vf9biy1vqnknqn97o.mkv" 
+                src="https://res.cloudinary.com/dz7g1kzxi/video/upload/v1748636068/svjomqwiyhnp6tzgfx6y.mp4" 
                 autoPlay 
                 loop 
                 muted 
@@ -166,3 +166,4 @@ const HeroSection = () => {
 };
 
 export default HeroSection;
+
