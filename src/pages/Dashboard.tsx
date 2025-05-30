@@ -21,9 +21,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // --- State for Workout Plan (lifted) --- 
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
-  // --- End State --- 
 
   useEffect(() => {
     const initializeDashboard = async () => {
@@ -53,7 +51,6 @@ const Dashboard = () => {
       console.log(`👤 Usuário logado: ${currentUser.email}`);
 
       try {
-        // --- Fetch Subscription and Trial Status --- 
         console.log('🔍 Verificando assinatura e período de teste...');
         const { data: subscription } = await supabase
           .from('subscriptions')
@@ -61,7 +58,7 @@ const Dashboard = () => {
           .eq('user_id', currentUser.id)
           .eq('status', 'active')
           .gte('expires_at', new Date().toISOString())
-          .maybeSingle(); // Use maybeSingle to handle null case gracefully
+          .maybeSingle();
 
         if (subscription) {
           console.log('✅ Assinatura ativa encontrada.');
@@ -83,41 +80,35 @@ const Dashboard = () => {
             setHasActiveSubscription(false);
           }
         }
-        // --- End Fetch Subscription --- 
 
-        // --- Fetch Saved Workout Plan --- 
         console.log('🏋️ Buscando plano de treino salvo...');
         const { data: savedPlanData, error: planError } = await supabase
           .from('user_workout_plans')
-          .select('plan_data') // Select only the JSONB column
+          .select('plan_data')
           .eq('user_id', currentUser.id)
-          .order('created_at', { ascending: false }) // Get the latest plan if multiple exist (shouldn't happen with current logic)
+          .order('created_at', { ascending: false })
           .limit(1)
-          .maybeSingle(); // Use maybeSingle
+          .maybeSingle();
 
         if (planError) {
           console.error('❌ Erro ao buscar plano de treino:', planError);
-          // Don't block loading, just log the error
           toast({ title: "Erro ao Carregar Plano", description: "Não foi possível buscar seu plano salvo.", variant: "destructive" });
         } else if (savedPlanData && savedPlanData.plan_data) {
           console.log('✅ Plano de treino salvo encontrado!');
-          // Validate if plan_data is indeed a WorkoutPlan object (basic check)
           if (typeof savedPlanData.plan_data === 'object' && savedPlanData.plan_data !== null && 'title' in savedPlanData.plan_data) {
-             setWorkoutPlan(savedPlanData.plan_data as WorkoutPlan);
+             setWorkoutPlan(savedPlanData.plan_data as unknown as WorkoutPlan);
           } else {
              console.warn('⚠️ Formato inválido para plan_data encontrado no DB.');
-             setWorkoutPlan(null); // Set to null if data is invalid
+             setWorkoutPlan(null);
           }
         } else {
           console.log('📄 Nenhum plano de treino salvo encontrado.');
-          setWorkoutPlan(null); // Ensure state is null if no plan found
+          setWorkoutPlan(null);
         }
-        // --- End Fetch Saved Workout Plan --- 
 
       } catch (error: any) {
         console.error('💥 Erro durante inicialização do Dashboard:', error);
         toast({ title: "Erro Inesperado", description: "Ocorreu um erro ao carregar seus dados.", variant: "destructive" });
-        // Decide if navigation is needed based on error type
       }
 
       setLoading(false);
@@ -126,46 +117,37 @@ const Dashboard = () => {
 
     initializeDashboard();
 
-    // Listener for auth changes (e.g., logout)
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         const newAuthUser = session?.user ?? null;
         setUser(newAuthUser);
         if (!newAuthUser) {
           console.log('🚪 Usuário deslogado via listener, redirecionando...');
-          setWorkoutPlan(null); // Clear plan on logout
+          setWorkoutPlan(null);
           setHasActiveSubscription(false);
           setIsInTrialPeriod(false);
           navigate('/auth');
         } else if (_event === 'SIGNED_IN' && !user) {
-           // If user signs in while on this page (unlikely but possible)
            console.log('👤 Usuário logado via listener, reinicializando...');
-           initializeDashboard(); // Re-fetch data for the new user
+           initializeDashboard();
         }
       }
     );
 
-    // Cleanup listener on component unmount
     return () => {
       authSubscription?.unsubscribe();
       console.log('🧹 Listener de autenticação removido.');
     };
-  // Run only once on mount, navigate handles redirection
-  // eslint-disable-next-line react-hooks/exhaustive-deps 
   }, [navigate]); 
 
   const handleSignOut = async () => {
-    setLoading(true); // Show loading indicator during sign out
+    setLoading(true);
     await supabase.auth.signOut();
-    // The onAuthStateChange listener will handle clearing state and navigation
     toast({ title: "Logout realizado", description: "Você foi desconectado." });
-    // No need to navigate here, listener handles it
-    // setLoading(false); // Listener will trigger state changes including loading
   };
 
   const hasAccess = hasActiveSubscription || isInTrialPeriod;
 
-  // LockedFeature component remains the same
   const LockedFeature = ({ children, title }: { children: React.ReactNode, title: string }) => {
     if (hasAccess) {
       return <>{children}</>;
@@ -205,12 +187,10 @@ const Dashboard = () => {
     );
   }
 
-  // Determine the default tab based on whether a plan exists
-  const defaultMainTab = workoutPlan ? 'workout' : 'workout'; // Keep workout as default, internal tabs handle form/plan
+  const defaultMainTab = workoutPlan ? 'workout' : 'workout';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
-      {/* Header (unchanged) */}
       <header className="border-b border-blue-200 bg-white/90 backdrop-blur-xl shadow-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 md:py-6">
           <div className="flex items-center justify-between">
@@ -248,7 +228,6 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-4 md:py-8">
-        {/* Welcome Section (unchanged) */}
         <div className="mb-6 md:mb-8">
           <Card className="bg-white/80 border-blue-200 shadow-lg backdrop-blur-sm">
             <CardContent className="p-4 md:p-6">
@@ -276,10 +255,8 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Main Dashboard Tabs */}
         <Tabs defaultValue={defaultMainTab} className="w-full main-dashboard-tabs">
           <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
-            {/* TabsTriggers (unchanged structure, only disabled logic matters) */}
             <TabsTrigger value="workout" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <Dumbbell className="h-4 w-4" /> <span className="text-xs md:text-sm">Treinos</span> {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
@@ -297,15 +274,12 @@ const Dashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* TabsContent */}
           <TabsContent value="workout">
             <LockedFeature title="Treinos">
-              {/* Pass the fetched plan and setter down */}
               <WorkoutPlanGenerator 
                 user={user} 
                 workoutPlan={workoutPlan} 
                 setWorkoutPlan={setWorkoutPlan} 
-                // Pass initialActiveTab based on whether a plan was loaded
                 initialActiveTab={workoutPlan ? 'plan' : 'form'}
               />
             </LockedFeature>
@@ -339,4 +313,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

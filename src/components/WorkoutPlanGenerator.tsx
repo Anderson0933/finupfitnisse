@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'; // Added useEffect
+import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText, Trash2, AlertTriangle } from 'lucide-react'; // Added Trash2, AlertTriangle
+import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText, Trash2, AlertTriangle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog" // Added AlertDialog imports
+} from "@/components/ui/alert-dialog"
 
 // Define WorkoutPlan interface
 export interface WorkoutPlan {
@@ -40,19 +40,19 @@ export interface WorkoutPlan {
 
 interface WorkoutPlanGeneratorProps {
   user: User | null;
-  workoutPlan: WorkoutPlan | null; // Receive state from parent
-  setWorkoutPlan: (plan: WorkoutPlan | null) => void; // Receive setter from parent
-  initialActiveTab?: 'form' | 'plan'; // Optional prop to set initial tab
+  workoutPlan: WorkoutPlan | null;
+  setWorkoutPlan: (plan: WorkoutPlan | null) => void;
+  initialActiveTab?: 'form' | 'plan';
 }
 
 const WorkoutPlanGenerator = ({ 
   user, 
   workoutPlan, 
   setWorkoutPlan,
-  initialActiveTab = 'form' // Default to 'form'
+  initialActiveTab = 'form'
 }: WorkoutPlanGeneratorProps) => {
   const [loading, setLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false); // State for delete operation
+  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
     age: '',
     gender: '',
@@ -64,13 +64,11 @@ const WorkoutPlanGenerator = ({
     equipment: '',
     limitations: ''
   });
-  // Use initialActiveTab prop to set the initial state, only if workoutPlan exists
-  const [activeTab, setActiveTab] = useState(() => 
+  const [activeTab, setActiveTab] = useState<'form' | 'plan'>(() => 
     workoutPlan ? 'plan' : initialActiveTab
   );
   const { toast } = useToast();
 
-  // Effect to switch tab if workoutPlan changes (e.g., loaded from Dashboard)
   useEffect(() => {
     if (workoutPlan && activeTab !== 'plan') {
       setActiveTab('plan');
@@ -85,24 +83,20 @@ const WorkoutPlanGenerator = ({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // --- SAVE WORKOUT PLAN --- 
   const saveWorkoutPlan = async (plan: WorkoutPlan) => {
-    if (!user) return; // Should not happen if called correctly
+    if (!user) return;
 
     console.log('💾 Tentando salvar o plano no DB...');
     try {
-      // First, delete any existing plan for this user to ensure only one active plan
       const { error: deleteError } = await supabase
         .from('user_workout_plans')
         .delete()
         .eq('user_id', user.id);
 
       if (deleteError) {
-        // Log the error but proceed, maybe the user didn't have a plan yet
         console.warn('⚠️ Erro ao deletar plano antigo (pode não existir):', deleteError.message);
       }
 
-      // Now, insert the new plan
       const { error: insertError } = await supabase
         .from('user_workout_plans')
         .insert([{
@@ -127,7 +121,6 @@ const WorkoutPlanGenerator = ({
       return false;
     }
   };
-  // --- END SAVE WORKOUT PLAN ---
 
   const generateWorkoutPlan = async () => {
     if (!user) {
@@ -147,7 +140,7 @@ const WorkoutPlanGenerator = ({
     }
 
     setLoading(true);
-    setWorkoutPlan(null); // Clear previous plan from state immediately
+    setWorkoutPlan(null);
     
     try {
       console.log('🚀 INICIANDO GERAÇÃO DO PLANO');
@@ -186,19 +179,16 @@ const WorkoutPlanGenerator = ({
         nutrition_tips: data.nutrition_tips || []
       };
 
-      // --- SAVE TO DB --- 
       const saved = await saveWorkoutPlan(plan);
       if (!saved) {
-        // Error toast already shown in saveWorkoutPlan
         setLoading(false);
-        return; // Stop execution if save failed
+        return;
       }
-      // --- END SAVE TO DB ---
 
       console.log('✅ Plano processado e salvo. Atualizando estado...');
-      setWorkoutPlan(plan); // Update state AFTER successful save
+      setWorkoutPlan(plan);
       
-      setActiveTab('plan'); // Switch to plan tab
+      setActiveTab('plan');
       console.log('✅ Aba interna alterada para "plan"');
       
       toast({
@@ -208,7 +198,7 @@ const WorkoutPlanGenerator = ({
 
     } catch (error: any) {
       console.error('💥 Erro ao gerar/salvar plano:', error);
-      setWorkoutPlan(null); // Ensure state is cleared on error
+      setWorkoutPlan(null);
       toast({
         title: "Erro ao Gerar Plano",
         description: error.message || 'Erro desconhecido.',
@@ -219,7 +209,6 @@ const WorkoutPlanGenerator = ({
     }
   };
 
-  // --- DELETE WORKOUT PLAN --- 
   const deleteWorkoutPlan = async () => {
     if (!user || !workoutPlan) return;
 
@@ -237,8 +226,8 @@ const WorkoutPlanGenerator = ({
       }
 
       console.log('✅ Plano deletado com sucesso do DB!');
-      setWorkoutPlan(null); // Clear the plan from state
-      setActiveTab('form'); // Switch back to form tab
+      setWorkoutPlan(null);
+      setActiveTab('form');
       toast({
         title: "Plano Excluído",
         description: "Seu plano de treino foi removido.",
@@ -255,7 +244,6 @@ const WorkoutPlanGenerator = ({
       setDeleting(false);
     }
   };
-  // --- END DELETE WORKOUT PLAN ---
 
   const copyPlan = () => {
     if (workoutPlan) {
@@ -296,19 +284,19 @@ const WorkoutPlanGenerator = ({
         </CardHeader>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'form' | 'plan')} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6 bg-white border border-blue-200 shadow-sm h-12">
           <TabsTrigger 
             value="form" 
             className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 py-3"
           >
             <UserIcon className="h-4 w-4" />
-            {workoutPlan ? 'Gerar Novo Plano' : 'Criar Plano'} {/* Change text if plan exists */}
+            {workoutPlan ? 'Gerar Novo Plano' : 'Criar Plano'}
           </TabsTrigger>
           <TabsTrigger 
             value="plan" 
             className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 py-3"
-            disabled={!workoutPlan} // Disable if no plan exists
+            disabled={!workoutPlan}
           >
             <FileText className="h-4 w-4" />
             Seu Plano Atual
@@ -335,8 +323,7 @@ const WorkoutPlanGenerator = ({
               )}
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Form fields... (content unchanged, assuming it's correct) */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="age" className="text-blue-700 font-medium">Idade *</Label>
                   <Input 
@@ -401,7 +388,6 @@ const WorkoutPlanGenerator = ({
                   <Zap className="h-4 w-4" /> Nível de Condicionamento Atual *
                 </Label>
                 <RadioGroup value={formData.fitnessLevel} onValueChange={(value) => handleInputChange('fitnessLevel', value)} className="mt-3 space-y-3">
-                  {/* Options: sedentario, iniciante, intermediario, avancado */}
                   <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="sedentario" id="sedentario" /><Label htmlFor="sedentario" className="flex items-center gap-2 cursor-pointer">🟡 Sedentário</Label></div>
                   <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="iniciante" id="iniciante" /><Label htmlFor="iniciante" className="flex items-center gap-2 cursor-pointer">🟠 Iniciante</Label></div>
                   <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="intermediario" id="intermediario" /><Label htmlFor="intermediario" className="flex items-center gap-2 cursor-pointer">🟢 Intermediário</Label></div>
@@ -414,7 +400,6 @@ const WorkoutPlanGenerator = ({
                   <Target className="h-4 w-4" /> Objetivo Principal *
                 </Label>
                 <RadioGroup value={formData.goals} onValueChange={(value) => handleInputChange('goals', value)} className="mt-3 space-y-3">
-                  {/* Options: perda_peso, hipertrofia, condicionamento, forca, saude_geral */}
                   <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="perda_peso" id="perda_peso" /><Label htmlFor="perda_peso" className="flex items-center gap-2 cursor-pointer">📉 Perda de Peso / Gordura</Label></div>
                   <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="hipertrofia" id="hipertrofia" /><Label htmlFor="hipertrofia" className="flex items-center gap-2 cursor-pointer">💪 Ganho de Massa Muscular</Label></div>
                   <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="condicionamento" id="condicionamento" /><Label htmlFor="condicionamento" className="flex items-center gap-2 cursor-pointer">❤️ Melhora Cardiovascular</Label></div>
@@ -477,7 +462,7 @@ const WorkoutPlanGenerator = ({
                 {loading ? (
                   <><RefreshCw className="h-5 w-5 mr-2 animate-spin" /> Gerando...</>
                 ) : (
-                  <><Dumbbell className="h-5 w-5 mr-2" /> {workoutPlan ? 'Gerar e Substituir Plano' : 'Gerar Plano de Treino'}</> // Change button text
+                  <><Dumbbell className="h-5 w-5 mr-2" /> {workoutPlan ? 'Gerar e Substituir Plano' : 'Gerar Plano de Treino'}</>
                 )}
               </Button>
             </CardContent>
@@ -492,7 +477,6 @@ const WorkoutPlanGenerator = ({
                   <Target className="h-5 w-5" />
                   Seu Plano de Treino Atual
                 </div>
-                 {/* --- DELETE BUTTON --- */} 
                  <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button 
@@ -522,7 +506,6 @@ const WorkoutPlanGenerator = ({
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-                 {/* --- END DELETE BUTTON --- */}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -591,7 +574,6 @@ const WorkoutPlanGenerator = ({
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  {/* Content when no plan exists (unchanged) */}
                   <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4"><FileText className="h-8 w-8 text-gray-400" /></div>
                   <h3 className="text-lg font-medium text-gray-700 mb-2">Nenhum plano salvo</h3>
                   <p className="text-gray-500 mb-6">Vá para "Criar Plano" para gerar seu treino.</p>
@@ -607,4 +589,3 @@ const WorkoutPlanGenerator = ({
 };
 
 export default WorkoutPlanGenerator;
-
