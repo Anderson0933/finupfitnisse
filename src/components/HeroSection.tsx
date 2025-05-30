@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Play, Star, Users, Trophy, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -77,7 +76,7 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* Hero Image/Video */}
+          {/* Hero Image/Video Placeholder Area */}
           <div className="relative animate-slide-up">
             <div className="relative bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl p-8 shadow-2xl">
               {/* Glass card overlay */}
@@ -142,16 +141,26 @@ const HeroSection = () => {
           <div className="bg-white rounded-2xl p-6 max-w-4xl w-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold">Demonstração do FitAI Pro</h3>
+              {/* Changed button content to simple 'X' */}
               <Button variant="ghost" onClick={() => setIsVideoPlaying(false)}>
-                ✕
+                X
               </Button>
             </div>
-            <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-              <p className="text-gray-500">Vídeo de demonstração será adicionado aqui</p>
+            <div className="aspect-video bg-black rounded-lg overflow-hidden"> 
+              <video 
+                src="https://res.cloudinary.com/dz7g1kzxi/video/upload/v1748609800/ox7vf9biy1vqnknqn97o.mkv" 
+                autoPlay 
+                loop 
+                muted 
+                playsInline 
+                className="w-full h-full object-cover" 
+              >
+                Seu navegador não suporta o elemento de vídeo.
+              </video>
             </div>
           </div>
         </div>
-      )}
+       )}
     </section>
   );
 };
