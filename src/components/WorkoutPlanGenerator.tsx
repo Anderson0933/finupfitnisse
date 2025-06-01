@@ -159,6 +159,7 @@ const WorkoutPlanGenerator = ({
   const [activeTab, setActiveTab] = useState<'form' | 'plan'>(() => 
     workoutPlan ? 'plan' : initialActiveTab
   );
+  const [otherLimitationsText, setOtherLimitationsText] = useState(''); // NEW STATE
   // State to store completion status for each item
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
   const { toast } = useToast();
@@ -205,6 +206,10 @@ const WorkoutPlanGenerator = ({
 
   const handleSelectChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Limpa o texto de "outras" se a seleção mudar
+    if (field === 'limitations' && value !== 'outros') {
+      setOtherLimitationsText('');
+    }
   };
 
   // Function to handle checkbox change
@@ -330,7 +335,9 @@ const WorkoutPlanGenerator = ({
           available_days: 3,
           session_duration: sessionDuration,
           equipment: formData.equipment || 'peso_corporal',
-          limitations: formData.limitations || 'nenhuma'
+        limitations: formData.limitations === 'outros' 
+                      ? `outros: ${otherLimitationsText || 'não especificado'}` 
+                      : formData.limitations || 'nenhuma'
         },
         userId: user.id 
       };
@@ -657,6 +664,20 @@ const WorkoutPlanGenerator = ({
                     <SelectItem value="outros">⚠️ Outras (descreva se possível)</SelectItem>
                   </SelectContent>
                 </Select>
+                {/* Input condicional para "Outras" limitações */}
+                {formData.limitations === 'outros' && (
+                  <div className="mt-4">
+                    <Label htmlFor="otherLimitations" className="text-blue-700 font-medium">Descreva suas outras limitações:</Label>
+                    <Input 
+                      id="otherLimitations"
+                      type="text" 
+                      placeholder="Ex: Tendinite no pulso, asma leve..." 
+                      value={otherLimitationsText} 
+                      onChange={(e) => setOtherLimitationsText(e.target.value)} 
+                      className="border-blue-200 focus:border-blue-400 mt-2"
+                    />
+                  </div>
+                )}
               </div>
 
               <Button 
