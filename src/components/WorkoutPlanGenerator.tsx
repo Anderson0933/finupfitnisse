@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 // Import the existing Supabase client
@@ -416,7 +415,7 @@ const WorkoutPlanGenerator = ({
         toast({
           title: "Erro Parcial ao Excluir",
           description: "Não foi possível excluir os dados do plano, mas o progresso foi removido.",
-          variant: "destructive",
+          variant: "warning",
         });
       } else {
          console.log('✅ Plano deletado com sucesso do DB!');
@@ -823,3 +822,4 @@ const WorkoutPlanGenerator = ({
 };
 
 export default WorkoutPlanGenerator;
+

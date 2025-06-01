@@ -138,16 +138,6 @@ const Auth = () => {
                   >
                     {loading ? 'Entrando...' : 'Entrar'}
                   </Button>
-                  
-                  <div className="text-center mt-4">
-                    <button
-                      type="button"
-                      onClick={() => navigate('/reset-password')}
-                      className="text-sm text-blue-200 hover:text-white hover:underline"
-                    >
-                      Esqueceu sua senha?
-                    </button>
-                  </div>
                 </form>
               </TabsContent>
 
