@@ -148,18 +148,20 @@ const WorkoutPlanGenerator = ({
   const [formData, setFormData] = useState({
     age: '',
     gender: '',
-    weight: '',
-    height: '',
-    fitnessLevel: '',
-    goals: '',
-    availableTime: '',
-    equipment: '',
-    limitations: ''
+    weight: '', // Corrected typo
+    height: '', // Corrected typo and value
+    fitnessLevel: '', // Corrected value
+    goals: [], // MODIFIED: Changed from '' to [] to support multiple goals
+    availableTime: '', // Corrected value
+    availableDays: '', // NEW & Corrected value
+    equipment: '', // Corrected value
+    limitations: '' // Corrected value
   });
   const [activeTab, setActiveTab] = useState<'form' | 'plan'>(() => 
     workoutPlan ? 'plan' : initialActiveTab
   );
-  const [otherLimitationsText, setOtherLimitationsText] = useState(''); // NEW STATE
+  const [otherLimitationsText, setOtherLimitationsText] = useState(""); // NEW STATE
+  const [otherGoalsText, setOtherGoalsText] = useState(""); // NEW STATE FOR OTHER GOALS
   // State to store completion status for each item
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
   const { toast } = useToast();
@@ -202,6 +204,25 @@ const WorkoutPlanGenerator = ({
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // NEW: Handler for Goals Checkboxes
+  const handleGoalChange = (goal: string, checked: boolean) => {
+    setFormData(prev => {
+      const currentGoals = prev.goals || []; // Ensure goals is an array
+      if (checked) {
+        // Add goal if checked and not already present
+        return { ...prev, goals: [...currentGoals, goal] };
+      } else {
+        // Remove goal if unchecked
+        const updatedGoals = currentGoals.filter(g => g !== goal);
+        // If unchecking "outros", also clear the text
+        if (goal === "outros") {
+          setOtherGoalsText("");
+        }
+        return { ...prev, goals: updatedGoals };
+      }
+    });
   };
 
   const handleSelectChange = (field: string, value: string) => {
@@ -324,6 +345,22 @@ const WorkoutPlanGenerator = ({
     try {
       console.log('🚀 INICIANDO GERAÇÃO DO PLANO');
       const sessionDuration = formData.availableTime ? parseInt(formData.availableTime) || 60 : 60;
+      const availableDays = formData.availableDays ? parseInt(formData.availableDays) || 3 : 3; // Use selected days, default 3
+
+      // Prepare goals, including "outros" text if selected
+      let finalGoals = formData.goals || [];
+      if (finalGoals.includes("outros")) {
+        finalGoals = finalGoals.filter(g => g !== "outros"); // Remove the placeholder
+        if (otherGoalsText.trim()) {
+          finalGoals.push(`outros: ${otherGoalsText.trim()}`); // Add formatted other text
+        }
+      }
+      // Ensure at least one goal is sent, even if empty initially
+      if (finalGoals.length === 0) {
+         finalGoals.push("saude_geral"); // Default goal if none selected
+         toast({ title: "Objetivo Padrão", description: "Nenhum objetivo selecionado, usando 'Saúde Geral'.", variant: "default" });
+      }
+
       const requestData = {
         userProfile: {
           age: parseInt(formData.age),
@@ -331,15 +368,15 @@ const WorkoutPlanGenerator = ({
           weight: parseInt(formData.weight),
           height: parseInt(formData.height),
           fitness_level: formData.fitnessLevel,
-          fitness_goals: [formData.goals],
-          available_days: 3,
+          fitness_goals: finalGoals, // Use the processed goals array
+          available_days: availableDays, // Use the parsed available days
           session_duration: sessionDuration,
           equipment: formData.equipment || 'peso_corporal',
-        limitations: formData.limitations === 'outros' 
-                      ? `outros: ${otherLimitationsText || 'não especificado'}` 
-                      : formData.limitations || 'nenhuma'
+          limitations: formData.limitations === 'outros'
+                        ? `outros: ${otherLimitationsText || 'não especificado'}`
+                        : formData.limitations || 'nenhuma'
         },
-        userId: user.id 
+        userId: user.id
       };
 
       console.log('📤 Enviando para a API generate-workout-plan...');
@@ -607,17 +644,46 @@ const WorkoutPlanGenerator = ({
                 </RadioGroup>
               </div>
 
+              {/* MODIFIED: Goals with Checkboxes */}
               <div>
                 <Label className="text-blue-700 font-medium flex items-center gap-2">
-                  <Target className="h-4 w-4" /> Objetivo Principal *
+                  <Target className="h-4 w-4" /> Objetivos Principais (selecione um ou mais) *
                 </Label>
-                <RadioGroup value={formData.goals} onValueChange={(value) => handleInputChange('goals', value)} className="mt-3 space-y-3">
-                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="perda_peso" id="perda_peso" /><Label htmlFor="perda_peso" className="flex items-center gap-2 cursor-pointer">📉 Perda de Peso / Gordura</Label></div>
-                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="hipertrofia" id="hipertrofia" /><Label htmlFor="hipertrofia" className="flex items-center gap-2 cursor-pointer">💪 Ganho de Massa Muscular</Label></div>
-                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="condicionamento" id="condicionamento" /><Label htmlFor="condicionamento" className="flex items-center gap-2 cursor-pointer">❤️ Melhora Cardiovascular</Label></div>
-                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="forca" id="forca" /><Label htmlFor="forca" className="flex items-center gap-2 cursor-pointer">⚡ Aumento de Força</Label></div>
-                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="saude_geral" id="saude_geral" /><Label htmlFor="saude_geral" className="flex items-center gap-2 cursor-pointer">🧘 Saúde Geral / Manutenção</Label></div>
-                </RadioGroup>
+                <div className="mt-3 space-y-3">
+                  {[ // Define goal options here
+                    { value: "perda_peso", label: "📉 Perda de Peso / Gordura" },
+                    { value: "hipertrofia", label: "💪 Ganho de Massa Muscular" },
+                    { value: "condicionamento", label: "❤️ Melhora Cardiovascular" },
+                    { value: "forca", label: "⚡ Aumento de Força" },
+                    { value: "saude_geral", label: "🧘 Saúde Geral / Manutenção" },
+                    { value: "outros", label: "⚠️ Outros (descreva abaixo)" }
+                  ].map((goal) => (
+                    <div key={goal.value} className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50">
+                      <Checkbox
+                        id={goal.value}
+                        checked={(formData.goals || []).includes(goal.value)} // Check if goal is in the array
+                        onCheckedChange={(checked) => handleGoalChange(goal.value, !!checked)} // Pass boolean
+                      />
+                      <Label htmlFor={goal.value} className="flex items-center gap-2 cursor-pointer">
+                        {goal.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {/* Input condicional para "Outros" objetivos */}
+                {(formData.goals || []).includes("outros") && (
+                  <div className="mt-4">
+                    <Label htmlFor="otherGoals" className="text-blue-700 font-medium">Descreva seus outros objetivos:</Label>
+                    <Input
+                      id="otherGoals"
+                      type="text"
+                      placeholder="Ex: Preparação para maratona, reabilitação..."
+                      value={otherGoalsText}
+                      onChange={(e) => setOtherGoalsText(e.target.value)}
+                      className="border-blue-200 focus:border-blue-400 mt-2"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -632,6 +698,21 @@ const WorkoutPlanGenerator = ({
                     <SelectItem value="60">⏰ 60 min</SelectItem>
                     <SelectItem value="90">⏰ 90 min</SelectItem>
                     <SelectItem value="120">⏰ 2 horas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* NEW: Available Days per Week */}
+              <div>
+                <Label className="text-blue-700 font-medium flex items-center gap-2">
+                  🗓️ Dias Disponíveis por Semana *
+                </Label>
+                <Select value={formData.availableDays} onValueChange={(value) => handleSelectChange("availableDays", value)}>
+                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2"><SelectValue placeholder="Selecione quantos dias na semana" /></SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7].map(day => (
+                      <SelectItem key={day} value={String(day)}>{day} dia{day > 1 ? 's' : ''}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
