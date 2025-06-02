@@ -26,16 +26,10 @@ serve(async (req) => {
     
     console.log(`📅 Buscando usuários criados antes de: ${limitDate.toISOString()}`)
 
-    // Buscar usuários que:
-    // 1. Foram criados há mais de 48h
-    // 2. Não têm assinatura ativa
+    // Buscar usuários que foram criados há mais de 48h
     const { data: expiredUsers, error: usersError } = await supabaseClient
       .from('profiles')
-      .select(`
-        id,
-        created_at,
-        subscriptions!inner(id, status, expires_at)
-      `)
+      .select('id, created_at')
       .lt('created_at', limitDate.toISOString())
 
     if (usersError) {
@@ -48,39 +42,56 @@ serve(async (req) => {
     let deletedCount = 0
 
     for (const user of expiredUsers || []) {
-      // Verificar se tem assinatura ativa
+      console.log(`🔍 Verificando usuário ${user.id} (criado em ${user.created_at})`)
+      
+      // Verificar se tem assinatura ativa separadamente
       const { data: activeSubscription } = await supabaseClient
         .from('subscriptions')
-        .select('id')
+        .select('id, status, expires_at')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .gte('expires_at', now.toISOString())
         .maybeSingle()
 
       if (!activeSubscription) {
-        console.log(`🗑️ Excluindo usuário ${user.id} (criado em ${user.created_at})`)
-        
-        try {
-          // Excluir dados relacionados primeiro
-          await supabaseClient.from('ai_conversations').delete().eq('user_id', user.id)
-          await supabaseClient.from('user_progress').delete().eq('user_id', user.id)
-          await supabaseClient.from('user_workout_plans').delete().eq('user_id', user.id)
-          await supabaseClient.from('workout_plans').delete().eq('user_id', user.id)
-          await supabaseClient.from('user_profiles').delete().eq('user_id', user.id)
-          await supabaseClient.from('subscriptions').delete().eq('user_id', user.id)
-          await supabaseClient.from('profiles').delete().eq('id', user.id)
+        // Verificar se já teve alguma assinatura paga (mesmo expirada)
+        const { data: anySubscription } = await supabaseClient
+          .from('subscriptions')
+          .select('id, status')
+          .eq('user_id', user.id)
+          .in('status', ['active', 'expired', 'cancelled'])
+          .maybeSingle()
 
-          // Excluir usuário do auth (isso vai cascatear outras exclusões)
-          const { error: deleteAuthError } = await supabaseClient.auth.admin.deleteUser(user.id)
+        if (!anySubscription) {
+          console.log(`🗑️ Excluindo usuário ${user.id} - nunca teve assinatura paga`)
           
-          if (deleteAuthError) {
-            console.error(`❌ Erro ao excluir usuário ${user.id} do auth:`, deleteAuthError)
-          } else {
-            deletedCount++
-            console.log(`✅ Usuário ${user.id} excluído com sucesso`)
+          try {
+            // Excluir dados relacionados primeiro
+            console.log(`🧹 Limpando dados relacionados do usuário ${user.id}`)
+            
+            await supabaseClient.from('ai_conversations').delete().eq('user_id', user.id)
+            await supabaseClient.from('user_progress').delete().eq('user_id', user.id)
+            await supabaseClient.from('user_workout_plans').delete().eq('user_id', user.id)
+            await supabaseClient.from('workout_plans').delete().eq('user_id', user.id)
+            await supabaseClient.from('user_profiles').delete().eq('user_id', user.id)
+            await supabaseClient.from('plan_progress').delete().eq('user_id', user.id)
+            await supabaseClient.from('subscriptions').delete().eq('user_id', user.id)
+            await supabaseClient.from('profiles').delete().eq('id', user.id)
+
+            // Excluir usuário do auth (isso vai cascatear outras exclusões)
+            const { error: deleteAuthError } = await supabaseClient.auth.admin.deleteUser(user.id)
+            
+            if (deleteAuthError) {
+              console.error(`❌ Erro ao excluir usuário ${user.id} do auth:`, deleteAuthError)
+            } else {
+              deletedCount++
+              console.log(`✅ Usuário ${user.id} excluído com sucesso`)
+            }
+          } catch (deleteError) {
+            console.error(`❌ Erro ao excluir usuário ${user.id}:`, deleteError)
           }
-        } catch (deleteError) {
-          console.error(`❌ Erro ao excluir usuário ${user.id}:`, deleteError)
+        } else {
+          console.log(`💰 Usuário ${user.id} já teve assinatura paga, mantendo conta`)
         }
       } else {
         console.log(`✅ Usuário ${user.id} tem assinatura ativa, mantendo conta`)
@@ -94,7 +105,8 @@ serve(async (req) => {
         success: true,
         message: `Limpeza concluída: ${deletedCount} contas excluídas`,
         deletedCount,
-        checkedUsers: expiredUsers?.length || 0
+        checkedUsers: expiredUsers?.length || 0,
+        timestamp: new Date().toISOString()
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -106,7 +118,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        success: false 
+        success: false,
+        timestamp: new Date().toISOString()
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
