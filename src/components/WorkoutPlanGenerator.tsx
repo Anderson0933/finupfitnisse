@@ -459,7 +459,7 @@ const WorkoutPlanGenerator = ({
         toast({
           title: "Erro Parcial ao Excluir",
           description: "Não foi possível excluir os dados do plano, mas o progresso foi removido.",
-          variant: "warning",
+          variant: "destructive",
         });
       } else {
          console.log('✅ Plano deletado com sucesso do DB!');
@@ -924,4 +924,3 @@ const WorkoutPlanGenerator = ({
 };
 
 export default WorkoutPlanGenerator;
-
