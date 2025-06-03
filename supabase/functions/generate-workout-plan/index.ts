@@ -40,6 +40,7 @@ serve(async (req) => {
     const goalsMap = {
       'perder_peso': 'perder peso e queimar gordura',
       'ganhar_massa': 'ganhar massa muscular',
+      'hipertrofia': 'ganhar massa muscular (hipertrofia)',
       'tonificar': 'tonificar o corpo',
       'condicionamento': 'melhorar condicionamento físico',
       'forca': 'aumentar força',
@@ -69,102 +70,135 @@ serve(async (req) => {
     const equipment = equipmentMap[userProfile.equipment] || userProfile.equipment || 'equipamentos básicos';
     const limitations = limitationsMap[userProfile.limitations] || userProfile.limitations || 'nenhuma limitação';
 
-    // Criar prompt muito mais detalhado e profissional
-    const prompt = `Você é um personal trainer certificado com 15+ anos de experiência. Crie um plano de treino EXTREMAMENTE DETALHADO e profissional em português com base no perfil:
+    // Criar prompt MUITO mais detalhado e específico
+    const prompt = `Você é um personal trainer EXPERT certificado pela ACSM com 20+ anos de experiência em prescrição de exercícios. Crie um plano de treino EXTREMAMENTE DETALHADO e científico baseado no perfil:
 
-PERFIL DO CLIENTE:
+PERFIL COMPLETO:
 - Idade: ${userProfile.age || 'Não informado'} anos
 - Sexo: ${userProfile.gender || 'Não informado'}
 - Altura: ${userProfile.height || 'Não informado'} cm
 - Peso: ${userProfile.weight || 'Não informado'} kg
 - Nível: ${userProfile.fitness_level || 'Iniciante'}
-- Objetivos: ${goals}
-- Dias/semana: ${userProfile.available_days || 3}
+- Objetivo Principal: ${goals}
+- Frequência: ${userProfile.available_days || 3} dias/semana
 - Duração/sessão: ${userProfile.session_duration || 60} minutos
 - Equipamentos: ${equipment}
 - Limitações: ${limitations}
 
-IMPORTANTE: Retorne APENAS um JSON válido no formato exato abaixo:
+INSTRUÇÕES OBRIGATÓRIAS:
+1. Crie exercícios ESPECÍFICOS para o equipamento disponível
+2. Adapte TODAS as orientações para o nível de condicionamento
+3. Inclua técnicas de execução DETALHADAS com pontos anatômicos
+4. Forneça orientações de respiração para cada exercício
+5. Explique o PORQUÊ de cada exercício para o objetivo
+6. Inclua progressões semanais ESPECÍFICAS
+7. Adicione dicas de segurança e prevenção de lesões
+
+Retorne APENAS um JSON válido no formato EXATO:
 
 {
-  "title": "Plano de Treino Personalizado - [Objetivo Principal]",
-  "description": "Descrição profissional detalhada do plano (3-4 linhas explicando metodologia, progressão e benefícios esperados)",
+  "title": "Plano de Treino [Nível] - [Objetivo Principal]",
+  "description": "Descrição científica do plano explicando metodologia, periodização e resultados esperados (4-5 linhas detalhadas)",
   "difficulty_level": "iniciante|intermediario|avancado",
   "duration_weeks": 8,
   "weekly_structure": {
-    "training_days": [número de dias],
-    "rest_days": [número de dias],
-    "weekly_progression": "Descrição de como progredir semana a semana"
+    "training_days": ${userProfile.available_days || 3},
+    "rest_days": ${7 - (userProfile.available_days || 3)},
+    "weekly_progression": "Progressão específica semana a semana com percentuais de carga e volume"
   },
   "warm_up": {
-    "duration": "10-15 minutos",
+    "duration": "10-12 minutos",
     "exercises": [
       {
-        "name": "Nome do exercício de aquecimento",
+        "name": "Exercício de aquecimento específico",
         "duration": "2-3 minutos",
-        "instructions": "Instruções detalhadas e específicas"
+        "instructions": "Instruções biomecânicas detalhadas, músculos envolvidos, respiração"
       }
     ]
   },
   "exercises": [
     {
-      "name": "Nome completo do exercício",
+      "name": "Nome técnico completo do exercício",
       "category": "peito|costas|pernas|ombros|bracos|core|cardio",
       "sets": 3,
       "reps": "8-12",
       "rest": "60-90s",
-      "weight_guidance": "Orientação específica sobre carga (ex: 70% do peso máximo, peso que permita 2 reps a mais)",
-      "execution_tempo": "2-1-2-1 (excêntrica-pausa-concêntrica-pausa)",
-      "instructions": "Instruções MUITO detalhadas sobre execução, posicionamento, respiração e pontos de atenção",
-      "common_mistakes": "Principais erros a evitar na execução",
+      "weight_guidance": "Orientação ESPECÍFICA de carga (% RM, RPE, ou referência concreta)",
+      "execution_tempo": "3-1-2-1 (excêntrica-pausa-concêntrica-pausa)",
+      "instructions": "Instruções EXTREMAMENTE detalhadas: posição inicial, movimento completo, pontos anatômicos, respiração, ativação muscular consciente",
+      "breathing_pattern": "Padrão respiratório específico para o exercício",
+      "common_mistakes": "3-4 erros principais com explicação do porquê evitar",
+      "safety_tips": "Dicas específicas de segurança e sinais de alerta",
       "modifications": {
-        "easier": "Versão mais fácil para iniciantes",
-        "harder": "Versão mais desafiadora para progressão"
+        "easier": "Versão adaptada com explicação biomecânica",
+        "harder": "Progressão avançada com técnicas específicas"
       },
-      "muscle_focus": "Músculos principais e secundários trabalhados"
+      "muscle_focus": "Músculos primários, secundários e estabilizadores",
+      "why_this_exercise": "Justificativa científica de por que este exercício para o objetivo"
     }
   ],
+  "workout_splits": {
+    "day_1": {
+      "focus": "Grupo muscular ou tipo de treino",
+      "exercises": ["Lista de exercícios específicos para este dia"]
+    },
+    "day_2": {
+      "focus": "Grupo muscular ou tipo de treino", 
+      "exercises": ["Lista de exercícios específicos para este dia"]
+    }
+  },
   "cool_down": {
     "duration": "10-15 minutos",
     "exercises": [
       {
-        "name": "Nome do alongamento",
-        "duration": "30-60 segundos",
-        "instructions": "Como executar o alongamento corretamente"
+        "name": "Alongamento/relaxamento específico",
+        "duration": "45-60 segundos",
+        "instructions": "Técnica de alongamento, respiração, músculos alvo"
       }
     ]
   },
   "progression_guidelines": [
-    "Como progredir na carga semana a semana",
-    "Sinais de que está pronto para aumentar intensidade",
-    "Como ajustar volume conforme evolução"
+    "Semana 1-2: Orientações específicas com cargas e volumes",
+    "Semana 3-4: Progressão detalhada",
+    "Semana 5-6: Intensificação com métodos específicos",
+    "Semana 7-8: Pico de treinamento ou transição"
   ],
-  "nutrition_tips": [
-    "Dica nutricional específica para o objetivo",
-    "Timing de alimentação pré e pós treino",
-    "Hidratação e suplementação básica"
+  "nutrition_timing": [
+    "Pré-treino (30-60min antes): Alimentos específicos e quantidades",
+    "Durante treino: Hidratação e suplementação se necessário",
+    "Pós-treino (até 2h): Janela anabólica com alimentos específicos",
+    "Distribuição diária de macronutrientes para o objetivo"
   ],
-  "recovery_tips": [
-    "Importância do descanso entre treinos",
-    "Qualidade do sono para recuperação",
-    "Sinais de overtraining a observar"
+  "recovery_protocols": [
+    "Tempo de descanso específico entre grupos musculares",
+    "Técnicas de recuperação ativa nos dias off",
+    "Sinais de overreaching e quando descansar",
+    "Qualidade do sono e sua importância para o objetivo"
   ],
-  "safety_notes": [
-    "Precauções específicas para as limitações mencionadas",
-    "Quando parar um exercício",
-    "Importância do aquecimento adequado"
+  "performance_tracking": [
+    "Métricas específicas para acompanhar (força, volume, medidas)",
+    "Como registrar progressos semanalmente",
+    "Sinais de que está funcionando",
+    "Quando e como ajustar o plano"
+  ],
+  "safety_protocols": [
+    "Aquecimento obrigatório específico para limitações",
+    "Sinais de PARE IMEDIATAMENTE",
+    "Adaptações para as limitações mencionadas",
+    "Quando procurar orientação médica"
   ]
 }
 
-DIRETRIZES OBRIGATÓRIAS:
-1. Inclua 6-10 exercícios principais adequados ao nível e equipamentos
-2. Cada exercício deve ter instruções de pelo menos 2-3 linhas
-3. Considere SEMPRE as limitações físicas mencionadas
-4. Crie progressão lógica dos exercícios (grandes grupos → isolados)
-5. Balanceie grupos musculares conforme objetivo
-6. Adapte intensidade ao nível de condicionamento
-7. O campo difficulty_level deve ser EXATAMENTE: "iniciante", "intermediario" ou "avancado"
-8. Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explicações extras`;
+REGRAS CRÍTICAS:
+- 8-12 exercícios principais variados e específicos
+- Cada instrução deve ter mínimo 3-4 linhas TÉCNICAS
+- Considere SEMPRE as limitações físicas mencionadas
+- Use terminologia técnica mas acessível
+- Crie divisão de treino lógica (se mais de 3 dias)
+- Adapte intensidade ao nível real do praticante
+- O campo difficulty_level deve ser EXATAMENTE: "iniciante", "intermediario" ou "avancado"
+- NUNCA use exercícios genéricos ou instruções vagas
+- Personalize TUDO para o perfil específico fornecido`;
 
     console.log('Enviando requisição para Groq...');
 
@@ -175,12 +209,12 @@ DIRETRIZES OBRIGATÓRIAS:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'llama-3.1-70b-versatile',
         messages: [
           { role: 'user', content: prompt }
         ],
-        max_tokens: 4000, // Aumentado para acomodar o conteúdo mais detalhado
-        temperature: 0.3,
+        max_tokens: 6000,
+        temperature: 0.2,
       }),
     });
 
@@ -251,14 +285,14 @@ DIRETRIZES OBRIGATÓRIAS:
         workoutPlan.difficulty_level = mapFitnessLevelToDifficulty(userProfile.fitness_level);
       }
       
-      // Validar estrutura básica (adaptada para novo formato)
+      // Validar estrutura básica
       if (!workoutPlan.title || !workoutPlan.exercises || !Array.isArray(workoutPlan.exercises)) {
         throw new Error('Estrutura do JSON inválida');
       }
       
       // Garantir compatibilidade com interface existente
       if (!workoutPlan.nutrition_tips) {
-        workoutPlan.nutrition_tips = [];
+        workoutPlan.nutrition_tips = workoutPlan.nutrition_timing || [];
       }
       
     } catch (parseError) {
@@ -326,6 +360,7 @@ function createFallbackPlan(userProfile: any) {
   const goalsDescription = {
     'perder_peso': 'perda de peso e queima de gordura',
     'ganhar_massa': 'ganho de massa muscular',
+    'hipertrofia': 'hipertrofia muscular',
     'tonificar': 'tonificação corporal',
     'condicionamento': 'melhora do condicionamento físico',
     'forca': 'aumento da força',
@@ -337,163 +372,203 @@ function createFallbackPlan(userProfile: any) {
   
   return {
     title: `Plano de Treino ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
-    description: `Plano personalizado focado em ${goalDesc} para nível ${difficultyLevel}. Este treino foi desenvolvido considerando seu perfil e objetivos específicos com metodologia progressiva e orientações detalhadas.`,
+    description: `Plano científico personalizado focado em ${goalDesc} para nível ${difficultyLevel}. Este treino foi desenvolvido com metodologia progressiva, considerando seu perfil específico, limitações e objetivos. Inclui orientações detalhadas de execução, respiração e progressão semanal para resultados otimizados.`,
     difficulty_level: difficultyLevel,
     duration_weeks: 8,
     weekly_structure: {
       training_days: userProfile?.available_days || 3,
       rest_days: 7 - (userProfile?.available_days || 3),
-      weekly_progression: "Aumento gradual de 5-10% na carga ou repetições a cada semana"
+      weekly_progression: "Semana 1-2: Adaptação neuromuscular (60-70% carga máxima). Semana 3-4: Aumento de 10-15% na carga. Semana 5-6: Intensificação (75-85% carga). Semana 7-8: Pico ou deload conforme resposta."
     },
     warm_up: {
-      duration: "10-15 minutos",
+      duration: "10-12 minutos",
       exercises: [
         {
-          name: "Caminhada no Local",
-          duration: "3-5 minutos",
-          instructions: "Movimento suave para aquecer o sistema cardiovascular. Mantenha um ritmo confortável e respire profundamente."
+          name: "Mobilidade Articular Dinâmica",
+          duration: "4-5 minutos",
+          instructions: "Execute movimentos circulares lentos de todas as articulações principais: pescoço (8 reps cada direção), ombros (10 reps frente/trás), quadris (8 reps cada direção), joelhos (extensão/flexão 10x), tornozelos (círculos 8x cada). Respire profundamente, mantenha controle total do movimento. Objetivo: aumentar amplitude articular e preparar sistema nervoso."
         },
         {
-          name: "Mobilidade Articular",
-          duration: "5-7 minutos",
-          instructions: "Movimentos circulares de ombros, quadris, joelhos e tornozelos. 10 repetições em cada direção."
+          name: "Ativação Cardiovascular Progressiva",
+          duration: "3-4 minutos",
+          instructions: "Inicie com marcha estacionária leve (30s), evolua para elevação de joelhos (30s), depois polichinelos moderados (45s), finalize com corrida estacionária leve (60s). Monitore frequência cardíaca: deve atingir 50-60% da FCmax. Respiração controlada: inspire pelo nariz, expire pela boca."
+        },
+        {
+          name: "Ativação Muscular Específica",
+          duration: "3-4 minutos",
+          instructions: "Execute movimentos preparatórios dos grupos que serão treinados: agachamento sem peso (8x), flexão de braço na parede (8x), prancha isométrica (20s), ponte de glúteo (8x). Foque na qualidade do movimento e conexão mente-músculo. Contraia conscientemente os músculos alvo."
         }
       ]
     },
     exercises: [
       {
-        name: "Agachamento Livre",
+        name: "Agachamento Corporal Técnico",
         category: "pernas",
         sets: 3,
         reps: level === 'sedentario' ? "8-10" : "12-15",
         rest: "60-90s",
-        weight_guidance: "Use apenas o peso corporal inicialmente. Quando conseguir fazer 15 reps facilmente, adicione peso",
-        execution_tempo: "2-1-2-1 (2s descida, 1s pausa, 2s subida, 1s pausa)",
-        instructions: "Mantenha os pés na largura dos ombros, desça controladamente até formar 90 graus com os joelhos. Mantenha o peito erguido, olhar para frente e o peso nos calcanhares. Inicie o movimento empurrando o quadril para trás.",
-        common_mistakes: "Não deixe os joelhos ultrapassarem muito as pontas dos pés, não arredonde as costas, não desça muito rápido",
+        weight_guidance: "Use apenas peso corporal. Quando conseguir 15 reps com técnica perfeita e 2 reps em reserva, considere adicionar resistência (colete, halteres)",
+        execution_tempo: "3-2-2-1 (3s descida controlada, 2s pausa no fundo, 2s subida explosiva, 1s contração no topo)",
+        instructions: "POSIÇÃO INICIAL: Pés na largura dos ombros, dedos levemente apontados para fora (15-30°). Peito erguido, olhar horizontal, core ativado. EXECUÇÃO: Inicie empurrando o quadril para trás como se fosse sentar numa cadeira. Desça controladamente mantendo joelhos alinhados com a ponta dos pés. Desça até coxas paralelas ao solo (90° no joelho). SUBIDA: Empurre através dos calcanhares, estenda quadris e joelhos simultaneamente. Mantenha peito erguido durante todo movimento.",
+        breathing_pattern: "Inspire na descida (fase excêntrica), segure na pausa inferior, expire durante a subida (fase concêntrica)",
+        common_mistakes: "Joelhos convergindo para dentro (valgo), peso nos dedos dos pés, tronco inclinando excessivamente para frente, não atingir amplitude completa",
+        safety_tips: "Se sentir dor no joelho, reduza amplitude. Mantenha sempre controle do movimento. Pare se perder a forma técnica",
         modifications: {
-          easier: "Agachamento com apoio na parede ou cadeira para assistência",
-          harder: "Agachamento com salto ou agachamento búlgaro (uma perna)"
+          easier: "Agachamento assistido: use TRX, elástico ou apoie numa cadeira. Reduza amplitude até 45° se necessário",
+          harder: "Agachamento búlgaro (uma perna), agachamento com salto, ou agachamento pistol (progressão avançada)"
         },
-        muscle_focus: "Quadríceps, glúteos, isquiotibiais e core"
+        muscle_focus: "Primários: Quadríceps (vasto medial, lateral, intermédio, reto femoral), Glúteo máximo. Secundários: Isquiotibiais, panturrilhas. Estabilizadores: Core, glúteo médio",
+        why_this_exercise: "Movimento funcional que recruta maior massa muscular, estimula liberação hormonal, melhora força de membros inferiores e mobilidade de quadril essencial para atividades diárias"
       },
       {
-        name: "Flexão de Braço",
+        name: "Flexão de Braço Progressiva",
         category: "peito",
         sets: 3,
         reps: level === 'sedentario' ? "5-8" : "8-12",
         rest: "60-90s",
-        weight_guidance: "Use o peso corporal. Se muito difícil, faça com joelhos apoiados",
-        execution_tempo: "2-0-1-0 (2s descida, explosiva subida)",
-        instructions: "Mantenha o corpo alinhado da cabeça aos pés como uma prancha. Desça até o peito quase tocar o chão, empurre com força para subir. Mantenha o core contraído durante todo movimento.",
-        common_mistakes: "Não deixe a barriga cair, não suba apenas parcialmente, não abra muito os cotovelos",
+        weight_guidance: "Peso corporal. Ajuste inclinação para adequar dificuldade: mais alto = mais fácil, solo = padrão, pés elevados = mais difícil",
+        execution_tempo: "2-1-1-1 (2s descida, 1s pausa no peito, 1s subida explosiva, 1s contração no topo)",
+        instructions: "POSIÇÃO: Prancha alta com mãos na largura dos ombros, dedos apontados para frente. Corpo alinhado da cabeça aos pés como uma tábua rígida. DESCIDA: Flexione cotovelos a 45° do corpo, desça até peito quase tocar o solo. Mantenha core contraído, glúteos ativos. SUBIDA: Empurre o chão com força, estenda braços completamente. Mantenha alinhamento corporal durante todo movimento.",
+        breathing_pattern: "Inspire na descida, expire com força durante a subida (pode ajudar na geração de força)",
+        common_mistakes: "Quadril caído ou elevado, cotovelos muito abertos (90°), amplitude incompleta, cabeça projetada para frente",
+        safety_tips: "Se sentir dor no punho, use punhos fechados ou apoio para punho. Mantenha sempre core ativado para proteger lombar",
         modifications: {
-          easier: "Flexão com joelhos apoiados ou flexão na parede",
-          harder: "Flexão com pés elevados ou flexão diamante"
+          easier: "Flexão com joelhos apoiados, flexão na parede (em pé), ou flexão inclinada (mãos elevadas)",
+          harder: "Flexão com pés elevados, flexão diamante (mãos em triângulo), flexão archer (alternando braços)"
         },
-        muscle_focus: "Peitoral maior, tríceps, deltoides anterior e core"
+        muscle_focus: "Primários: Peitoral maior (porções clavicular e esternal), Tríceps braquial. Secundários: Deltoides anterior. Estabilizadores: Core completo, serrátil anterior",
+        why_this_exercise: "Exercício composto que desenvolve força funcional do tronco superior, melhora estabilidade do core e pode ser facilmente progressivo conforme evolução"
       },
       {
-        name: "Prancha Isométrica",
+        name: "Prancha Isométrica Técnica",
         category: "core",
         sets: 3,
-        reps: level === 'sedentario' ? "20-30s" : "30-60s",
+        reps: level === 'sedentario' ? "20-30s" : "30-45s",
         rest: "45-60s",
-        weight_guidance: "Apenas peso corporal, foque na qualidade do movimento",
-        execution_tempo: "Isométrico - mantenha a posição",
-        instructions: "Apoie nos antebraços e pontas dos pés, mantenha o corpo reto como uma prancha. Contraia abdômen, glúteos e respire normalmente. Olhar para o chão mantendo pescoço neutro.",
-        common_mistakes: "Não deixe o quadril subir ou descer, não prenda a respiração, não force o pescoço",
+        weight_guidance: "Peso corporal. Foque na qualidade: melhor manter menos tempo com técnica perfeita que mais tempo com compensações",
+        execution_tempo: "Isométrico - manter posição estática com tensão constante",
+        instructions: "POSIÇÃO: Apoie antebraços paralelos, cotovelos alinhados sob ombros. Pés unidos ou afastados na largura do quadril. ALINHAMENTO: Linha reta da cabeça aos calcanhares. Pelve neutra (nem anteriorizada nem posteriorizada). ATIVAÇÃO: Contraia abdômen como se fosse receber um soco, glúteos ativos, respiração controlada. Olhar para o chão mantendo pescoço neutro.",
+        breathing_pattern: "Respiração normal e controlada - não prenda a respiração. Inspire/expire mantendo tensão abdominal",
+        common_mistakes: "Quadril elevado (pirâmide), quadril caído, ombros projetados à frente, respiração presa, tensão excessiva no pescoço",
+        safety_tips: "Se lombar doer, reduza tempo ou eleve quadril ligeiramente. Mantenha sempre respiração fluida",
         modifications: {
-          easier: "Prancha com joelhos apoiados ou prancha inclinada",
-          harder: "Prancha com elevação alternada de braços ou pernas"
+          easier: "Prancha com joelhos apoiados, prancha inclinada (antebraços elevados), reduzir tempo para 10-15s",
+          harder: "Prancha com elevação alternada de braços, pernas, ou prancha lateral"
         },
-        muscle_focus: "Core completo, deltoides e glúteos para estabilização"
+        muscle_focus: "Primários: Reto abdominal, transverso do abdômen, oblíquos. Secundários: Glúteos, deltoides, serrátil anterior. Estabilizadores: Eretor da espinha",
+        why_this_exercise: "Desenvolve estabilidade do core essencial para todos os movimentos, melhora postura, fortalece musculatura profunda do abdômen e previne dores lombares"
       },
       {
-        name: "Afundo Alternado",
+        name: "Afundo Alternado Controlado",
         category: "pernas",
         sets: 3,
         reps: level === 'sedentario' ? "6-8 cada perna" : "10-12 cada perna",
         rest: "60-90s",
-        weight_guidance: "Inicie sem peso, quando dominar o movimento adicione halteres",
-        execution_tempo: "2-1-2-0 (2s descida, 1s pausa, 2s subida)",
-        instructions: "Dê um passo à frente, desça até formar 90 graus em ambos os joelhos. O joelho da frente não deve ultrapassar a ponta do pé. Mantenha o tronco ereto e o peso distribuído. Empurre com o calcanhar da frente para voltar.",
-        common_mistakes: "Não incline o corpo para frente, não deixe o joelho de trás tocar o chão violentamente",
+        weight_guidance: "Peso corporal inicialmente. Quando dominar movimento, pode adicionar halteres nas mãos ou colete de peso",
+        execution_tempo: "2-2-2-1 (2s descida, 2s pausa no fundo, 2s subida, 1s estabilização)",
+        instructions: "POSIÇÃO INICIAL: Em pé, pés na largura do quadril, core ativado. MOVIMENTO: Dê passo largo à frente (aproximadamente 2-3 pés), mantenha tronco ereto. DESCIDA: Flexione ambos joelhos até joelho de trás quase tocar o chão (90° em ambas pernas). Peso distribuído 70% perna da frente, 30% de trás. SUBIDA: Empurre através do calcanhar da frente, retorne à posição inicial. Alterne as pernas.",
+        breathing_pattern: "Inspire ao dar o passo e na descida, expire durante a subida e retorno à posição inicial",
+        common_mistakes: "Passo muito curto ou longo, joelho da frente ultrapassando dedos, inclinação excessiva do tronco, apoio nos dedos do pé de trás",
+        safety_tips: "Se tiver problemas de equilíbrio, segure numa parede lateralmente. Comece com passos menores e aumente gradualmente",
         modifications: {
-          easier: "Afundo com apoio lateral ou afundo estático",
-          harder: "Afundo com salto ou afundo búlgaro elevado"
+          easier: "Afundo reverso (passo para trás), afundo com apoio lateral, ou afundo estático (sem alternância)",
+          harder: "Afundo com salto, afundo búlgaro, afundo lateral, ou afundo caminhando"
         },
-        muscle_focus: "Quadríceps, glúteos, isquiotibiais e core para estabilização"
+        muscle_focus: "Primários: Quadríceps, Glúteo máximo da perna da frente. Secundários: Isquiotibiais, panturrilhas. Estabilizadores: Core, glúteo médio, músculos do tornozelo",
+        why_this_exercise: "Movimento unilateral que corrige desequilíbrios musculares, melhora estabilidade e força funcional, simula padrões de movimento do dia a dia como subir escadas"
       },
       {
-        name: "Ponte de Glúteo",
+        name: "Ponte de Glúteo Ativada",
         category: "pernas",
         sets: 3,
-        reps: level === 'sedentario' ? "10-15" : "15-20",
+        reps: level === 'sedentario' ? "12-15" : "15-20",
         rest: "45-60s",
-        weight_guidance: "Peso corporal inicialmente, pode adicionar peso sobre o quadril posteriormente",
-        execution_tempo: "1-2-1-0 (1s subida, 2s contração, 1s descida)",
-        instructions: "Deitado de costas, joelhos flexionados, pés firmes no chão. Eleve o quadril contraindo glúteos, forme uma linha reta dos joelhos aos ombros. Mantenha a contração no topo por 2 segundos.",
-        common_mistakes: "Não hiperextenda a lombar, não use só as costas para elevar, não esqueça de contrair os glúteos",
+        weight_guidance: "Peso corporal. Para progressão, use uma perna só ou adicione peso sobre o quadril (anilha, livro)",
+        execution_tempo: "1-3-1-1 (1s subida, 3s contração no topo, 1s descida, 1s pausa)",
+        instructions: "POSIÇÃO: Deitado de costas, joelhos flexionados 90°, pés firmes no chão na largura do quadril. Braços ao lado do corpo para estabilidade. MOVIMENTO: Contraia glúteos conscientemente, eleve quadril formando linha reta dos joelhos aos ombros. CONTRAÇÃO: No topo, aperte glúteos por 3 segundos como se fosse quebrar uma noz. DESCIDA: Desça controladamente até quase tocar o solo, sem relaxar completamente.",
+        breathing_pattern: "Expire durante a subida e contração dos glúteos, inspire na descida controlada",
+        common_mistakes: "Usar costas em vez de glúteos, elevar muito (hiperextensão lombar), não contrair glúteos no topo, descida muito rápida",
+        safety_tips: "Se sentir lombar, reduza amplitude e foque mais na contração dos glúteos. Mantenha pés bem apoiados",
         modifications: {
-          easier: "Ponte com amplitude reduzida",
-          harder: "Ponte com uma perna ou ponte com peso"
+          easier: "Amplitude menor, sem pausa no topo, ou ponte com pés elevados",
+          harder: "Ponte com uma perna, ponte com peso, ou ponte com banda elástica nos joelhos"
         },
-        muscle_focus: "Glúteos, isquiotibiais e músculos do core posterior"
+        muscle_focus: "Primários: Glúteo máximo, médio e mínimo. Secundários: Isquiotibiais, eretor da espinha baixa. Estabilizadores: Core, adutores",
+        why_this_exercise: "Ativa e fortalece glúteos que são frequentemente inativos no sedentarismo, melhora postura, reduz dor lombar e prepara para exercícios mais complexos"
       }
     ],
+    workout_splits: {
+      day_1: {
+        focus: "Corpo Inteiro - Ênfase Membros Inferiores",
+        exercises: ["Agachamento Corporal Técnico", "Ponte de Glúteo Ativada", "Prancha Isométrica Técnica"]
+      },
+      day_2: {
+        focus: "Corpo Inteiro - Ênfase Membros Superiores", 
+        exercises: ["Flexão de Braço Progressiva", "Prancha Isométrica Técnica", "Afundo Alternado Controlado"]
+      },
+      day_3: {
+        focus: "Corpo Inteiro - Integração e Condicionamento",
+        exercises: ["Agachamento + Flexão", "Afundo Alternado", "Ponte de Glúteo", "Prancha Dinâmica"]
+      }
+    },
     cool_down: {
       duration: "10-15 minutos",
       exercises: [
         {
           name: "Alongamento de Quadríceps",
-          duration: "30-45 segundos cada perna",
-          instructions: "Em pé, segure o pé por trás e traga em direção ao glúteo. Mantenha joelhos alinhados e quadril neutro."
+          duration: "45-60 segundos cada perna",
+          instructions: "Em pé, segure o pé por trás levando calcanhar ao glúteo. Mantenha joelhos alinhados, pelve neutra. Sinta alongamento na parte frontal da coxa. Respire profundamente e relaxe na posição."
         },
         {
           name: "Alongamento de Isquiotibiais",
-          duration: "30-45 segundos cada perna",
-          instructions: "Sentado, estenda uma perna e incline o tronco para frente mantendo as costas retas."
+          duration: "45-60 segundos cada perna",
+          instructions: "Sentado com uma perna estendida, incline tronco para frente mantendo coluna reta. Alcance em direção ao pé sem forçar. Sinta alongamento na parte posterior da coxa."
         },
         {
-          name: "Alongamento de Peitorais",
-          duration: "30-45 segundos",
-          instructions: "Apoie o antebraço na parede e gire o corpo para o lado oposto, sentindo o alongamento no peito."
+          name: "Alongamento de Peitorais e Ombros",
+          duration: "45-60 segundos",
+          instructions: "Apoie antebraço na parede ou portal, gire corpo para lado oposto. Mantenha ombro alinhado, sinta alongamento no peito e ombro anterior. Faça bilateral."
         },
         {
-          name: "Respiração Profunda",
+          name: "Relaxamento e Respiração",
           duration: "2-3 minutos",
-          instructions: "Inspire profundamente pelo nariz por 4 segundos, segure por 4, expire pela boca por 6 segundos."
+          instructions: "Deitado confortavelmente, pratique respiração diafragmática: inspire 4s pelo nariz (barriga sobe), segure 4s, expire 6s pela boca. Relaxe todos os músculos progressivamente."
         }
       ]
     },
     progression_guidelines: [
-      "Semana 1-2: Foque na técnica perfeita com cargas/repetições menores",
-      "Semana 3-4: Aumente 1-2 repetições por exercício mantendo a qualidade",
-      "Semana 5-6: Adicione 1 série extra nos exercícios principais ou aumente carga em 5-10%",
-      "Semana 7-8: Considere variações mais desafiadoras dos exercícios básicos",
-      "Sinais para progredir: consegue fazer todas as repetições com 2-3 reps 'na reserva'"
+      "Semana 1-2: Domínio da técnica com 60-70% da capacidade máxima. Foque na forma perfeita, conexão mente-músculo e estabelecimento do padrão motor",
+      "Semana 3-4: Aumento de 1-2 repetições por exercício ou adicione 1 série extra. Mantenha técnica impecável, introduza variações básicas se necessário",
+      "Semana 5-6: Intensificação com 75-85% capacidade máxima. Adicione tempo de tensão (pausas) ou variações mais desafiadoras dos exercícios básicos",
+      "Semana 7-8: Pico de intensidade ou semana de deload conforme resposta individual. Avalie necessidade de progressão para exercícios mais avançados",
+      "SINAIS PARA PROGRESSÃO: Consegue completar todas as séries e reps com 2-3 repetições em reserva, técnica permanece perfeita, recuperação adequada entre sessões"
     ],
-    nutrition_tips: [
-      "Consuma proteína magra 1-2h antes do treino (ovos, iogurte, peito de frango)",
-      "Hidrate-se bem: pelo menos 500ml de água 2h antes e 200ml a cada 15-20min durante o treino",
-      "Pós-treino: combine proteína + carboidrato em até 2h (shake + banana, sanduíche de peito de peru)",
-      "Para ganho de massa: 1,6-2,2g de proteína por kg de peso corporal ao dia",
-      "Para perda de peso: mantenha déficit calórico moderado (300-500 calorias) sem extremos"
+    nutrition_timing: [
+      "PRÉ-TREINO (60-90min antes): Carboidrato de absorção média + proteína magra. Exemplo: 1 banana + 1 iogurte grego, ou 2 fatias pão integral + peito peru + água (400-500ml)",
+      "DURANTE TREINO: Hidratação constante - 150-200ml água a cada 15-20min. Se treino >60min, considere bebida esportiva com eletrólitos",
+      "PÓS-TREINO (até 2h - janela anabólica): Proteína de alta qualidade + carboidrato. Exemplo: whey protein + banana, ou sanduíche peito frango + suco natural",
+      "DISTRIBUIÇÃO DIÁRIA: Proteína 1,6-2,2g/kg peso corporal. Carboidratos 45-65% calorias totais. Gorduras 20-35%. Hidratação: 35ml/kg peso + reposição do suor"
     ],
     recovery_tips: [
-      "Durma 7-9 horas por noite - o músculo cresce durante o descanso, não no treino",
-      "Respeite pelo menos 48h de descanso entre treinos do mesmo grupo muscular",
-      "Faça pelo menos 1 dia completo de descanso por semana",
-      "Escute seu corpo: se sentir fadiga extrema, dores articulares ou humor alterado, descanse",
-      "Considere atividades leves nos dias de descanso: caminhada, alongamento, yoga"
+      "DESCANSO ENTRE TREINOS: Mínimo 48h para mesmo grupo muscular. Músculos crescem durante recuperação, não durante treino",
+      "SONO OTIMIZADO: 7-9h por noite. 80% da liberação de GH ocorre no sono profundo. Ambiente escuro, fresco (18-21°C), sem eletrônicos 1h antes",
+      "RECUPERAÇÃO ATIVA: Caminhada leve 20-30min, alongamento, yoga ou mobilidade nos dias de descanso. Mantém circulação sem estresse adicional",
+      "SINAIS DE OVERTRAINING: Fadiga persistente, humor alterado, queda performance, dores articulares, frequência cardíaca elevada em repouso. PARE e descanse 3-7 dias",
+      "TÉCNICAS COMPLEMENTARES: Banho morno, automassagem com rolo, meditação/mindfulness, hidratação adequada constante"
     ],
-    safety_notes: [
-      "Pare imediatamente se sentir dor aguda ou diferente do desconforto muscular normal",
-      "NUNCA pule o aquecimento - previne 80% das lesões relacionadas ao exercício",
-      "Use roupas adequadas e tênis com boa absorção de impacto",
-      "Se tiver limitações médicas, sempre consulte um profissional antes de aumentar intensidade",
-      "Mantenha uma garrafa de água sempre próxima e hidrate-se regularmente"
+    performance_tracking: [
+      "MÉTRICAS SEMANAIS: Número de repetições completadas por exercício, tempo de sustentação para isométricos, percepção de esforço (escala 1-10)",
+      "MEDIDAS CORPORAIS: Peso corporal, circunferências (braço, cintura, coxa, quadril) a cada 2 semanas. Fotos de progresso mensais",
+      "INDICADORES DE PERFORMANCE: Facilidade para atividades diárias, disposição geral, qualidade do sono, humor, energia durante o dia",
+      "REGISTRO DE TREINO: Anote séries/reps completadas, dificuldade percebida, como se sentiu. Use app ou caderno para acompanhar evolução",
+      "QUANDO AJUSTAR: Se não houve progressão em 2 semanas consecutivas, aumente intensidade. Se muito difícil por 3 treinos seguidos, reduza volume temporariamente"
+    ],
+    safety_protocols: [
+      "AQUECIMENTO OBRIGATÓRIO: NUNCA pule - previne 80% das lesões. Mínimo 8-10min com mobilidade + ativação cardiovascular + preparação neuromuscular",
+      "SINAIS DE PARADA IMEDIATA: Dor aguda/cortante, tontura, náusea, dor no peito, falta de ar desproporcional, dor articular súbita",
+      "ADAPTAÇÕES PARA LIMITAÇÕES: Se problemas articulares, reduza amplitude e aumente controle. Se cardiovascular, monitore FC e use escala de percepção",
+      "PROGRESSÃO GRADUAL: Aumentos máximos de 10% por semana em volume/intensidade. Lei dos 10% previne lesões por uso excessivo",
+      "ORIENTAÇÃO PROFISSIONAL: Procure médico se dor persistir >48h, se houver limitação funcional, ou antes de iniciar se >40 anos ou fatores de risco"
     ]
   };
 }
