@@ -1,5 +1,4 @@
 
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -70,10 +69,10 @@ serve(async (req) => {
     const equipment = equipmentMap[userProfile.equipment] || userProfile.equipment || 'equipamentos básicos';
     const limitations = limitationsMap[userProfile.limitations] || userProfile.limitations || 'nenhuma limitação';
 
-    // Criar prompt muito mais detalhado para planos completos
-    const prompt = `Você é um personal trainer experiente e especialista em ciência do exercício. Crie um plano de treino EXTREMAMENTE DETALHADO e personalizado em português com base nas seguintes informações:
+    // Criar prompt mais detalhado baseado no perfil do usuário
+    const prompt = `Você é um personal trainer experiente. Crie um plano de treino personalizado em português com base nas seguintes informações:
 
-PERFIL DO USUÁRIO:
+Perfil do usuário:
 - Idade: ${userProfile.age || 'Não informado'} anos
 - Sexo: ${userProfile.gender || 'Não informado'}
 - Altura: ${userProfile.height || 'Não informado'} cm
@@ -85,139 +84,30 @@ PERFIL DO USUÁRIO:
 - Equipamentos: ${equipment}
 - Limitações: ${limitations}
 
-INSTRUÇÕES PARA O PLANO:
-1. Crie um plano dividido por DIAS DA SEMANA específicos
-2. Cada exercício deve ter instruções biomecânicas detalhadas
-3. Inclua progressão semanal específica
-4. Adicione tempo de descanso específico por exercício
-5. Inclua aquecimento e alongamento detalhados
-6. Adicione dicas de execução e músculos trabalhados
-7. Inclua variações para diferentes níveis
-8. Adicione protocolo de recuperação entre treinos
-
-RETORNE APENAS um JSON válido no seguinte formato EXPANDIDO:
-
+Retorne APENAS um JSON válido no seguinte formato:
 {
-  "title": "Plano de Treino Personalizado - [Objetivo Principal]",
-  "description": "Descrição detalhada considerando perfil completo, objetivos e limitações específicas",
-  "difficulty_level": "iniciante|intermediario|avancado",
-  "duration_weeks": 12,
-  "weekly_schedule": {
-    "segunda": {
-      "focus": "Descrição do foco do dia",
-      "warm_up": [
-        {
-          "exercise": "Nome do aquecimento",
-          "duration": "tempo",
-          "instructions": "instruções detalhadas"
-        }
-      ],
-      "main_workout": [
-        {
-          "exercise": "Nome do exercício",
-          "muscle_groups": ["grupo muscular 1", "grupo muscular 2"],
-          "sets": 3,
-          "reps": "8-12",
-          "rest": "90s",
-          "weight_progression": "Como progredir na carga",
-          "execution_tips": "Dicas específicas de execução",
-          "biomechanics": "Explicação biomecânica do movimento",
-          "common_mistakes": "Erros comuns a evitar",
-          "modifications": {
-            "easier": "Versão mais fácil",
-            "harder": "Versão mais difícil"
-          }
-        }
-      ],
-      "cool_down": [
-        {
-          "exercise": "Alongamento específico",
-          "duration": "30s",
-          "instructions": "Como executar o alongamento"
-        }
-      ]
-    },
-    "terca": {
-      "focus": "Descanso ativo ou treino complementar",
-      "activities": ["Caminhada leve", "Alongamento", "Mobilidade"]
-    },
-    "quarta": {
-      "focus": "Foco do dia",
-      "warm_up": [],
-      "main_workout": [],
-      "cool_down": []
-    },
-    "quinta": {
-      "focus": "Descanso ou treino leve",
-      "activities": []
-    },
-    "sexta": {
-      "focus": "Foco do dia",
-      "warm_up": [],
-      "main_workout": [],
-      "cool_down": []
-    },
-    "sabado": {
-      "focus": "Treino opcional ou atividade recreativa",
-      "activities": []
-    },
-    "domingo": {
-      "focus": "Descanso completo",
-      "activities": ["Descanso total", "Hidratação", "Preparação para semana"]
+  "title": "Plano de Treino Personalizado",
+  "description": "Descrição detalhada do plano considerando o perfil do usuário",
+  "difficulty_level": "iniciante",
+  "duration_weeks": 8,
+  "exercises": [
+    {
+      "name": "Nome do Exercício",
+      "sets": 3,
+      "reps": "12-15",
+      "rest": "60s",
+      "instructions": "Instruções detalhadas e seguras do exercício"
     }
-  },
-  "progression_protocol": {
-    "week_1_2": "Adaptação e aprendizado dos movimentos",
-    "week_3_4": "Aumento gradual da intensidade",
-    "week_5_8": "Consolidação e progressão constante",
-    "week_9_12": "Intensificação e refinamento"
-  },
-  "nutrition_guidelines": {
-    "pre_workout": {
-      "timing": "30-60 minutos antes",
-      "foods": ["Sugestão 1", "Sugestão 2"],
-      "macros": "Proporção de carboidratos e proteínas"
-    },
-    "post_workout": {
-      "timing": "Até 30 minutos após",
-      "foods": ["Sugestão 1", "Sugestão 2"],
-      "macros": "Proporção para recuperação"
-    },
-    "daily_targets": {
-      "protein": "X gramas por kg de peso corporal",
-      "carbs": "Recomendação específica",
-      "fats": "Porcentagem do total calórico",
-      "water": "Litros por dia baseado no peso"
-    },
-    "supplements": ["Suplemento opcional 1", "Suplemento opcional 2"]
-  },
-  "recovery_protocols": {
-    "between_sets": "Tempo de descanso específico por tipo de exercício",
-    "between_workouts": "Protocolo de recuperação entre sessões",
-    "sleep": "Recomendações de sono para recuperação",
-    "stress_management": "Técnicas para reduzir cortisol"
-  },
-  "progress_tracking": {
-    "weekly_assessments": "O que medir semanalmente",
-    "monthly_evaluations": "Avaliações mensais completas",
-    "adjustment_protocols": "Quando e como ajustar o plano"
-  },
-  "safety_guidelines": [
-    "Regra de segurança 1 específica para o perfil",
-    "Regra de segurança 2 considerando limitações",
-    "Protocolo de emergência",
-    "Sinais de overtraining"
-  ]
+  ],
+  "nutrition_tips": ["Dica nutricional 1", "Dica nutricional 2", "Dica nutricional 3"]
 }
 
 IMPORTANTE: 
-- Crie um plano COMPLETO com pelo menos ${userProfile.available_days || 3} dias de treino efetivo
-- Considere TODAS as limitações físicas mencionadas
-- Adapte os exercícios aos equipamentos disponíveis
-- Inclua progressão realista e segura
-- O campo difficulty_level deve ser exatamente: "iniciante", "intermediario", ou "avancado"
-- Seja específico nas instruções biomecânicas
-- Retorne APENAS o JSON, sem markdown, sem explicações adicionais`;
+- O campo difficulty_level deve ser exatamente uma dessas opções: "iniciante", "intermediario", "avancado"
+- Inclua pelo menos 5-8 exercícios adequados ao nível e equipamentos
+- As instruções devem ser claras e seguras
+- Considere as limitações físicas mencionadas
+- Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explicações.`;
 
     console.log('Enviando requisição para Groq...');
 
@@ -228,11 +118,11 @@ IMPORTANTE:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile', // Usando modelo mais poderoso com plano Pro
+        model: 'llama-3.1-8b-instant', // Mudando para um modelo disponível
         messages: [
           { role: 'user', content: prompt }
         ],
-        max_tokens: 8000, // Aumentando significativamente com plano Pro
+        max_tokens: 3000,
         temperature: 0.3,
       }),
     });
@@ -305,11 +195,6 @@ IMPORTANTE:
         workoutPlan.difficulty_level = mapFitnessLevelToDifficulty(userProfile.fitness_level);
       }
       
-      // Converter estrutura nova para formato compatível com o frontend
-      if (workoutPlan.weekly_schedule) {
-        workoutPlan.exercises = convertWeeklyScheduleToExercises(workoutPlan.weekly_schedule);
-      }
-      
       // Validar estrutura básica
       if (!workoutPlan.title || !workoutPlan.exercises || !Array.isArray(workoutPlan.exercises)) {
         throw new Error('Estrutura do JSON inválida');
@@ -354,48 +239,6 @@ IMPORTANTE:
   }
 });
 
-function convertWeeklyScheduleToExercises(weeklySchedule: any): any[] {
-  const exercises = [];
-  let exerciseIndex = 0;
-  
-  Object.entries(weeklySchedule).forEach(([day, dayData]: [string, any]) => {
-    if (dayData.main_workout && Array.isArray(dayData.main_workout)) {
-      dayData.main_workout.forEach((exercise: any) => {
-        exercises.push({
-          name: `${day.charAt(0).toUpperCase() + day.slice(1)}: ${exercise.exercise}`,
-          sets: exercise.sets || 3,
-          reps: exercise.reps || "8-12",
-          rest: exercise.rest || "60s",
-          instructions: `${exercise.execution_tips || ''}\n\nBiomecânica: ${exercise.biomechanics || ''}\n\nMúsculos: ${exercise.muscle_groups ? exercise.muscle_groups.join(', ') : ''}\n\nProgressão: ${exercise.weight_progression || ''}\n\nErros comuns: ${exercise.common_mistakes || ''}`
-        });
-        exerciseIndex++;
-      });
-    }
-  });
-  
-  // Se não tiver exercícios suficientes, adicionar alguns básicos
-  if (exercises.length < 5) {
-    exercises.push(
-      {
-        name: "Aquecimento Geral",
-        sets: 1,
-        reps: "5-10 min",
-        rest: "N/A",
-        instructions: "Caminhada leve, movimentos articulares e ativação muscular progressiva"
-      },
-      {
-        name: "Exercício Principal 1",
-        sets: 3,
-        reps: "8-12",
-        rest: "90s",
-        instructions: "Exercício focado no objetivo principal do treino"
-      }
-    );
-  }
-  
-  return exercises;
-}
-
 function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
   switch (fitnessLevel) {
     case 'sedentario':
@@ -435,67 +278,57 @@ function createFallbackPlan(userProfile: any) {
     title: `Plano de Treino ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
     description: `Plano personalizado focado em ${goalDesc} para nível ${difficultyLevel}. Este treino foi desenvolvido considerando seu perfil e objetivos específicos.`,
     difficulty_level: difficultyLevel,
-    duration_weeks: 12,
+    duration_weeks: 8,
     exercises: [
       {
-        name: "Segunda-feira: Aquecimento Dinâmico",
+        name: "Aquecimento - Caminhada no Local",
         sets: 1,
-        reps: "8-10 minutos",
+        reps: "5 minutos",
         rest: "N/A",
-        instructions: "Aquecimento articular completo: rotações de pescoço, ombros, quadris e tornozelos. Caminhada no local com elevação gradual dos joelhos. Polichinelos leves. Prepare o corpo para os exercícios principais."
+        instructions: "Movimento suave para aquecer o corpo antes dos exercícios principais. Mantenha um ritmo confortável."
       },
       {
-        name: "Segunda-feira: Agachamento Livre",
-        sets: level === 'sedentario' ? 3 : 4,
+        name: "Agachamento",
+        sets: 3,
         reps: level === 'sedentario' ? "8-10" : "12-15",
-        rest: "90s",
-        instructions: "Posição inicial: pés na largura dos ombros, pontas levemente para fora. Descida: flexione quadris e joelhos simultaneamente, mantendo o peso nos calcanhares. Desça até coxas paralelas ao chão. Subida: empurre o chão com os pés, ativando glúteos e quadríceps. Mantenha o tronco ereto e core ativado durante todo movimento."
-      },
-      {
-        name: "Segunda-feira: Flexão de Braço",
-        sets: 3,
-        reps: level === 'sedentario' ? "5-8" : "10-15",
         rest: "60s",
-        instructions: "Posição: apoio nas mãos (na largura dos ombros) e pontas dos pés. Corpo alinhado da cabeça aos calcanhares. Descida controlada até peito quase tocar o solo. Subida explosiva estendendo completamente os braços. Respiração: inspire na descida, expire na subida. Variação mais fácil: apoio nos joelhos."
+        instructions: "Mantenha os pés na largura dos ombros, desça controladamente até formar 90 graus com os joelhos. Mantenha o peito erguido e o peso nos calcanhares."
       },
       {
-        name: "Quarta-feira: Prancha Isométrica",
+        name: "Flexão de Braço",
         sets: 3,
-        reps: level === 'sedentario' ? "20-30s" : "45-60s",
-        rest: "45s",
-        instructions: "Posição: apoio nos antebraços e pontas dos pés. Corpo reto como uma tábua. Core contraído, glúteos ativados. Respiração normal e controlada. Olhar fixo no chão. Evite arquear as costas ou elevar muito o quadril. Foque na qualidade da contração abdominal."
+        reps: level === 'sedentario' ? "5-8" : "8-12",
+        rest: "60s",
+        instructions: "Se necessário, faça com os joelhos apoiados. Mantenha o corpo alinhado da cabeça aos pés. Desça até o peito quase tocar o chão."
       },
       {
-        name: "Quarta-feira: Afundo Alternado",
+        name: "Prancha",
+        sets: 3,
+        reps: level === 'sedentario' ? "20-30s" : "30-60s",
+        rest: "45s",
+        instructions: "Mantenha o corpo reto, apoie nos antebraços e pontas dos pés, contraia o abdômen. Respire normalmente durante o exercício."
+      },
+      {
+        name: "Afundo",
         sets: 3,
         reps: level === 'sedentario' ? "6-8 cada perna" : "10-12 cada perna",
         rest: "60s",
-        instructions: "Passo à frente amplo, descendo até formar 90° em ambos os joelhos. Joelho da frente alinhado com o tornozelo. Tronco ereto, core ativado. Impulso com perna da frente para retornar. Alterne as pernas. Trabalha quadríceps, glúteos e melhora equilíbrio e coordenação."
+        instructions: "Dê um passo à frente, desça até formar 90 graus em ambos os joelhos. Mantenha o tronco ereto e o peso distribuído."
       },
       {
-        name: "Sexta-feira: Burpee Modificado",
-        sets: level === 'sedentario' ? 2 : 3,
-        reps: level === 'sedentario' ? "3-5" : "5-8",
-        rest: "90s",
-        instructions: "Movimento completo: agachamento, apoio no chão, extensão das pernas (posição de flexão), retorno à posição de agachamento, salto com braços elevados. Exercício metabólico completo que trabalha força e condicionamento. Execute com controle, priorizando a técnica sobre a velocidade."
-      },
-      {
-        name: "Alongamento Final Completo",
+        name: "Alongamento Final",
         sets: 1,
-        reps: "10-15 minutos",
+        reps: "5-10 minutos",
         rest: "N/A",
-        instructions: "Sequência de alongamentos estáticos: quadríceps (30s), isquiotibiais (30s), panturrilha (30s), glúteos (30s), peitoral (30s), ombros (30s), lombar (30s). Respiração profunda e relaxante. Mantenha cada posição sem dor, apenas tensão confortável. Essencial para recuperação e flexibilidade."
+        instructions: "Alongue todos os grupos musculares trabalhados, mantendo cada posição por 20-30 segundos. Respire profundamente durante os alongamentos."
       }
     ],
     nutrition_tips: [
-      "Proteína pós-treino: consuma 20-30g dentro de 30min após exercitar-se (whey, ovos, frango, peixe)",
-      "Hidratação otimizada: 35ml por kg de peso corporal + 500-750ml extra nos dias de treino",
-      "Carboidratos pré-treino: consuma 30-50g de carboidratos complexos 1-2h antes (aveia, batata-doce, banana)",
-      "Timing nutricional: café da manhã rico em proteína, almoço balanceado, jantar leve 3h antes de dormir",
-      "Micronutrientes essenciais: inclua vegetais coloridos, frutas variadas e oleaginosas para vitaminas e minerais",
-      "Sono reparador: 7-9h por noite para recuperação muscular e produção de hormônios anabólicos",
-      "Suplementação básica: considere vitamina D, ômega-3 e multivitamínico após consulta profissional"
+      "Consuma proteína após o treino para recuperação muscular (ovos, frango, peixe)",
+      "Mantenha-se bem hidratado durante todo o dia (pelo menos 2L de água)",
+      "Inclua carboidratos complexos nas refeições pré-treino (aveia, batata-doce)",
+      "Consuma frutas e vegetais variados diariamente para vitaminas e minerais",
+      "Evite alimentos processados e açúcares em excesso para melhores resultados"
     ]
   };
 }
-
