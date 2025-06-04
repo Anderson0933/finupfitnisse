@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 // Import the existing Supabase client
 import { supabase } from '@/integrations/supabase/client'; 
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '@/components/ui/checkbox'; // Import Checkbox
 import { useToast } from '@/hooks/use-toast';
 import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,16 +24,30 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
+// --- Supabase Plan Progress Logic (Integrated within component file) ---
+
+// Define the structure for plan progress data
 interface PlanProgressItem {
-  id?: number;
+  id?: number; // Optional: Supabase assigns this
   user_id: string;
-  plan_id: string;
-  item_identifier: string;
+  plan_id: string; // Identifier for the specific plan instance (using title for now)
+  item_identifier: string; // Unique identifier for the item within the plan (e.g., exercise name + index)
   is_completed: boolean;
-  created_at?: string;
-  updated_at?: string;
+  created_at?: string; // Optional: Supabase handles this
+  updated_at?: string; // Optional: Supabase handles this
 }
 
+// Assumes a table named 'plan_progress' exists in Supabase with columns:
+// id (bigint, primary key), user_id (uuid, foreign key to auth.users), plan_id (text), item_identifier (text), is_completed (boolean), created_at (timestampz), updated_at (timestampz)
+// RLS should be enabled for this table.
+
+/**
+ * Fetches the progress for a specific plan for the current user.
+ * Uses the globally imported 'supabase' client.
+ * @param userId - The ID of the current user.
+ * @param planId - The identifier of the plan.
+ * @returns A map of item identifiers to their completion status.
+ */
 const getPlanProgress = async (userId: string, planId: string): Promise<Map<string, boolean>> => {
   console.log(`[Supabase] Fetching progress for user ${userId}, plan ${planId}`);
   const { data, error } = await supabase
@@ -55,14 +69,19 @@ const getPlanProgress = async (userId: string, planId: string): Promise<Map<stri
   return progressMap;
 };
 
+/**
+ * Updates or inserts the completion status for a specific item in a plan.
+ * Uses the globally imported 'supabase' client.
+ * @param progressItem - The progress item data.
+ */
 const updateItemProgress = async (progressItem: Omit<PlanProgressItem, 'id' | 'created_at' | 'updated_at'>) => {
   console.log(`[Supabase] Upserting progress for item: ${progressItem.item_identifier}, status: ${progressItem.is_completed}`);
   const { data, error } = await supabase
     .from('plan_progress')
     .upsert(progressItem, {
-      onConflict: 'user_id, plan_id, item_identifier'
+      onConflict: 'user_id, plan_id, item_identifier' // Specify conflict columns for upsert
     })
-    .select();
+    .select(); // Select the upserted/updated row
 
   if (error) {
     console.error('[Supabase] Error updating item progress:', error);
@@ -72,6 +91,12 @@ const updateItemProgress = async (progressItem: Omit<PlanProgressItem, 'id' | 'c
   return data;
 };
 
+/**
+ * Deletes all progress entries for a specific plan for the current user.
+ * Uses the globally imported 'supabase' client.
+ * @param userId - The ID of the current user.
+ * @param planId - The identifier of the plan.
+ */
 const deletePlanProgress = async (userId: string, planId: string) => {
   console.log(`[Supabase] Deleting progress for user ${userId}, plan ${planId}`);
   const { error } = await supabase
@@ -86,9 +111,11 @@ const deletePlanProgress = async (userId: string, planId: string) => {
   }
   console.log(`[Supabase] Progress deleted successfully for plan: ${planId}`);
 };
+// --- End Supabase Plan Progress Logic ---
 
+// Define WorkoutPlan interface
 export interface WorkoutPlan {
-  id?: string;
+  id?: string; // Add an ID field, potentially generated or fetched
   title: string;
   description: string;
   difficulty_level: string;
@@ -118,62 +145,36 @@ const WorkoutPlanGenerator = ({
 }: WorkoutPlanGeneratorProps) => {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  
-  // Persist form data in localStorage to prevent loss
-  const [formData, setFormData] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('workout-form-data');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.warn('Failed to parse saved form data:', e);
-        }
-      }
-    }
-    return {
-      age: '',
-      gender: '',
-      weight: '',
-      height: '',
-      fitnessLevel: '',
-      goals: [],
-      availableTime: '',
-      availableDays: '',
-      equipment: '',
-      limitations: ''
-    };
+  const [formData, setFormData] = useState({
+    age: '',
+    gender: '',
+    weight: '', // Corrected typo
+    height: '', // Corrected typo and value
+    fitnessLevel: '', // Corrected value
+    goals: [], // MODIFIED: Changed from '' to [] to support multiple goals
+    availableTime: '', // Corrected value
+    availableDays: '', // NEW & Corrected value
+    equipment: '', // Corrected value
+    limitations: '' // Corrected value
   });
-
   const [activeTab, setActiveTab] = useState<'form' | 'plan'>(() => 
     workoutPlan ? 'plan' : initialActiveTab
   );
-  const [otherLimitationsText, setOtherLimitationsText] = useState("");
-  const [otherGoalsText, setOtherGoalsText] = useState("");
+  const [otherLimitationsText, setOtherLimitationsText] = useState(""); // NEW STATE
+  const [otherGoalsText, setOtherGoalsText] = useState(""); // NEW STATE FOR OTHER GOALS
+  // State to store completion status for each item
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
   const { toast } = useToast();
 
-  // Save form data to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('workout-form-data', JSON.stringify(formData));
-    }
-  }, [formData]);
-
-  // Clear form data from localStorage when plan is generated successfully
-  const clearSavedFormData = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('workout-form-data');
-    }
-  }, []);
-
-  // Load progress when plan and user are available
+  // Effect to load progress when plan and user are available
   useEffect(() => {
     const loadProgress = async () => {
+      // Use workoutPlan.title as the planId for now. Consider a more stable ID if possible.
       const currentPlanId = workoutPlan?.title;
       if (user && currentPlanId) { 
         try {
           console.log(`🔄 Loading progress for plan: ${currentPlanId}`);
+          // Use the function defined above
           const fetchedProgress = await getPlanProgress(user.id, currentPlanId);
           setProgressMap(fetchedProgress);
           console.log(`✅ Progress loaded: ${fetchedProgress.size} items`);
@@ -186,12 +187,14 @@ const WorkoutPlanGenerator = ({
           });
         }
       } else {
+        // Clear progress if no user or plan
         setProgressMap(new Map());
       }
     };
 
     loadProgress();
-  }, [user, workoutPlan?.title, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, workoutPlan?.title]); // Rerun only when user or plan *title* changes
 
   useEffect(() => {
     if (workoutPlan && activeTab !== 'plan') {
@@ -199,43 +202,51 @@ const WorkoutPlanGenerator = ({
     }
   }, [workoutPlan, activeTab]);
 
-  const handleInputChange = useCallback((field: string, value: string) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  }, []);
+  };
 
-  const handleGoalChange = useCallback((goal: string, checked: boolean) => {
+  // NEW: Handler for Goals Checkboxes
+  const handleGoalChange = (goal: string, checked: boolean) => {
     setFormData(prev => {
-      const currentGoals = prev.goals || [];
+      const currentGoals = prev.goals || []; // Ensure goals is an array
       if (checked) {
+        // Add goal if checked and not already present
         return { ...prev, goals: [...currentGoals, goal] };
       } else {
+        // Remove goal if unchecked
         const updatedGoals = currentGoals.filter(g => g !== goal);
+        // If unchecking "outros", also clear the text
         if (goal === "outros") {
           setOtherGoalsText("");
         }
         return { ...prev, goals: updatedGoals };
       }
     });
-  }, []);
+  };
 
-  const handleSelectChange = useCallback((field: string, value: string) => {
+  const handleSelectChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Limpa o texto de "outras" se a seleção mudar
     if (field === 'limitations' && value !== 'outros') {
       setOtherLimitationsText('');
     }
-  }, []);
+  };
 
-  const handleProgressChange = useCallback(async (itemIdentifier: string, currentStatus: boolean) => {
+  // Function to handle checkbox change
+  const handleProgressChange = async (itemIdentifier: string, currentStatus: boolean) => {
     const currentPlanId = workoutPlan?.title;
     if (!user || !currentPlanId) return;
 
     const newStatus = !currentStatus;
     const userId = user.id;
-    const planId = currentPlanId;
+    const planId = currentPlanId; // Using title as planId
 
+    // Optimistic UI update
     setProgressMap(prevMap => new Map(prevMap).set(itemIdentifier, newStatus));
 
     try {
+      // Use the function defined above
       await updateItemProgress({
         user_id: userId,
         plan_id: planId,
@@ -245,6 +256,7 @@ const WorkoutPlanGenerator = ({
       console.log(`✅ Progress updated for item: ${itemIdentifier} to ${newStatus}`);
     } catch (error) {
       console.error('❌ Error updating item progress:', error);
+      // Revert UI on error
       setProgressMap(prevMap => new Map(prevMap).set(itemIdentifier, currentStatus));
       toast({
         title: "Erro ao Salvar Progresso",
@@ -252,13 +264,14 @@ const WorkoutPlanGenerator = ({
         variant: "destructive",
       });
     }
-  }, [user, workoutPlan?.title, toast]);
+  };
 
   const saveWorkoutPlan = async (plan: WorkoutPlan) => {
     if (!user) return;
 
     console.log('💾 Tentando salvar o plano no DB...');
     try {
+      // Delete existing plan first (current logic)
       const { error: deleteError } = await supabase
         .from('user_workout_plans')
         .delete()
@@ -268,17 +281,21 @@ const WorkoutPlanGenerator = ({
         console.warn('⚠️ Erro ao deletar plano antigo (pode não existir):', deleteError.message);
       }
 
-      const oldPlanId = workoutPlan?.title;
+      // Also delete existing progress for the *old* plan before saving the new one
+      // This assumes generating a new plan replaces the old one entirely.
+      const oldPlanId = workoutPlan?.title; // Get the ID (title) of the plan being replaced
       if (oldPlanId) {
          console.log(`🗑️ Deleting old progress for plan being replaced: ${oldPlanId}`);
+         // Use the function defined above
          await deletePlanProgress(user.id, oldPlanId);
       }
 
+      // Insert the new plan
       const { data: insertData, error: insertError } = await supabase
         .from('user_workout_plans')
         .insert({
           user_id: user.id,
-          plan_data: plan as any
+          plan_data: plan as any // Cast to any to satisfy the Json type requirement
         })
         .select()
         .single();
@@ -288,10 +305,10 @@ const WorkoutPlanGenerator = ({
         throw new Error('Falha ao salvar o plano de treino no banco de dados.');
       }
       
-      const savedPlan = plan;
+      const savedPlan = plan; // Continue using title as ID for now
 
       console.log('✅ Plano salvo com sucesso no DB!');
-      return savedPlan;
+      return savedPlan; // Return the saved plan
     } catch (error: any) {
       console.error('💥 Erro na função saveWorkoutPlan:', error);
       toast({
@@ -299,7 +316,7 @@ const WorkoutPlanGenerator = ({
         description: error.message || "Não foi possível salvar seu plano. Tente gerar novamente.",
         variant: "destructive",
       });
-      return null;
+      return null; // Indicate failure
     }
   };
 
@@ -321,24 +338,26 @@ const WorkoutPlanGenerator = ({
     }
 
     setLoading(true);
-    const oldPlanId = workoutPlan?.title;
-    setWorkoutPlan(null);
-    setProgressMap(new Map());
+    const oldPlanId = workoutPlan?.title; // Store old plan ID before clearing
+    setWorkoutPlan(null); // Clear current plan before generating
+    setProgressMap(new Map()); // Clear progress map as well
     
     try {
       console.log('🚀 INICIANDO GERAÇÃO DO PLANO');
       const sessionDuration = formData.availableTime ? parseInt(formData.availableTime) || 60 : 60;
-      const availableDays = formData.availableDays ? parseInt(formData.availableDays) || 3 : 3;
+      const availableDays = formData.availableDays ? parseInt(formData.availableDays) || 3 : 3; // Use selected days, default 3
 
+      // Prepare goals, including "outros" text if selected
       let finalGoals = formData.goals || [];
       if (finalGoals.includes("outros")) {
-        finalGoals = finalGoals.filter(g => g !== "outros");
+        finalGoals = finalGoals.filter(g => g !== "outros"); // Remove the placeholder
         if (otherGoalsText.trim()) {
-          finalGoals.push(`outros: ${otherGoalsText.trim()}`);
+          finalGoals.push(`outros: ${otherGoalsText.trim()}`); // Add formatted other text
         }
       }
+      // Ensure at least one goal is sent, even if empty initially
       if (finalGoals.length === 0) {
-         finalGoals.push("saude_geral");
+         finalGoals.push("saude_geral"); // Default goal if none selected
          toast({ title: "Objetivo Padrão", description: "Nenhum objetivo selecionado, usando 'Saúde Geral'.", variant: "default" });
       }
 
@@ -349,8 +368,8 @@ const WorkoutPlanGenerator = ({
           weight: parseInt(formData.weight),
           height: parseInt(formData.height),
           fitness_level: formData.fitnessLevel,
-          fitness_goals: finalGoals,
-          available_days: availableDays,
+          fitness_goals: finalGoals, // Use the processed goals array
+          available_days: availableDays, // Use the parsed available days
           session_duration: sessionDuration,
           equipment: formData.equipment || 'peso_corporal',
           limitations: formData.limitations === 'outros'
@@ -361,6 +380,7 @@ const WorkoutPlanGenerator = ({
       };
 
       console.log('📤 Enviando para a API generate-workout-plan...');
+      // Use the existing Supabase client to invoke the function
       const { data, error: functionError } = await supabase.functions.invoke('generate-workout-plan', {
         body: requestData
       });
@@ -378,17 +398,15 @@ const WorkoutPlanGenerator = ({
         nutrition_tips: data.nutrition_tips || []
       };
 
+      // Save the new plan (this will also delete old progress via saveWorkoutPlan)
       const savedPlan = await saveWorkoutPlan(plan);
       if (!savedPlan) {
         setLoading(false);
-        return;
+        return; // Stop if saving failed
       }
 
       console.log('✅ Plano processado e salvo. Atualizando estado...');
-      setWorkoutPlan(savedPlan);
-      
-      // Clear saved form data after successful generation
-      clearSavedFormData();
+      setWorkoutPlan(savedPlan); // Use the potentially updated plan object
       
       setActiveTab('plan');
       console.log('✅ Aba interna alterada para "plan"');
@@ -401,7 +419,7 @@ const WorkoutPlanGenerator = ({
     } catch (error: any) {
       console.error('💥 Erro ao gerar/salvar plano:', error);
       setWorkoutPlan(null);
-      setProgressMap(new Map());
+      setProgressMap(new Map()); // Clear progress on error too
       toast({
         title: "Erro ao Gerar Plano",
         description: error.message || 'Erro desconhecido.',
@@ -414,22 +432,27 @@ const WorkoutPlanGenerator = ({
 
   const deleteWorkoutPlan = async () => {
     const currentPlanId = workoutPlan?.title;
-    if (!user || !currentPlanId) return;
+    if (!user || !currentPlanId) return; // Check title for planId
 
     setDeleting(true);
     console.log('🗑️ Tentando deletar o plano e seu progresso do DB...');
-    const planId = currentPlanId;
+    const planId = currentPlanId; // Use title as planId
 
     try {
+      // 1. Delete progress first
       console.log(`🗑️ Deletando progresso para o plano: ${planId}`);
+      // Use the function defined above
       await deletePlanProgress(user.id, planId);
       console.log('✅ Progresso deletado com sucesso!');
 
+      // 2. Delete the plan itself
       console.log(`🗑️ Deletando plano: ${planId}`);
+      // Use the existing Supabase client
       const { error: deletePlanError } = await supabase
         .from('user_workout_plans')
         .delete()
         .eq('user_id', user.id);
+        // Assuming only one plan per user is stored in this table
 
       if (deletePlanError) {
         console.error('❌ Erro ao deletar plano:', deletePlanError);
@@ -442,8 +465,9 @@ const WorkoutPlanGenerator = ({
          console.log('✅ Plano deletado com sucesso do DB!');
       }
 
+      // 3. Update UI state
       setWorkoutPlan(null);
-      setProgressMap(new Map());
+      setProgressMap(new Map()); // Clear progress map
       setActiveTab('form');
       toast({
         title: "Plano Excluído",
@@ -470,6 +494,7 @@ const WorkoutPlanGenerator = ({
       planText += `⏱️ DURAÇÃO: ${workoutPlan.duration_weeks} semanas\n\n`;
       planText += `💪 EXERCÍCIOS:\n\n`;
       workoutPlan.exercises.forEach((exercise, index) => {
+        // Use a consistent identifier (name + index)
         const itemIdentifier = `${exercise.name}_${index}`;
         const isCompleted = progressMap.get(itemIdentifier) || false;
         planText += `${isCompleted ? '[✅]' : '[ ]'} ${index + 1}. ${exercise.name}\n`;
@@ -489,6 +514,7 @@ const WorkoutPlanGenerator = ({
     }
   };
 
+  // --- RENDER SECTION --- 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header Card */}
@@ -545,6 +571,7 @@ const WorkoutPlanGenerator = ({
               )}
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Form fields ... (kept as is) */}
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="age" className="text-blue-700 font-medium">Idade *</Label>
@@ -617,12 +644,13 @@ const WorkoutPlanGenerator = ({
                 </RadioGroup>
               </div>
 
+              {/* MODIFIED: Goals with Checkboxes */}
               <div>
                 <Label className="text-blue-700 font-medium flex items-center gap-2">
                   <Target className="h-4 w-4" /> Objetivos Principais (selecione um ou mais) *
                 </Label>
                 <div className="mt-3 space-y-3">
-                  {[
+                  {[ // Define goal options here
                     { value: "perda_peso", label: "📉 Perda de Peso / Gordura" },
                     { value: "hipertrofia", label: "💪 Ganho de Massa Muscular" },
                     { value: "condicionamento", label: "❤️ Melhora Cardiovascular" },
@@ -633,8 +661,8 @@ const WorkoutPlanGenerator = ({
                     <div key={goal.value} className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50">
                       <Checkbox
                         id={goal.value}
-                        checked={(formData.goals || []).includes(goal.value)}
-                        onCheckedChange={(checked) => handleGoalChange(goal.value, !!checked)}
+                        checked={(formData.goals || []).includes(goal.value)} // Check if goal is in the array
+                        onCheckedChange={(checked) => handleGoalChange(goal.value, !!checked)} // Pass boolean
                       />
                       <Label htmlFor={goal.value} className="flex items-center gap-2 cursor-pointer">
                         {goal.label}
@@ -642,6 +670,7 @@ const WorkoutPlanGenerator = ({
                     </div>
                   ))}
                 </div>
+                {/* Input condicional para "Outros" objetivos */}
                 {(formData.goals || []).includes("outros") && (
                   <div className="mt-4">
                     <Label htmlFor="otherGoals" className="text-blue-700 font-medium">Descreva seus outros objetivos:</Label>
@@ -673,6 +702,7 @@ const WorkoutPlanGenerator = ({
                 </Select>
               </div>
 
+              {/* NEW: Available Days per Week */}
               <div>
                 <Label className="text-blue-700 font-medium flex items-center gap-2">
                   🗓️ Dias Disponíveis por Semana *
@@ -715,6 +745,7 @@ const WorkoutPlanGenerator = ({
                     <SelectItem value="outros">⚠️ Outras (descreva se possível)</SelectItem>
                   </SelectContent>
                 </Select>
+                {/* Input condicional para "Outras" limitações */}
                 {formData.limitations === 'outros' && (
                   <div className="mt-4">
                     <Label htmlFor="otherLimitations" className="text-blue-700 font-medium">Descreva suas outras limitações:</Label>
@@ -745,7 +776,7 @@ const WorkoutPlanGenerator = ({
           </Card>
         </TabsContent>
 
-        {/* Plan Tab Content */}
+        {/* Plan Tab Content - MODIFIED */}
         <TabsContent value="plan">
           <Card className="bg-white border-green-200 shadow-lg">
             <CardHeader>
@@ -776,7 +807,7 @@ const WorkoutPlanGenerator = ({
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
                       <AlertDialogAction 
-                        onClick={deleteWorkoutPlan}
+                        onClick={deleteWorkoutPlan} // Uses the function defined above
                         className="bg-red-600 hover:bg-red-700"
                       >
                         Confirmar Exclusão
@@ -802,11 +833,13 @@ const WorkoutPlanGenerator = ({
                         <p className="text-green-800 font-bold">{workoutPlan.duration_weeks} semanas</p>
                       </div>
                     </div>
+                    {/* Exercises Section - MODIFIED */}
                     {workoutPlan.exercises && workoutPlan.exercises.length > 0 && (
                       <div className="mb-6">
                         <h4 className="text-lg font-bold text-green-800 mb-3">💪 Exercícios</h4>
                         <div className="space-y-4">
                           {workoutPlan.exercises.map((exercise, index) => {
+                            // Use a consistent identifier (name + index)
                             const itemIdentifier = `${exercise.name}_${index}`; 
                             const isCompleted = progressMap.get(itemIdentifier) || false;
                             return (
@@ -822,6 +855,7 @@ const WorkoutPlanGenerator = ({
                                     <Checkbox
                                       id={`item-${itemIdentifier}`}
                                       checked={isCompleted}
+                                      // Use the handler defined above
                                       onCheckedChange={() => handleProgressChange(itemIdentifier, isCompleted)}
                                       className={`data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 ${isCompleted ? 'border-green-600' : 'border-gray-400'}`}
                                       aria-label={`Marcar ${exercise.name} como ${isCompleted ? 'não concluído' : 'concluído'}`}
@@ -840,6 +874,7 @@ const WorkoutPlanGenerator = ({
                         </div>
                       </div>
                     )}
+                    {/* Nutrition Tips */}
                     {workoutPlan.nutrition_tips && workoutPlan.nutrition_tips.length > 0 && (
                       <div>
                         <h4 className="text-lg font-bold text-green-800 mb-3">🥗 Dicas Nutricionais</h4>
@@ -853,9 +888,10 @@ const WorkoutPlanGenerator = ({
                       </div>
                     )}
                   </div>
+                  {/* Action Buttons */}
                   <div className="flex gap-3">
                     <Button 
-                      onClick={copyPlan}
+                      onClick={copyPlan} // Uses the function defined above
                       variant="outline"
                       className="flex-1 border-green-300 text-green-700 hover:bg-green-50 flex items-center gap-2"
                     >
@@ -871,6 +907,7 @@ const WorkoutPlanGenerator = ({
                   </div>
                 </div>
               ) : (
+                // Empty State
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4"><FileText className="h-8 w-8 text-gray-400" /></div>
                   <h3 className="text-lg font-medium text-gray-700 mb-2">Nenhum plano salvo</h3>
