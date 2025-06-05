@@ -177,7 +177,7 @@ const WorkoutPlanDisplay = ({
       {/* Header do Plano */}
       <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-2">
             <div>
               <CardTitle className="text-xl text-green-800 mb-2">{plan.title}</CardTitle>
               <CardDescription className="text-green-700 mb-3">{plan.description}</CardDescription>
