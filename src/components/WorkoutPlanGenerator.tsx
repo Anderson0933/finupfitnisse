@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import WorkoutPlanDisplay from './WorkoutPlanDisplay';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -127,7 +128,13 @@ export interface WorkoutPlan {
     rest: string;
     instructions: string;
   }>;
-  nutrition_tips: string[];
+  nutrition_tips?: string[];
+  weekly_schedule?: any;
+  progression_protocol?: any;
+  nutrition_guidelines?: any;
+  recovery_protocols?: any;
+  progress_tracking?: any;
+  safety_guidelines?: any;
 }
 
 interface WorkoutPlanGeneratorProps {
@@ -395,7 +402,13 @@ const WorkoutPlanGenerator = ({
         difficulty_level: data.difficulty_level || 'iniciante',
         duration_weeks: data.duration_weeks || 8,
         exercises: data.exercises || [],
-        nutrition_tips: data.nutrition_tips || []
+        nutrition_tips: data.nutrition_tips || [],
+        weekly_schedule: data.weekly_schedule,
+        progression_protocol: data.progression_protocol,
+        nutrition_guidelines: data.nutrition_guidelines,
+        recovery_protocols: data.recovery_protocols,
+        progress_tracking: data.progress_tracking,
+        safety_guidelines: data.safety_guidelines
       };
 
       // Save the new plan (this will also delete old progress via saveWorkoutPlan)
@@ -492,23 +505,49 @@ const WorkoutPlanGenerator = ({
       planText += `📝 DESCRIÇÃO:\n${workoutPlan.description}\n\n`;
       planText += `📊 NÍVEL: ${workoutPlan.difficulty_level.toUpperCase()}\n`;
       planText += `⏱️ DURAÇÃO: ${workoutPlan.duration_weeks} semanas\n\n`;
-      planText += `💪 EXERCÍCIOS:\n\n`;
-      workoutPlan.exercises.forEach((exercise, index) => {
-        // Use a consistent identifier (name + index)
-        const itemIdentifier = `${exercise.name}_${index}`;
-        const isCompleted = progressMap.get(itemIdentifier) || false;
-        planText += `${isCompleted ? '[✅]' : '[ ]'} ${index + 1}. ${exercise.name}\n`;
-        planText += `   📊 Séries: ${exercise.sets}\n`;
-        planText += `   🔢 Repetições: ${exercise.reps}\n`;
-        planText += `   ⏰ Descanso: ${exercise.rest}\n`;
-        planText += `   📋 ${exercise.instructions}\n\n`;
-      });
-      if (workoutPlan.nutrition_tips.length > 0) {
+      
+      // Se tiver cronograma semanal, usar essa estrutura
+      if (workoutPlan.weekly_schedule) {
+        planText += `📅 CRONOGRAMA SEMANAL:\n\n`;
+        Object.entries(workoutPlan.weekly_schedule).forEach(([day, dayData]: [string, any]) => {
+          planText += `${day.toUpperCase()}:\n`;
+          planText += `📍 Foco: ${dayData.focus || 'N/A'}\n`;
+          
+          if (dayData.main_workout && dayData.main_workout.length > 0) {
+            dayData.main_workout.forEach((exercise: any, index: number) => {
+              const itemIdentifier = `${day}_${exercise.exercise}_${index}`;
+              const isCompleted = progressMap.get(itemIdentifier) || false;
+              planText += `${isCompleted ? '[✅]' : '[ ]'} ${exercise.exercise}\n`;
+              planText += `   📊 ${exercise.sets} séries x ${exercise.reps} (${exercise.rest})\n`;
+            });
+          }
+          
+          if (dayData.activities && dayData.activities.length > 0) {
+            planText += `🎯 Atividades: ${dayData.activities.join(', ')}\n`;
+          }
+          planText += `\n`;
+        });
+      } else {
+        // Fallback para exercícios antigos
+        planText += `💪 EXERCÍCIOS:\n\n`;
+        workoutPlan.exercises.forEach((exercise, index) => {
+          const itemIdentifier = `${exercise.name}_${index}`;
+          const isCompleted = progressMap.get(itemIdentifier) || false;
+          planText += `${isCompleted ? '[✅]' : '[ ]'} ${index + 1}. ${exercise.name}\n`;
+          planText += `   📊 Séries: ${exercise.sets}\n`;
+          planText += `   🔢 Repetições: ${exercise.reps}\n`;
+          planText += `   ⏰ Descanso: ${exercise.rest}\n`;
+          planText += `   📋 ${exercise.instructions}\n\n`;
+        });
+      }
+      
+      if (workoutPlan.nutrition_tips && workoutPlan.nutrition_tips.length > 0) {
         planText += `🥗 DICAS NUTRICIONAIS:\n\n`;
         workoutPlan.nutrition_tips.forEach((tip, index) => {
           planText += `${index + 1}. ${tip}\n`;
         });
       }
+      
       navigator.clipboard.writeText(planText);
       toast({ title: "Copiado!", description: "Plano de treino (com progresso) copiado." });
     }
@@ -571,7 +610,6 @@ const WorkoutPlanGenerator = ({
               )}
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Form fields ... (kept as is) */}
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="age" className="text-blue-700 font-medium">Idade *</Label>
@@ -776,147 +814,32 @@ const WorkoutPlanGenerator = ({
           </Card>
         </TabsContent>
 
-        {/* Plan Tab Content - MODIFIED */}
+        {/* Plan Tab Content - SIMPLIFIED */}
         <TabsContent value="plan">
-          <Card className="bg-white border-green-200 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-green-800 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Seu Plano de Treino Atual
+          {workoutPlan ? (
+            <WorkoutPlanDisplay
+              plan={workoutPlan}
+              onCopyPlan={copyPlan}
+              onDeletePlan={deleteWorkoutPlan}
+              onGenerateNew={() => setActiveTab('form')}
+              progressMap={progressMap}
+              onProgressChange={handleProgressChange}
+            />
+          ) : (
+            // Empty State
+            <Card className="bg-white border-gray-200 shadow-lg">
+              <CardContent className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="h-8 w-8 text-gray-400" />
                 </div>
-                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="destructive"
-                      size="sm"
-                      disabled={deleting}
-                      className="flex items-center gap-1"
-                    >
-                      {deleting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      <span className="hidden sm:inline">Excluir Plano</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza que deseja excluir seu plano de treino atual e todo o progresso registrado? Esta ação não pode ser desfeita.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={deleteWorkoutPlan} // Uses the function defined above
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Confirmar Exclusão
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {workoutPlan ? (
-                <div className="space-y-6">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                    <h3 className="text-xl font-bold text-green-800 mb-3">{workoutPlan.title}</h3>
-                    <p className="text-green-700 mb-4">{workoutPlan.description}</p>
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="bg-white p-3 rounded-lg border border-green-200">
-                        <span className="text-sm text-green-600 font-medium">Nível</span>
-                        <p className="text-green-800 font-bold capitalize">{workoutPlan.difficulty_level}</p>
-                      </div>
-                      <div className="bg-white p-3 rounded-lg border border-green-200">
-                        <span className="text-sm text-green-600 font-medium">Duração</span>
-                        <p className="text-green-800 font-bold">{workoutPlan.duration_weeks} semanas</p>
-                      </div>
-                    </div>
-                    {/* Exercises Section - MODIFIED */}
-                    {workoutPlan.exercises && workoutPlan.exercises.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="text-lg font-bold text-green-800 mb-3">💪 Exercícios</h4>
-                        <div className="space-y-4">
-                          {workoutPlan.exercises.map((exercise, index) => {
-                            // Use a consistent identifier (name + index)
-                            const itemIdentifier = `${exercise.name}_${index}`; 
-                            const isCompleted = progressMap.get(itemIdentifier) || false;
-                            return (
-                              <div key={itemIdentifier} className={`bg-white p-4 rounded-lg border ${isCompleted ? 'border-green-400 bg-green-50' : 'border-gray-200'} transition-colors duration-200`}>
-                                <div className="flex items-center justify-between mb-2">
-                                  <h5 className={`font-bold ${isCompleted ? 'text-green-700 line-through' : 'text-gray-800'}`}>
-                                    {index + 1}. {exercise.name}
-                                  </h5>
-                                  <div className="flex items-center space-x-2">
-                                    <Label htmlFor={`item-${itemIdentifier}`} className="text-sm text-gray-600 cursor-pointer">
-                                      {isCompleted ? 'Concluído' : 'Marcar como concluído'}
-                                    </Label>
-                                    <Checkbox
-                                      id={`item-${itemIdentifier}`}
-                                      checked={isCompleted}
-                                      // Use the handler defined above
-                                      onCheckedChange={() => handleProgressChange(itemIdentifier, isCompleted)}
-                                      className={`data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 ${isCompleted ? 'border-green-600' : 'border-gray-400'}`}
-                                      aria-label={`Marcar ${exercise.name} como ${isCompleted ? 'não concluído' : 'concluído'}`}
-                                    />
-                                  </div>
-                                </div>
-                                <div className={`grid grid-cols-3 gap-2 mb-2 text-sm ${isCompleted ? 'text-gray-500' : 'text-gray-600'}`}>
-                                  <span>📊 Séries: <strong>{exercise.sets}</strong></span>
-                                  <span>🔢 Reps: <strong>{exercise.reps}</strong></span>
-                                  <span>⏰ Descanso: <strong>{exercise.rest}</strong></span>
-                                </div>
-                                <p className={`text-sm ${isCompleted ? 'text-gray-500' : 'text-gray-700'}`}>{exercise.instructions}</p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    {/* Nutrition Tips */}
-                    {workoutPlan.nutrition_tips && workoutPlan.nutrition_tips.length > 0 && (
-                      <div>
-                        <h4 className="text-lg font-bold text-green-800 mb-3">🥗 Dicas Nutricionais</h4>
-                        <ul className="space-y-2">
-                          {workoutPlan.nutrition_tips.map((tip, index) => (
-                            <li key={index} className="text-green-700 flex items-start gap-2">
-                              <span className="text-green-600 font-bold">{index + 1}.</span> {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                  {/* Action Buttons */}
-                  <div className="flex gap-3">
-                    <Button 
-                      onClick={copyPlan} // Uses the function defined above
-                      variant="outline"
-                      className="flex-1 border-green-300 text-green-700 hover:bg-green-50 flex items-center gap-2"
-                    >
-                      <Copy className="h-4 w-4" /> Copiar Plano (com Progresso)
-                    </Button>
-                    <Button 
-                      onClick={() => setActiveTab('form')}
-                      variant="outline"
-                      className="border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
-                    >
-                      <RefreshCw className="h-4 w-4" /> Gerar Novo
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                // Empty State
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4"><FileText className="h-8 w-8 text-gray-400" /></div>
-                  <h3 className="text-lg font-medium text-gray-700 mb-2">Nenhum plano salvo</h3>
-                  <p className="text-gray-500 mb-6">Vá para "Criar Plano" para gerar seu treino.</p>
-                  <Button onClick={() => setActiveTab('form')} className="bg-blue-600 hover:bg-blue-700 text-white"><Dumbbell className="h-4 w-4 mr-2" /> Criar Meu Plano</Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Nenhum plano salvo</h3>
+                <p className="text-gray-500 mb-6">Vá para "Criar Plano" para gerar seu treino.</p>
+                <Button onClick={() => setActiveTab('form')} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Dumbbell className="h-4 w-4 mr-2" /> Criar Meu Plano
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
