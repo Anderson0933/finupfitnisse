@@ -1,5 +1,3 @@
-
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -228,11 +226,11 @@ IMPORTANTE:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile', // Usando modelo mais poderoso com plano Pro
+        model: 'llama-3.3-70b-versatile', // Modelo atualizado e mais poderoso
         messages: [
           { role: 'user', content: prompt }
         ],
-        max_tokens: 8000, // Aumentando significativamente com plano Pro
+        max_tokens: 8000, // Aproveitando os altos limites do plano Pro
         temperature: 0.3,
       }),
     });
@@ -498,4 +496,3 @@ function createFallbackPlan(userProfile: any) {
     ]
   };
 }
-
