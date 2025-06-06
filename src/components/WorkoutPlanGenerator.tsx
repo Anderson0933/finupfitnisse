@@ -137,24 +137,22 @@ export interface WorkoutPlan {
   progress_tracking?: any;
   safety_guidelines?: any;
 }
-
 interface WorkoutPlanGeneratorProps {
   user: User | null;
   workoutPlan: WorkoutPlan | null;
   setWorkoutPlan: (plan: WorkoutPlan | null) => void;
-  initialActiveTab?: 'form' | 'plan';
-}
-
-// FORM PERSISTENCE KEY
+  initialActiveTab?: \'form\' | \'plan\';
+  onNavigateToAssistant: () => void; // Adicionar prop para navegação
+}/ FORM PERSISTENCE KEY
 const FORM_STORAGE_KEY = 'workout_form_data';
 
 const WorkoutPlanGenerator = ({ 
   user, 
   workoutPlan, 
   setWorkoutPlan,
-  initialActiveTab = 'form'
-}: WorkoutPlanGeneratorProps) => {
-  const [loading, setLoading] = useState(false);
+  initialActiveTab = \'form\',
+  onNavigateToAssistant // Receber a prop
+}: WorkoutPlanGeneratorProps) => { const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
   // Load form data from localStorage or use defaults
@@ -871,11 +869,12 @@ const WorkoutPlanGenerator = ({
             <WorkoutPlanDisplay
               plan={workoutPlan}
               onCopyPlan={copyPlan}
-              onDeletePlan={deleteWorkoutPlan}
-              onGenerateNew={() => setActiveTab('form')}
-              progressMap={progressMap}
-              onProgressChange={handleProgressChange}
-            />
+              o            onDeletePlan={handleDeletePlan}
+            onGenerateNew={handleGenerateNew}
+            progressMap={progressMap}
+            onProgressChange={handleProgressChange}
+            onNavigateToAssistant={onNavigateToAssistant} // Passar a prop adiante
+          />   />
           ) : (
             // Empty State
             <Card className="bg-white border-gray-200 shadow-lg">
