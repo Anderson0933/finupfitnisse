@@ -229,8 +229,7 @@ IMPORTANTE:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
+        model: \'llama3-8b-8192\', // Alterado para o mesmo modelo do chat-assistant       messages: [
           { role: 'user', content: prompt }
         ],
         max_tokens: 8000,
