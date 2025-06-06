@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox'; // Import Checkbox
 import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText, Trash2, AlertTriangle, CheckCircle2, MessageCircle } from 'lucide-react';
+import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText, Trash2, AlertTriangle, CheckCircle2, MessageCircle, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import WorkoutPlanDisplay from './WorkoutPlanDisplay';
@@ -142,13 +142,15 @@ interface WorkoutPlanGeneratorProps {
   workoutPlan: WorkoutPlan | null;
   setWorkoutPlan: (plan: WorkoutPlan | null) => void;
   initialActiveTab?: 'form' | 'plan';
+  onNavigateToAssistant?: () => void; // NEW: Optional callback to navigate to assistant
 }
 
 const WorkoutPlanGenerator = ({ 
   user, 
   workoutPlan, 
   setWorkoutPlan,
-  initialActiveTab = 'form'
+  initialActiveTab = 'form',
+  onNavigateToAssistant // NEW: Accept the navigation callback
 }: WorkoutPlanGeneratorProps) => {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -171,7 +173,7 @@ const WorkoutPlanGenerator = ({
   const [otherGoalsText, setOtherGoalsText] = useState(""); // NEW STATE FOR OTHER GOALS
   // State to store completion status for each item
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
-  const [showAssistantAlert, setShowAssistantAlert] = useState(false);
+  const [showAssistantNotification, setShowAssistantNotification] = useState(false); // CHANGED: From alert to notification
   const { toast } = useToast();
 
   // Effect to load progress when plan and user are available
@@ -293,7 +295,7 @@ const WorkoutPlanGenerator = ({
       // This assumes generating a new plan replaces the old one entirely.
       const oldPlanId = workoutPlan?.title; // Get the ID (title) of the plan being replaced
       if (oldPlanId) {
-         console.log(`🗑️ Deleting old progress for plan being replaced: ${oldPlanId}`);
+         console.log(`🗑️ Deletando old progress for plan being replaced: ${oldPlanId}`);
          // Use the function defined above
          await deletePlanProgress(user.id, oldPlanId);
       }
@@ -425,9 +427,9 @@ const WorkoutPlanGenerator = ({
       setActiveTab('plan');
       console.log('✅ Aba interna alterada para "plan"');
       
-      // Show assistant alert after successful generation - MOVED HERE and fixed timing
+      // Show assistant notification after successful generation - CHANGED from alert
       setTimeout(() => {
-        setShowAssistantAlert(true);
+        setShowAssistantNotification(true);
       }, 500); // Small delay to ensure UI has updated
       
       toast({
@@ -562,31 +564,63 @@ const WorkoutPlanGenerator = ({
   // --- RENDER SECTION --- 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Assistant Alert Dialog - IMPROVED VISIBILITY */}
-      <AlertDialog open={showAssistantAlert} onOpenChange={setShowAssistantAlert}>
-        <AlertDialogContent className="max-w-md border-2 border-blue-500 shadow-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-blue-800 text-lg">
-              <MessageCircle className="h-6 w-6 text-blue-600" />
-              💪 Dúvidas sobre os exercícios?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-700 text-base leading-relaxed">
-              Se você tiver <strong>dúvidas sobre a execução dos exercícios</strong>, técnicas ou qualquer aspecto do seu treino, 
-              entre em contato com nosso <strong className="text-blue-700">Assistente Personal Trainer</strong> no chat da plataforma!
-              <br/><br/>
-              Ele está disponível para te ajudar com instruções detalhadas e orientações personalizadas. 🎯
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction 
-              onClick={() => setShowAssistantAlert(false)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2"
-            >
-              ✅ Entendi!
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Assistant Notification Banner - NEW */}
+      {showAssistantNotification && workoutPlan && (
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 shadow-lg mb-6">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <MessageCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-blue-800 mb-2">
+                    💪 Dúvidas sobre os exercícios?
+                  </h3>
+                  <p className="text-blue-700 mb-4 leading-relaxed">
+                    Se você tiver <strong>dúvidas sobre a execução dos exercícios</strong>, técnicas ou qualquer aspecto do seu treino, 
+                    nosso <strong>Assistente Personal Trainer</strong> está disponível para te ajudar com instruções detalhadas! 🎯
+                  </p>
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => {
+                        if (onNavigateToAssistant) {
+                          onNavigateToAssistant();
+                        } else {
+                          // Fallback: try to find and click the assistant tab
+                          const assistantTab = document.querySelector('[data-value="assistant"]') as HTMLElement;
+                          if (assistantTab) {
+                            assistantTab.click();
+                          }
+                        }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Falar com Assistente
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowAssistantNotification(false)}
+                      className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    >
+                      ✅ Entendi
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowAssistantNotification(false)}
+                className="text-blue-600 hover:bg-blue-200 h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Header Card */}
       <Card className="bg-white border-blue-200 shadow-lg">
@@ -846,7 +880,7 @@ const WorkoutPlanGenerator = ({
           </Card>
         </TabsContent>
 
-        {/* Plan Tab Content - SIMPLIFIED */}
+        {/* Plan Tab Content - WITH NOTIFICATION */}
         <TabsContent value="plan">
           {workoutPlan ? (
             <WorkoutPlanDisplay
