@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calendar, Target, TrendingUp, Apple, Shield, BarChart3, Clock, Dumbbell, Heart, Zap, MessageSquare, Sparkles } from 'lucide-react';
+import { Calendar, Target, TrendingUp, Apple, Shield, BarChart3, Clock, Dumbbell, Heart, Zap } from 'lucide-react';
 
 interface WorkoutPlanDisplayProps {
   plan: any;
@@ -14,7 +14,6 @@ interface WorkoutPlanDisplayProps {
   onGenerateNew: () => void;
   progressMap: Map<string, boolean>;
   onProgressChange: (itemId: string, completed: boolean) => void;
-  onNavigateToAssistant: () => void; // Adicionar prop para navegação
 }
 
 const WorkoutPlanDisplay = ({ 
@@ -23,8 +22,7 @@ const WorkoutPlanDisplay = ({
   onDeletePlan, 
   onGenerateNew,
   progressMap,
-  onProgressChange,
-  onNavigateToAssistant // Receber a prop
+  onProgressChange 
 }: WorkoutPlanDisplayProps) => {
   if (!plan) return null;
 
@@ -429,17 +427,6 @@ const WorkoutPlanDisplay = ({
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Botão para Assistente */}
-      <div className="mt-6 flex justify-center">
-        <button           onClick={onNavigateToAssistant} // Usar a prop recebida planTitle: plan.title })} // TODO: Implementar navegação e passagem de contexto
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <Sparkles className="h-4 w-4" />
-          Tem dúvidas sobre o plano? Fale com o Assistente!
-        </button>
-      </div>
-
     </div>
   );
 };

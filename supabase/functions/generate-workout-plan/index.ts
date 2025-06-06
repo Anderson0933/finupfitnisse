@@ -229,7 +229,8 @@ IMPORTANTE:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: \'llama3-8b-8192\', // Alterado para o mesmo modelo do chat-assistant       messages: [
+        model: 'llama-3.3-70b-versatile',
+        messages: [
           { role: 'user', content: prompt }
         ],
         max_tokens: 8000,
@@ -258,10 +259,10 @@ IMPORTANTE:
       );
     }
 
-    const data = await response.json    console.log(\'Resposta recebida do Groq\');
-    console.log(\'Conteúdo bruto da resposta Groq:\', JSON.stringify(data)); // Log bruto
+    const data = await response.json();
+    console.log('Resposta recebida do Groq');
 
-    let content = data.choices?.[0]?.message?.content || \'\';
+    let content = data.choices?.[0]?.message?.content || '';
 
     if (!content) {
       console.log('Conteúdo vazio, usando fallback');
@@ -297,10 +298,9 @@ IMPORTANTE:
     let workoutPlan;
     try {
       workoutPlan = JSON.parse(content);
-      console.log(\'JSON parseado com sucesso\
-Conteúdo parseado:\', JSON.stringify(workoutPlan)); // Log do JSON parseado
+      console.log('JSON parseado com sucesso');
       
-      // Validar e corrigir difficulty_levell
+      // Validar e corrigir difficulty_level
       const validLevels = ['iniciante', 'intermediario', 'avancado'];
       if (!workoutPlan.difficulty_level || !validLevels.includes(workoutPlan.difficulty_level)) {
         workoutPlan.difficulty_level = mapFitnessLevelToDifficulty(userProfile.fitness_level);
@@ -308,14 +308,14 @@ Conteúdo parseado:\', JSON.stringify(workoutPlan)); // Log do JSON parseado
       
       // Converter estrutura nova para formato compatível com o frontend
       if (workoutPlan.weekly_schedule) {
-        // workoutPlan.exercises = convertWeeklyScheduleToExercises(workoutPlan.weekly_schedule); // Comentado para enviar estrutura completa
+        workoutPlan.exercises = convertWeeklyScheduleToExercises(workoutPlan.weekly_schedule);
       }
       
-      // Validar estrutura básica - agora checando weekly_schedule
-      if (!workoutPlan.title || !workoutPlan.weekly_schedule) {
-        console.error(\'Estrutura JSON inválida: Título ou weekly_schedule ausente.\');
-        throw new Error(\'Estrutura do JSON inválida: Título ou weekly_schedule ausente.\');
-      }     
+      // Validar estrutura básica
+      if (!workoutPlan.title || !workoutPlan.exercises || !Array.isArray(workoutPlan.exercises)) {
+        throw new Error('Estrutura do JSON inválida');
+      }
+      
     } catch (parseError) {
       console.error('Erro ao fazer parse do JSON:', parseError);
       console.log('Conteúdo recebido:', content);
