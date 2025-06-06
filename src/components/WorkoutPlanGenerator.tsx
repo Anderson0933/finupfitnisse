@@ -425,8 +425,10 @@ const WorkoutPlanGenerator = ({
       setActiveTab('plan');
       console.log('✅ Aba interna alterada para "plan"');
       
-      // Show assistant alert after successful generation
-      setShowAssistantAlert(true);
+      // Show assistant alert after successful generation - MOVED HERE and fixed timing
+      setTimeout(() => {
+        setShowAssistantAlert(true);
+      }, 500); // Small delay to ensure UI has updated
       
       toast({
         title: "Plano gerado e salvo!",
@@ -560,25 +562,27 @@ const WorkoutPlanGenerator = ({
   // --- RENDER SECTION --- 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Assistant Alert Dialog */}
+      {/* Assistant Alert Dialog - IMPROVED VISIBILITY */}
       <AlertDialog open={showAssistantAlert} onOpenChange={setShowAssistantAlert}>
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent className="max-w-md border-2 border-blue-500 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-blue-800">
-              <MessageCircle className="h-5 w-5" />
-              Dúvidas sobre os exercícios?
+            <AlertDialogTitle className="flex items-center gap-2 text-blue-800 text-lg">
+              <MessageCircle className="h-6 w-6 text-blue-600" />
+              💪 Dúvidas sobre os exercícios?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600">
-              Se você tiver dúvidas sobre a execução dos exercícios, técnicas ou qualquer aspecto do seu treino, 
-              entre em contato com nosso <strong>Assistente Personal Trainer</strong> no chat da plataforma!
+            <AlertDialogDescription className="text-gray-700 text-base leading-relaxed">
+              Se você tiver <strong>dúvidas sobre a execução dos exercícios</strong>, técnicas ou qualquer aspecto do seu treino, 
+              entre em contato com nosso <strong className="text-blue-700">Assistente Personal Trainer</strong> no chat da plataforma!
+              <br/><br/>
+              Ele está disponível para te ajudar com instruções detalhadas e orientações personalizadas. 🎯
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction 
               onClick={() => setShowAssistantAlert(false)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2"
             >
-              Entendi!
+              ✅ Entendi!
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
