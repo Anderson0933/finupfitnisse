@@ -259,10 +259,10 @@ IMPORTANTE:
       );
     }
 
-    const data = await response.json();
-    console.log('Resposta recebida do Groq');
+    const data = await response.json    console.log(\'Resposta recebida do Groq\');
+    console.log(\'Conteúdo bruto da resposta Groq:\', JSON.stringify(data)); // Log bruto
 
-    let content = data.choices?.[0]?.message?.content || '';
+    let content = data.choices?.[0]?.message?.content || \'\';
 
     if (!content) {
       console.log('Conteúdo vazio, usando fallback');
@@ -298,9 +298,10 @@ IMPORTANTE:
     let workoutPlan;
     try {
       workoutPlan = JSON.parse(content);
-      console.log('JSON parseado com sucesso');
+      console.log(\'JSON parseado com sucesso\
+Conteúdo parseado:\', JSON.stringify(workoutPlan)); // Log do JSON parseado
       
-      // Validar e corrigir difficulty_level
+      // Validar e corrigir difficulty_levell
       const validLevels = ['iniciante', 'intermediario', 'avancado'];
       if (!workoutPlan.difficulty_level || !validLevels.includes(workoutPlan.difficulty_level)) {
         workoutPlan.difficulty_level = mapFitnessLevelToDifficulty(userProfile.fitness_level);
@@ -308,14 +309,14 @@ IMPORTANTE:
       
       // Converter estrutura nova para formato compatível com o frontend
       if (workoutPlan.weekly_schedule) {
-        workoutPlan.exercises = convertWeeklyScheduleToExercises(workoutPlan.weekly_schedule);
+        // workoutPlan.exercises = convertWeeklyScheduleToExercises(workoutPlan.weekly_schedule); // Comentado para enviar estrutura completa
       }
       
-      // Validar estrutura básica
-      if (!workoutPlan.title || !workoutPlan.exercises || !Array.isArray(workoutPlan.exercises)) {
-        throw new Error('Estrutura do JSON inválida');
-      }
-      
+      // Validar estrutura básica - agora checando weekly_schedule
+      if (!workoutPlan.title || !workoutPlan.weekly_schedule) {
+        console.error(\'Estrutura JSON inválida: Título ou weekly_schedule ausente.\');
+        throw new Error(\'Estrutura do JSON inválida: Título ou weekly_schedule ausente.\');
+      }     
     } catch (parseError) {
       console.error('Erro ao fazer parse do JSON:', parseError);
       console.log('Conteúdo recebido:', content);
