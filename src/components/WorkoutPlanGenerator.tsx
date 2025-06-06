@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 // Import the existing Supabase client
@@ -144,6 +145,9 @@ interface WorkoutPlanGeneratorProps {
   initialActiveTab?: 'form' | 'plan';
 }
 
+// FORM PERSISTENCE KEY
+const FORM_STORAGE_KEY = 'workout_form_data';
+
 const WorkoutPlanGenerator = ({ 
   user, 
   workoutPlan, 
@@ -152,27 +156,70 @@ const WorkoutPlanGenerator = ({
 }: WorkoutPlanGeneratorProps) => {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [formData, setFormData] = useState({
-    age: '',
-    gender: '',
-    weight: '', // Corrected typo
-    height: '', // Corrected typo and value
-    fitnessLevel: '', // Corrected value
-    goals: [], // MODIFIED: Changed from '' to [] to support multiple goals
-    availableTime: '', // Corrected value
-    availableDays: '', // NEW & Corrected value
-    equipment: '', // Corrected value
-    limitations: '' // Corrected value
-  });
+  
+  // Load form data from localStorage or use defaults
+  const loadFormData = () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(FORM_STORAGE_KEY);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (error) {
+          console.warn('Failed to parse saved form data:', error);
+        }
+      }
+    }
+    return {
+      age: '',
+      gender: '',
+      weight: '',
+      height: '',
+      fitnessLevel: '',
+      goals: [],
+      availableTime: '',
+      availableDays: '',
+      equipment: '',
+      limitations: ''
+    };
+  };
+
+  const [formData, setFormData] = useState(loadFormData);
   const [activeTab, setActiveTab] = useState<'form' | 'plan'>(() => 
     workoutPlan ? 'plan' : initialActiveTab
   );
-  const [otherLimitationsText, setOtherLimitationsText] = useState(""); // NEW STATE
-  const [otherGoalsText, setOtherGoalsText] = useState(""); // NEW STATE FOR OTHER GOALS
+  const [otherLimitationsText, setOtherLimitationsText] = useState(""); 
+  const [otherGoalsText, setOtherGoalsText] = useState(""); 
   // State to store completion status for each item
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
-  const [showAssistantAlert, setShowAssistantAlert] = useState(false);
   const { toast } = useToast();
+
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData]);
+
+  // Clear form data when plan is successfully generated
+  const clearFormData = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(FORM_STORAGE_KEY);
+    }
+    setFormData({
+      age: '',
+      gender: '',
+      weight: '',
+      height: '',
+      fitnessLevel: '',
+      goals: [],
+      availableTime: '',
+      availableDays: '',
+      equipment: '',
+      limitations: ''
+    });
+    setOtherLimitationsText('');
+    setOtherGoalsText('');
+  };
 
   // Effect to load progress when plan and user are available
   useEffect(() => {
@@ -425,8 +472,8 @@ const WorkoutPlanGenerator = ({
       setActiveTab('plan');
       console.log('✅ Aba interna alterada para "plan"');
       
-      // Show assistant alert after successful generation
-      setShowAssistantAlert(true);
+      // Clear form data after successful generation
+      clearFormData();
       
       toast({
         title: "Plano gerado e salvo!",
@@ -560,30 +607,6 @@ const WorkoutPlanGenerator = ({
   // --- RENDER SECTION --- 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Assistant Alert Dialog */}
-      <AlertDialog open={showAssistantAlert} onOpenChange={setShowAssistantAlert}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-blue-800">
-              <MessageCircle className="h-5 w-5" />
-              Dúvidas sobre os exercícios?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600">
-              Se você tiver dúvidas sobre a execução dos exercícios, técnicas ou qualquer aspecto do seu treino, 
-              entre em contato com nosso <strong>Assistente Personal Trainer</strong> no chat da plataforma!
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction 
-              onClick={() => setShowAssistantAlert(false)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Entendi!
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {/* Header Card */}
       <Card className="bg-white border-blue-200 shadow-lg">
         <CardHeader className="text-center">

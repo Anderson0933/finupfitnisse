@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, TrendingUp, Calendar, User as UserIcon, Trash2, RefreshCw, AlertTriangle } from 'lucide-react'; // Added Trash2, RefreshCw, AlertTriangle
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Plus, TrendingUp, Calendar, User as UserIcon, Trash2, RefreshCw, AlertTriangle, Camera, Target, Activity, Heart } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog" // Added AlertDialog imports
+} from "@/components/ui/alert-dialog"
 
 interface ProgressEntry {
   id: string;
@@ -27,6 +29,14 @@ interface ProgressEntry {
   weight: number;
   body_fat_percentage?: number;
   muscle_mass?: number;
+  waist_circumference?: number;
+  chest_circumference?: number;
+  arm_circumference?: number;
+  thigh_circumference?: number;
+  energy_level?: number;
+  sleep_quality?: number;
+  stress_level?: number;
+  workout_intensity?: number;
   notes?: string;
 }
 
@@ -37,8 +47,9 @@ interface ProgressTrackerProps {
 const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   const [progressData, setProgressData] = useState<ProgressEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(false); // For saving new entry
-  const [clearing, setClearing] = useState(false); // For clearing all data
+  const [loading, setLoading] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [selectedMetrics, setSelectedMetrics] = useState(['peso']);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -46,6 +57,14 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     weight: '',
     body_fat_percentage: '',
     muscle_mass: '',
+    waist_circumference: '',
+    chest_circumference: '',
+    arm_circumference: '',
+    thigh_circumference: '',
+    energy_level: '',
+    sleep_quality: '',
+    stress_level: '',
+    workout_intensity: '',
     notes: ''
   });
 
@@ -53,7 +72,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     if (user) {
       fetchProgressData();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchProgressData = async () => {
@@ -78,7 +96,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     e.preventDefault();
     if (!user) return;
 
-    // Basic validation
     if (!formData.date || !formData.weight) {
       toast({ title: "Campos obrigatórios", description: "Data e Peso são obrigatórios.", variant: "destructive" });
       return;
@@ -92,29 +109,42 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
         .insert([{
           user_id: user.id,
           date: formData.date,
-          // Ensure weight is parsed, handle potential NaN
-          weight: parseFloat(formData.weight) || 0, 
-          // Use null if parsing fails or field is empty for optional fields
+          weight: parseFloat(formData.weight) || 0,
           body_fat_percentage: formData.body_fat_percentage ? parseFloat(formData.body_fat_percentage) || null : null,
           muscle_mass: formData.muscle_mass ? parseFloat(formData.muscle_mass) || null : null,
+          waist_circumference: formData.waist_circumference ? parseFloat(formData.waist_circumference) || null : null,
+          chest_circumference: formData.chest_circumference ? parseFloat(formData.chest_circumference) || null : null,
+          arm_circumference: formData.arm_circumference ? parseFloat(formData.arm_circumference) || null : null,
+          thigh_circumference: formData.thigh_circumference ? parseFloat(formData.thigh_circumference) || null : null,
+          energy_level: formData.energy_level ? parseInt(formData.energy_level) || null : null,
+          sleep_quality: formData.sleep_quality ? parseInt(formData.sleep_quality) || null : null,
+          stress_level: formData.stress_level ? parseInt(formData.stress_level) || null : null,
+          workout_intensity: formData.workout_intensity ? parseInt(formData.workout_intensity) || null : null,
           notes: formData.notes || null
         }]);
 
       if (error) throw error;
 
       console.log('✅ Progresso salvo com sucesso.');
-      toast({ title: "Progresso registrado!", description: "Seus dados foram salvos." });
+      toast({ title: "Progresso registrado!", description: "Seus dados foram salvos com sucesso." });
 
-      // Reset form and hide
       setFormData({
         date: new Date().toISOString().split('T')[0],
         weight: '',
         body_fat_percentage: '',
         muscle_mass: '',
+        waist_circumference: '',
+        chest_circumference: '',
+        arm_circumference: '',
+        thigh_circumference: '',
+        energy_level: '',
+        sleep_quality: '',
+        stress_level: '',
+        workout_intensity: '',
         notes: ''
       });
       setShowForm(false);
-      fetchProgressData(); // Refresh data
+      fetchProgressData();
     } catch (error: any) {
       console.error('❌ Erro ao salvar progresso:', error);
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
@@ -123,7 +153,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     }
   };
 
-  // --- CLEAR PROGRESS DATA --- 
   const clearProgressData = async () => {
     if (!user) return;
 
@@ -141,7 +170,7 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
       }
 
       console.log('✅ Dados de progresso limpos com sucesso do DB!');
-      setProgressData([]); // Clear the data in state immediately
+      setProgressData([]);
       toast({
         title: "Evolução Limpa",
         description: "Todos os seus registros de progresso foram removidos.",
@@ -158,15 +187,43 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
       setClearing(false);
     }
   };
-  // --- END CLEAR PROGRESS DATA ---
 
-  // Format data for the chart, handle potential nulls gracefully
   const chartData = progressData.map(entry => ({
-    date: new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR'), // Ensure date is treated as local
+    date: new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR'),
     peso: entry.weight ?? null,
     gordura: entry.body_fat_percentage ?? null,
-    musculo: entry.muscle_mass ?? null
+    musculo: entry.muscle_mass ?? null,
+    cintura: entry.waist_circumference ?? null,
+    peito: entry.chest_circumference ?? null,
+    braço: entry.arm_circumference ?? null,
+    coxa: entry.thigh_circumference ?? null,
+    energia: entry.energy_level ?? null,
+    sono: entry.sleep_quality ?? null,
+    estresse: entry.stress_level ?? null,
+    intensidade: entry.workout_intensity ?? null
   }));
+
+  const metricOptions = [
+    { value: 'peso', label: 'Peso (kg)', color: '#3B82F6', unit: 'kg' },
+    { value: 'gordura', label: '% Gordura', color: '#EF4444', unit: '%' },
+    { value: 'musculo', label: 'Massa Muscular (kg)', color: '#10B981', unit: 'kg' },
+    { value: 'cintura', label: 'Cintura (cm)', color: '#F59E0B', unit: 'cm' },
+    { value: 'peito', label: 'Peito (cm)', color: '#8B5CF6', unit: 'cm' },
+    { value: 'braço', label: 'Braço (cm)', color: '#06B6D4', unit: 'cm' },
+    { value: 'coxa', label: 'Coxa (cm)', color: '#EC4899', unit: 'cm' },
+    { value: 'energia', label: 'Nível de Energia', color: '#F97316', unit: '/10' },
+    { value: 'sono', label: 'Qualidade do Sono', color: '#6366F1', unit: '/10' },
+    { value: 'estresse', label: 'Nível de Estresse', color: '#DC2626', unit: '/10' },
+    { value: 'intensidade', label: 'Intensidade do Treino', color: '#059669', unit: '/10' }
+  ];
+
+  const toggleMetric = (metric: string) => {
+    setSelectedMetrics(prev => 
+      prev.includes(metric) 
+        ? prev.filter(m => m !== metric)
+        : [...prev, metric]
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -174,7 +231,7 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-blue-800">Acompanhamento de Evolução</h2>
-          <p className="text-blue-600 mt-1">Registre e visualize seu progresso ao longo do tempo</p>
+          <p className="text-blue-600 mt-1">Registre e visualize seu progresso detalhado ao longo do tempo</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button 
@@ -185,7 +242,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
             <Plus className="h-4 w-4 mr-2" />
             Registrar Progresso
           </Button>
-          {/* --- CLEAR BUTTON --- */} 
           {progressData.length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -222,24 +278,27 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
               </AlertDialogContent>
             </AlertDialog>
           )}
-          {/* --- END CLEAR BUTTON --- */} 
         </div>
       </div>
 
-      {/* Form (conditionally rendered) */}
+      {/* Enhanced Form */}
       {showForm && (
         <Card className="bg-white border-blue-200 shadow-lg">
           <CardHeader>
             <CardTitle className="text-blue-800 flex items-center gap-2">
               <UserIcon className="h-5 w-5" />
-              Registrar Novo Progresso
+              Registrar Novo Progresso Detalhado
             </CardTitle>
+            <CardDescription>
+              Preencha as medidas e avaliações que desejar. Apenas data e peso são obrigatórios.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="date" className="text-blue-800">Data *</Label>
+                  <Label htmlFor="date" className="text-blue-800 font-medium">Data *</Label>
                   <Input
                     id="date"
                     type="date"
@@ -250,7 +309,7 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="weight" className="text-blue-800">Peso (kg) *</Label>
+                  <Label htmlFor="weight" className="text-blue-800 font-medium">Peso (kg) *</Label>
                   <Input
                     id="weight"
                     type="number"
@@ -262,41 +321,175 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="body_fat" className="text-blue-800">% Gordura Corporal</Label>
-                  <Input
-                    id="body_fat"
-                    type="number"
-                    step="0.1"
-                    value={formData.body_fat_percentage}
-                    onChange={(e) => setFormData({...formData, body_fat_percentage: e.target.value})}
-                    className="border-blue-200 focus:border-blue-400 mt-1"
-                    placeholder="Opcional"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="muscle_mass" className="text-blue-800">Massa Muscular (kg)</Label>
-                  <Input
-                    id="muscle_mass"
-                    type="number"
-                    step="0.1"
-                    value={formData.muscle_mass}
-                    onChange={(e) => setFormData({...formData, muscle_mass: e.target.value})}
-                    className="border-blue-200 focus:border-blue-400 mt-1"
-                    placeholder="Opcional"
-                  />
+              </div>
+
+              {/* Body Composition */}
+              <div>
+                <h4 className="text-lg font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Composição Corporal
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="body_fat" className="text-blue-800">% Gordura Corporal</Label>
+                    <Input
+                      id="body_fat"
+                      type="number"
+                      step="0.1"
+                      value={formData.body_fat_percentage}
+                      onChange={(e) => setFormData({...formData, body_fat_percentage: e.target.value})}
+                      className="border-blue-200 focus:border-blue-400 mt-1"
+                      placeholder="Ex: 15.2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="muscle_mass" className="text-blue-800">Massa Muscular (kg)</Label>
+                    <Input
+                      id="muscle_mass"
+                      type="number"
+                      step="0.1"
+                      value={formData.muscle_mass}
+                      onChange={(e) => setFormData({...formData, muscle_mass: e.target.value})}
+                      className="border-blue-200 focus:border-blue-400 mt-1"
+                      placeholder="Ex: 45.8"
+                    />
+                  </div>
                 </div>
               </div>
+
+              {/* Circumferences */}
               <div>
-                <Label htmlFor="notes" className="text-blue-800">Observações</Label>
+                <h4 className="text-lg font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                  <Camera className="h-5 w-5" />
+                  Circunferências (cm)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="waist" className="text-blue-800">Cintura</Label>
+                    <Input
+                      id="waist"
+                      type="number"
+                      step="0.1"
+                      value={formData.waist_circumference}
+                      onChange={(e) => setFormData({...formData, waist_circumference: e.target.value})}
+                      className="border-blue-200 focus:border-blue-400 mt-1"
+                      placeholder="Ex: 85.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="chest" className="text-blue-800">Peito</Label>
+                    <Input
+                      id="chest"
+                      type="number"
+                      step="0.1"
+                      value={formData.chest_circumference}
+                      onChange={(e) => setFormData({...formData, chest_circumference: e.target.value})}
+                      className="border-blue-200 focus:border-blue-400 mt-1"
+                      placeholder="Ex: 95.0"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="arm" className="text-blue-800">Braço</Label>
+                    <Input
+                      id="arm"
+                      type="number"
+                      step="0.1"
+                      value={formData.arm_circumference}
+                      onChange={(e) => setFormData({...formData, arm_circumference: e.target.value})}
+                      className="border-blue-200 focus:border-blue-400 mt-1"
+                      placeholder="Ex: 32.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="thigh" className="text-blue-800">Coxa</Label>
+                    <Input
+                      id="thigh"
+                      type="number"
+                      step="0.1"
+                      value={formData.thigh_circumference}
+                      onChange={(e) => setFormData({...formData, thigh_circumference: e.target.value})}
+                      className="border-blue-200 focus:border-blue-400 mt-1"
+                      placeholder="Ex: 55.2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Wellbeing Metrics */}
+              <div>
+                <h4 className="text-lg font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                  <Heart className="h-5 w-5" />
+                  Bem-estar e Performance (1-10)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="energy" className="text-blue-800">Nível de Energia</Label>
+                    <Select value={formData.energy_level} onValueChange={(value) => setFormData({...formData, energy_level: value})}>
+                      <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-1">
+                        <SelectValue placeholder="1-10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1,2,3,4,5,6,7,8,9,10].map(num => (
+                          <SelectItem key={num} value={String(num)}>{num} - {num <= 3 ? 'Baixo' : num <= 6 ? 'Médio' : 'Alto'}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="sleep" className="text-blue-800">Qualidade do Sono</Label>
+                    <Select value={formData.sleep_quality} onValueChange={(value) => setFormData({...formData, sleep_quality: value})}>
+                      <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-1">
+                        <SelectValue placeholder="1-10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1,2,3,4,5,6,7,8,9,10].map(num => (
+                          <SelectItem key={num} value={String(num)}>{num} - {num <= 3 ? 'Ruim' : num <= 6 ? 'Regular' : 'Ótimo'}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="stress" className="text-blue-800">Nível de Estresse</Label>
+                    <Select value={formData.stress_level} onValueChange={(value) => setFormData({...formData, stress_level: value})}>
+                      <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-1">
+                        <SelectValue placeholder="1-10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1,2,3,4,5,6,7,8,9,10].map(num => (
+                          <SelectItem key={num} value={String(num)}>{num} - {num <= 3 ? 'Baixo' : num <= 6 ? 'Médio' : 'Alto'}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="intensity" className="text-blue-800">Intensidade do Treino</Label>
+                    <Select value={formData.workout_intensity} onValueChange={(value) => setFormData({...formData, workout_intensity: value})}>
+                      <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-1">
+                        <SelectValue placeholder="1-10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1,2,3,4,5,6,7,8,9,10].map(num => (
+                          <SelectItem key={num} value={String(num)}>{num} - {num <= 3 ? 'Leve' : num <= 6 ? 'Moderado' : 'Intenso'}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <Label htmlFor="notes" className="text-blue-800 font-medium">Observações</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
                   className="border-blue-200 focus:border-blue-400 mt-1"
-                  placeholder="Como se sentiu? Alguma dificuldade? (Opcional)"
+                  placeholder="Como se sentiu? Alguma conquista? Dificuldades? (Opcional)"
+                  rows={3}
                 />
               </div>
+
               <div className="flex gap-4 pt-2">
                 <Button 
                   type="submit" 
@@ -320,45 +513,107 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
         </Card>
       )}
 
-      {/* Chart (conditionally rendered) */}
+      {/* Enhanced Chart */}
       {progressData.length > 0 && (
         <Card className="bg-white border-blue-200 shadow-lg">
           <CardHeader>
             <CardTitle className="text-blue-800 flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Gráfico de Evolução
+              Gráfico de Evolução Interativo
             </CardTitle>
+            <CardDescription>
+              Selecione as métricas que deseja visualizar no gráfico
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
+            {/* Metric Selection */}
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-2">
+                {metricOptions.map(metric => (
+                  <Button
+                    key={metric.value}
+                    variant={selectedMetrics.includes(metric.value) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => toggleMetric(metric.value)}
+                    className={`text-xs ${selectedMetrics.includes(metric.value) ? 'text-white' : ''}`}
+                    style={{
+                      backgroundColor: selectedMetrics.includes(metric.value) ? metric.color : undefined,
+                      borderColor: metric.color
+                    }}
+                  >
+                    {metric.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Chart */}
+            <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
-                {/* Added check for chartData length > 1 for LineChart */}
                 {chartData.length > 1 ? (
-                  <LineChart data={chartData}>
+                  <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <defs>
+                      {selectedMetrics.map(metric => {
+                        const metricConfig = metricOptions.find(m => m.value === metric);
+                        return (
+                          <linearGradient key={metric} id={`gradient-${metric}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={metricConfig?.color} stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor={metricConfig?.color} stopOpacity={0.1}/>
+                          </linearGradient>
+                        );
+                      })}
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
-                    <XAxis dataKey="date" stroke="#1e40af" fontSize={12} />
-                    <YAxis stroke="#1e40af" fontSize={12} domain={['auto', 'auto']} />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="#1e40af" 
+                      fontSize={12} 
+                      tick={{ fill: '#1e40af' }}
+                    />
+                    <YAxis 
+                      stroke="#1e40af" 
+                      fontSize={12} 
+                      domain={['auto', 'auto']}
+                      tick={{ fill: '#1e40af' }}
+                    />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)', 
                         border: '1px solid #93c5fd',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                        backdropFilter: 'blur(8px)'
                       }}
-                      itemStyle={{ color: '#1e40af' }}
-                      labelStyle={{ color: '#1d4ed8', fontWeight: 'bold' }}
+                      itemStyle={{ color: '#1e40af', fontWeight: '500' }}
+                      labelStyle={{ color: '#1d4ed8', fontWeight: 'bold', marginBottom: '8px' }}
                     />
-                    {/* Conditionally render lines only if data exists */} 
-                    {chartData.some(d => d.peso !== null) && 
-                      <Line type="monotone" dataKey="peso" stroke="#3B82F6" strokeWidth={2} name="Peso (kg)" dot={false} connectNulls />}
-                    {chartData.some(d => d.gordura !== null) && 
-                      <Line type="monotone" dataKey="gordura" stroke="#EF4444" strokeWidth={2} name="% Gordura" dot={false} connectNulls />}
-                    {chartData.some(d => d.musculo !== null) && 
-                      <Line type="monotone" dataKey="musculo" stroke="#10B981" strokeWidth={2} name="Massa Muscular (kg)" dot={false} connectNulls />}
-                  </LineChart>
+                    {selectedMetrics.map(metric => {
+                      const metricConfig = metricOptions.find(m => m.value === metric);
+                      if (!metricConfig || !chartData.some(d => d[metric as keyof typeof d] !== null)) return null;
+                      
+                      return (
+                        <Area
+                          key={metric}
+                          type="monotone"
+                          dataKey={metric}
+                          stroke={metricConfig.color}
+                          strokeWidth={3}
+                          fill={`url(#gradient-${metric})`}
+                          name={`${metricConfig.label} ${metricConfig.unit}`}
+                          connectNulls
+                          dot={{ fill: metricConfig.color, strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: metricConfig.color, strokeWidth: 2, fill: '#fff' }}
+                        />
+                      );
+                    })}
+                  </AreaChart>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-blue-600">
-                    Registre pelo menos dois pontos para visualizar o gráfico.
+                  <div className="flex items-center justify-center h-full text-blue-600 text-center">
+                    <div>
+                      <Activity className="h-12 w-12 mx-auto mb-4 text-blue-400" />
+                      <p className="text-lg font-medium">Registre pelo menos dois pontos para visualizar o gráfico</p>
+                      <p className="text-sm text-blue-500 mt-2">Seus dados aparecerão aqui conforme você registra seu progresso</p>
+                    </div>
                   </div>
                 )}
               </ResponsiveContainer>
@@ -367,27 +622,76 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
         </Card>
       )}
 
-      {/* Recent entries list (conditionally rendered) */}
+      {/* Enhanced Recent entries list */}
       {progressData.length > 0 && (
         <div>
-          <h3 className="text-xl font-semibold text-blue-800 mb-3">Últimos Registros</h3>
+          <h3 className="text-xl font-semibold text-blue-800 mb-4 flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Últimos Registros
+          </h3>
           <div className="grid gap-4">
             {progressData.slice(-5).reverse().map((entry) => (
-              <Card key={entry.id} className="bg-white border-blue-100 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 text-blue-800 font-medium">
-                      <Calendar className="h-4 w-4 text-blue-500" />
-                      {new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR')}
-                    </div>
-                    <div className="flex gap-4 text-sm text-blue-700 flex-wrap">
-                      <span>Peso: <strong>{entry.weight ?? '-'} kg</strong></span>
-                      {entry.body_fat_percentage && <span>% Gordura: <strong>{entry.body_fat_percentage}%</strong></span>}
-                      {entry.muscle_mass && <span>M. Muscular: <strong>{entry.muscle_mass} kg</strong></span>}
+              <Card key={entry.id} className="bg-gradient-to-r from-blue-50 to-white border-blue-100 shadow-sm hover:shadow-md transition-all duration-200">
+                <CardContent className="p-6">
+                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3 text-blue-800 font-medium">
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                        <Calendar className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold">
+                          {new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        </div>
+                        <div className="text-sm text-blue-600">
+                          {new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}
+                        </div>
+                      </div>
                     </div>
                   </div>
+                  
+                  {/* Metrics Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                    <div className="bg-white p-3 rounded-lg border border-blue-100">
+                      <div className="text-xs text-blue-600 font-medium">PESO</div>
+                      <div className="text-lg font-bold text-blue-800">{entry.weight} kg</div>
+                    </div>
+                    {entry.body_fat_percentage && (
+                      <div className="bg-white p-3 rounded-lg border border-red-100">
+                        <div className="text-xs text-red-600 font-medium">% GORDURA</div>
+                        <div className="text-lg font-bold text-red-800">{entry.body_fat_percentage}%</div>
+                      </div>
+                    )}
+                    {entry.muscle_mass && (
+                      <div className="bg-white p-3 rounded-lg border border-green-100">
+                        <div className="text-xs text-green-600 font-medium">MÚSCULO</div>
+                        <div className="text-lg font-bold text-green-800">{entry.muscle_mass} kg</div>
+                      </div>
+                    )}
+                    {entry.waist_circumference && (
+                      <div className="bg-white p-3 rounded-lg border border-orange-100">
+                        <div className="text-xs text-orange-600 font-medium">CINTURA</div>
+                        <div className="text-lg font-bold text-orange-800">{entry.waist_circumference} cm</div>
+                      </div>
+                    )}
+                    {entry.energy_level && (
+                      <div className="bg-white p-3 rounded-lg border border-purple-100">
+                        <div className="text-xs text-purple-600 font-medium">ENERGIA</div>
+                        <div className="text-lg font-bold text-purple-800">{entry.energy_level}/10</div>
+                      </div>
+                    )}
+                    {entry.sleep_quality && (
+                      <div className="bg-white p-3 rounded-lg border border-indigo-100">
+                        <div className="text-xs text-indigo-600 font-medium">SONO</div>
+                        <div className="text-lg font-bold text-indigo-800">{entry.sleep_quality}/10</div>
+                      </div>
+                    )}
+                  </div>
+
                   {entry.notes && (
-                    <p className="text-blue-600 text-sm bg-blue-50 p-2 rounded border border-blue-100 mt-2">{entry.notes}</p>
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-4">
+                      <div className="text-xs text-blue-600 font-medium mb-1">OBSERVAÇÕES</div>
+                      <p className="text-blue-800 text-sm leading-relaxed">{entry.notes}</p>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -396,18 +700,20 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
         </div>
       )}
 
-      {/* Empty state (when no data exists at all) */}
+      {/* Enhanced Empty state */}
       {progressData.length === 0 && !showForm && (
-        <Card className="bg-white border-blue-200 shadow-lg">
-          <CardContent className="p-8 text-center">
-            <TrendingUp className="h-16 w-16 text-blue-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-blue-800 mb-2">Nenhum registro encontrado</h3>
-            <p className="text-blue-600 mb-4">Comece a registrar seu progresso para acompanhar sua evolução.</p>
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg">
+          <CardContent className="p-12 text-center">
+            <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <TrendingUp className="h-10 w-10 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-blue-800 mb-3">Nenhum registro encontrado</h3>
+            <p className="text-blue-600 mb-6 text-lg">Comece a registrar seu progresso detalhado para acompanhar sua evolução com precisão.</p>
             <Button 
               onClick={() => setShowForm(true)} 
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-5 w-5 mr-2" />
               Fazer Primeiro Registro
             </Button>
           </CardContent>
@@ -418,4 +724,3 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
 };
 
 export default ProgressTracker;
-
