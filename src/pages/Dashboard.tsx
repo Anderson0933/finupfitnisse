@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from \'react\';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
@@ -22,6 +22,7 @@ const Dashboard = () => {
   const { toast } = useToast();
 
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
+  const [mainActiveTab, setMainActiveTab] = useState<string>(workoutPlan ? \'workout\' : \'workout\'); // Estado para aba principal
 
   useEffect(() => {
     const initializeDashboard = async () => {
@@ -254,9 +255,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-
-        <Tabs defaultValue={defaultMainTab} className="w-full main-dashboard-tabs">
-          <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
+        <Tabs value={mainActiveTab} onValueChange={setMainActiveTab} className=\"w-full main-dashboard-tabs\">          <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
             <TabsTrigger value="workout" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <Dumbbell className="h-4 w-4" /> <span className="text-xs md:text-sm">Treinos</span> {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
@@ -275,14 +274,13 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="workout">
-            <LockedFeature title="Treinos">
-              <WorkoutPlanGenerator 
+            <LockedFeature title="Treinos">              <WorkoutPlanGenerator 
                 user={user} 
                 workoutPlan={workoutPlan} 
                 setWorkoutPlan={setWorkoutPlan} 
-                initialActiveTab={workoutPlan ? 'plan' : 'form'}
-              />
-            </LockedFeature>
+                initialActiveTab={workoutPlan ? \'plan\' : \'form\'}
+                onNavigateToAssistant={() => setMainActiveTab(\'assistant\')} // Passar função de navegação
+              />          </LockedFeature>
           </TabsContent>
 
           <TabsContent value="assistant">
