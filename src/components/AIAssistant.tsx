@@ -19,6 +19,8 @@ interface Message {
   timestamp: Date;
 }
 
+const STORAGE_KEY = 'ai_assistant_messages';
+
 const AIAssistant = ({ user }: AIAssistantProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -35,7 +37,22 @@ const AIAssistant = ({ user }: AIAssistantProps) => {
   }, [messages]);
 
   useEffect(() => {
-    // Mensagem de boas-vindas
+    // Load messages from sessionStorage on component mount
+    const savedMessages = sessionStorage.getItem(STORAGE_KEY);
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages).map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(parsedMessages);
+        return;
+      } catch (error) {
+        console.error('Error loading saved messages:', error);
+      }
+    }
+
+    // If no saved messages, show welcome message
     const welcomeMessage: Message = {
       id: 'welcome',
       content: 'Olá! Sou seu assistente de fitness pessoal. Posso te ajudar com dúvidas sobre treinos, exercícios, técnicas e motivação. Como posso te ajudar hoje?',
@@ -44,6 +61,13 @@ const AIAssistant = ({ user }: AIAssistantProps) => {
     };
     setMessages([welcomeMessage]);
   }, []);
+
+  // Save messages to sessionStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    }
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || !user) return;

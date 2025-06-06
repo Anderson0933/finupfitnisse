@@ -93,6 +93,7 @@ INSTRUÇÕES PARA O PLANO:
 6. Adicione dicas de execução e músculos trabalhados
 7. Inclua variações para diferentes níveis
 8. Adicione protocolo de recuperação entre treinos
+9. NÃO inclua recomendações médicas ou avisos sobre consultar médicos
 
 RETORNE APENAS um JSON válido no seguinte formato EXPANDIDO:
 
@@ -202,10 +203,10 @@ RETORNE APENAS um JSON válido no seguinte formato EXPANDIDO:
     "adjustment_protocols": "Quando e como ajustar o plano"
   },
   "safety_guidelines": [
-    "Regra de segurança 1 específica para o perfil",
-    "Regra de segurança 2 considerando limitações",
-    "Protocolo de emergência",
-    "Sinais de overtraining"
+    "Dica de segurança 1 específica para o perfil",
+    "Dica de segurança 2 considerando limitações",
+    "Protocolo em caso de dor ou desconforto",
+    "Sinais de overtraining para observar"
   ]
 }
 
@@ -216,6 +217,7 @@ IMPORTANTE:
 - Inclua progressão realista e segura
 - O campo difficulty_level deve ser exatamente: "iniciante", "intermediario", ou "avancado"
 - Seja específico nas instruções biomecânicas
+- NÃO inclua recomendações para consultar médicos
 - Retorne APENAS o JSON, sem markdown, sem explicações adicionais`;
 
     console.log('Enviando requisição para Groq...');
@@ -227,11 +229,11 @@ IMPORTANTE:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile', // Modelo atualizado e mais poderoso
+        model: 'llama-3.1-70b-versatile',
         messages: [
           { role: 'user', content: prompt }
         ],
-        max_tokens: 8000, // Aproveitando os altos limites do plano Pro
+        max_tokens: 8000,
         temperature: 0.3,
       }),
     });

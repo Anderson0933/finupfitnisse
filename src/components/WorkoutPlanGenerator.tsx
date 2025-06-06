@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox'; // Import Checkbox
 import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText, Trash2, AlertTriangle, CheckCircle2, MessageCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import WorkoutPlanDisplay from './WorkoutPlanDisplay';
@@ -171,6 +171,7 @@ const WorkoutPlanGenerator = ({
   const [otherGoalsText, setOtherGoalsText] = useState(""); // NEW STATE FOR OTHER GOALS
   // State to store completion status for each item
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
+  const [showAssistantAlert, setShowAssistantAlert] = useState(false);
   const { toast } = useToast();
 
   // Effect to load progress when plan and user are available
@@ -424,6 +425,9 @@ const WorkoutPlanGenerator = ({
       setActiveTab('plan');
       console.log('✅ Aba interna alterada para "plan"');
       
+      // Show assistant alert after successful generation
+      setShowAssistantAlert(true);
+      
       toast({
         title: "Plano gerado e salvo!",
         description: "Seu plano de treino personalizado está pronto e salvo.",
@@ -556,6 +560,30 @@ const WorkoutPlanGenerator = ({
   // --- RENDER SECTION --- 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* Assistant Alert Dialog */}
+      <AlertDialog open={showAssistantAlert} onOpenChange={setShowAssistantAlert}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-blue-800">
+              <MessageCircle className="h-5 w-5" />
+              Dúvidas sobre os exercícios?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600">
+              Se você tiver dúvidas sobre a execução dos exercícios, técnicas ou qualquer aspecto do seu treino, 
+              entre em contato com nosso <strong>Assistente Personal Trainer</strong> no chat da plataforma!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction 
+              onClick={() => setShowAssistantAlert(false)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Entendi!
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header Card */}
       <Card className="bg-white border-blue-200 shadow-lg">
         <CardHeader className="text-center">

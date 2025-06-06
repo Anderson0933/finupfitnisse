@@ -19,6 +19,8 @@ interface Message {
   timestamp: Date;
 }
 
+const STORAGE_KEY = 'nutrition_assistant_messages';
+
 const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -35,7 +37,22 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
   }, [messages]);
 
   useEffect(() => {
-    // Mensagem de boas-vindas com funcionalidades
+    // Load messages from sessionStorage on component mount
+    const savedMessages = sessionStorage.getItem(STORAGE_KEY);
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages).map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(parsedMessages);
+        return;
+      } catch (error) {
+        console.error('Error loading saved messages:', error);
+      }
+    }
+
+    // If no saved messages, show welcome message
     const welcomeMessage: Message = {
       id: 'welcome',
       content: 'Olá! Sou sua assistente de nutrição personalizada. Posso te ajudar com:\n\n🍎 Planos alimentares personalizados\n🥗 Dicas de alimentação saudável\n📊 Contagem de calorias e macronutrientes\n🍳 Receitas saudáveis e práticas\n💊 Orientações sobre suplementação\n\nComo posso te ajudar hoje com sua alimentação?',
@@ -44,6 +61,13 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
     };
     setMessages([welcomeMessage]);
   }, []);
+
+  // Save messages to sessionStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    }
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || !user) return;
