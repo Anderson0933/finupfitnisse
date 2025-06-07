@@ -218,39 +218,63 @@ export type Database = {
       }
       user_progress: {
         Row: {
+          arm_circumference: number | null
           body_fat_percentage: number | null
+          chest_circumference: number | null
           created_at: string | null
           date: string
+          energy_level: number | null
           id: string
           muscle_mass: number | null
           notes: string | null
           photos: Json | null
+          sleep_quality: number | null
+          stress_level: number | null
+          thigh_circumference: number | null
           user_id: string
+          waist_circumference: number | null
           weight: number | null
+          workout_intensity: number | null
           workout_plan_id: string | null
         }
         Insert: {
+          arm_circumference?: number | null
           body_fat_percentage?: number | null
+          chest_circumference?: number | null
           created_at?: string | null
           date: string
+          energy_level?: number | null
           id?: string
           muscle_mass?: number | null
           notes?: string | null
           photos?: Json | null
+          sleep_quality?: number | null
+          stress_level?: number | null
+          thigh_circumference?: number | null
           user_id: string
+          waist_circumference?: number | null
           weight?: number | null
+          workout_intensity?: number | null
           workout_plan_id?: string | null
         }
         Update: {
+          arm_circumference?: number | null
           body_fat_percentage?: number | null
+          chest_circumference?: number | null
           created_at?: string | null
           date?: string
+          energy_level?: number | null
           id?: string
           muscle_mass?: number | null
           notes?: string | null
           photos?: Json | null
+          sleep_quality?: number | null
+          stress_level?: number | null
+          thigh_circumference?: number | null
           user_id?: string
+          waist_circumference?: number | null
           weight?: number | null
+          workout_intensity?: number | null
           workout_plan_id?: string | null
         }
         Relationships: [

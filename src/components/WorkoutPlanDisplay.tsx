@@ -61,7 +61,13 @@ const WorkoutPlanDisplay = ({
     const mainTabs = document.querySelector('.main-dashboard-tabs');
     if (mainTabs) {
       const targetTrigger = mainTabs.querySelector(`[value="${tabValue}"]`) as HTMLElement;
-      targetTrigger?.click();
+      if (targetTrigger) {
+        targetTrigger.click();
+      } else {
+        console.warn(`Tab with value "${tabValue}" not found`);
+      }
+    } else {
+      console.warn('Main dashboard tabs not found');
     }
   };
 
