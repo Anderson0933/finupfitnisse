@@ -58,16 +58,37 @@ const WorkoutPlanDisplay = ({
   };
 
   const handleMainTabSwitch = (tabValue: string) => {
-    const mainTabs = document.querySelector('.main-dashboard-tabs');
-    if (mainTabs) {
-      const targetTrigger = mainTabs.querySelector(`[value="${tabValue}"]`) as HTMLElement;
+    console.log('🎯 Tentando mudar para a tab:', tabValue);
+    
+    // Procurar o container das tabs principais
+    const mainTabsContainer = document.querySelector('.main-dashboard-tabs');
+    console.log('📋 Container das tabs encontrado:', !!mainTabsContainer);
+    
+    if (mainTabsContainer) {
+      // Procurar o trigger específico usando data-state ou value
+      const targetTrigger = mainTabsContainer.querySelector(`[value="${tabValue}"]`) as HTMLElement;
+      console.log('🎯 Trigger encontrado:', !!targetTrigger);
+      
       if (targetTrigger) {
+        console.log('✅ Clicando no trigger do assistente');
         targetTrigger.click();
+        
+        // Aguardar um pouco e verificar se funcionou
+        setTimeout(() => {
+          const activeTab = mainTabsContainer.querySelector('[data-state="active"]');
+          console.log('📊 Tab ativa após click:', activeTab?.getAttribute('value'));
+        }, 100);
       } else {
-        console.warn(`Tab with value "${tabValue}" not found`);
+        console.warn(`❌ Tab com value "${tabValue}" não encontrada`);
+        // Tentar uma abordagem alternativa
+        const allTriggers = mainTabsContainer.querySelectorAll('[role="tab"]');
+        console.log('🔍 Todos os triggers encontrados:', allTriggers.length);
+        allTriggers.forEach((trigger, index) => {
+          console.log(`Tab ${index}:`, trigger.getAttribute('value'), trigger.textContent);
+        });
       }
     } else {
-      console.warn('Main dashboard tabs not found');
+      console.warn('❌ Container das tabs principais não encontrado');
     }
   };
 

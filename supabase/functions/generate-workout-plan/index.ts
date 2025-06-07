@@ -34,98 +34,154 @@ serve(async (req) => {
       );
     }
 
-    console.log('✅ Chave Groq configurada, gerando prompt...');
+    console.log('✅ Chave Groq configurada, gerando prompt personalizado...');
 
     // Mapear valores para português mais amigável
     const goalsMap = {
-      'perder_peso': 'perder peso e queimar gordura',
-      'ganhar_massa': 'ganhar massa muscular',
-      'tonificar': 'tonificar o corpo',
-      'condicionamento': 'melhorar condicionamento físico',
-      'forca': 'aumentar força',
-      'flexibilidade': 'melhorar flexibilidade',
-      'geral': 'fitness geral'
+      'perder_peso': 'perder peso e queimar gordura corporal',
+      'ganhar_massa': 'ganhar massa muscular e hipertrofia',
+      'tonificar': 'tonificar o corpo e definir músculos',
+      'condicionamento': 'melhorar condicionamento cardiovascular',
+      'forca': 'aumentar força e potência muscular',
+      'flexibilidade': 'melhorar flexibilidade e mobilidade',
+      'geral': 'condicionamento físico geral'
     };
 
     const equipmentMap = {
-      'academia_completa': 'academia completa com todos os equipamentos',
-      'casa_halteres': 'casa com halteres e equipamentos básicos',
-      'casa_basico': 'casa com equipamentos básicos',
-      'peso_corporal': 'apenas peso corporal, sem equipamentos',
-      'parque': 'parque ou área externa'
+      'academia_completa': 'academia completa com halteres, barras, máquinas de musculação, esteiras e equipamentos de cardio',
+      'casa_halteres': 'treino em casa com halteres, barras, elásticos e equipamentos básicos',
+      'casa_basico': 'treino em casa com equipamentos básicos limitados',
+      'peso_corporal': 'exercícios usando apenas o peso corporal, sem equipamentos',
+      'parque': 'exercícios ao ar livre em parques com barras e equipamentos públicos'
     };
 
     const limitationsMap = {
       'nenhuma': 'nenhuma limitação física',
-      'joelho': 'problemas no joelho',
-      'costas': 'problemas nas costas',
-      'ombro': 'problemas no ombro',
-      'tornozelo': 'problemas no tornozelo',
-      'cardiaco': 'problemas cardíacos',
-      'outros': 'outras limitações físicas'
+      'joelho': 'problemas no joelho - evitar impacto e sobrecarga',
+      'costas': 'problemas nas costas - foco em fortalecimento do core',
+      'ombro': 'problemas no ombro - evitar movimentos overhead',
+      'tornozelo': 'problemas no tornozelo - exercícios de baixo impacto',
+      'cardiaco': 'problemas cardíacos - intensidade moderada controlada',
+      'outros': 'outras limitações físicas específicas'
+    };
+
+    const fitnessLevelMap = {
+      'sedentario': 'sedentário - iniciante absoluto sem experiência em exercícios',
+      'pouco_ativo': 'pouco ativo - experiência limitada com exercícios',
+      'moderado': 'moderadamente ativo - alguma experiência com treinos',
+      'ativo': 'ativo - experiência regular com exercícios',
+      'muito_ativo': 'muito ativo - experiência avançada em treinamento',
+      'avancado': 'atlético avançado - alto nível de condicionamento'
     };
 
     const goals = goalsMap[userProfile.fitness_goals?.[0]] || userProfile.fitness_goals?.[0] || 'melhorar condicionamento geral';
     const equipment = equipmentMap[userProfile.equipment] || userProfile.equipment || 'equipamentos básicos';
     const limitations = limitationsMap[userProfile.limitations] || userProfile.limitations || 'nenhuma limitação';
+    const fitnessLevel = fitnessLevelMap[userProfile.fitness_level] || userProfile.fitness_level || 'iniciante';
 
-    // Criar prompt detalhado para planos completos
-    const prompt = `Você é um personal trainer experiente e especialista em ciência do exercício. Crie um plano de treino EXTREMAMENTE DETALHADO e personalizado em português com base nas seguintes informações:
+    // Calcular IMC para personalização adicional
+    let imcInfo = '';
+    if (userProfile.height && userProfile.weight) {
+      const heightInMeters = userProfile.height / 100;
+      const imc = userProfile.weight / (heightInMeters * heightInMeters);
+      imcInfo = `IMC: ${imc.toFixed(1)} - `;
+      if (imc < 18.5) imcInfo += 'Abaixo do peso - foco em ganho de massa e força';
+      else if (imc < 25) imcInfo += 'Peso normal - manutenção e tonificação';
+      else if (imc < 30) imcInfo += 'Sobrepeso - foco em queima de gordura';
+      else imcInfo += 'Obesidade - exercícios de baixo impacto e queima calórica';
+    }
 
-PERFIL DO USUÁRIO:
+    // Criar prompt super detalhado e personalizado
+    const prompt = `Você é um renomado personal trainer certificado com 15 anos de experiência em treinamento personalizado. Crie um plano de treino EXTREMAMENTE DETALHADO, ESPECÍFICO e PERSONALIZADO em português baseado no perfil completo abaixo:
+
+PERFIL COMPLETO DO ALUNO:
 - Idade: ${userProfile.age || 'Não informado'} anos
 - Sexo: ${userProfile.gender || 'Não informado'}
 - Altura: ${userProfile.height || 'Não informado'} cm
 - Peso: ${userProfile.weight || 'Não informado'} kg
-- Nível de condicionamento: ${userProfile.fitness_level || 'Iniciante'}
-- Objetivos: ${goals}
+- ${imcInfo}
+- Nível atual: ${fitnessLevel}
+- Objetivo principal: ${goals}
 - Dias disponíveis: ${userProfile.available_days || 3} por semana
-- Duração da sessão: ${userProfile.session_duration || 60} minutos
-- Equipamentos: ${equipment}
-- Limitações: ${limitations}
+- Duração por sessão: ${userProfile.session_duration || 60} minutos
+- Equipamentos disponíveis: ${equipment}
+- Limitações físicas: ${limitations}
 
-INSTRUÇÕES PARA O PLANO:
-1. Crie um plano dividido por DIAS DA SEMANA específicos
-2. Cada exercício deve ter instruções biomecânicas detalhadas
-3. Inclua progressão semanal específica
-4. Adicione tempo de descanso específico por exercício
-5. Inclua aquecimento e alongamento detalhados
-6. Adicione dicas de execução e músculos trabalhados
-7. Inclua variações para diferentes níveis
-8. Adicione protocolo de recuperação entre treinos
+INSTRUÇÕES DETALHADAS PARA UM PLANO PROFISSIONAL:
+
+1. ESTRUTURA DO TREINO:
+   - Crie um plano periodizado com divisão específica para ${userProfile.available_days || 3} dias
+   - Inclua progressão semanal detalhada (semanas 1-4, 5-8, 9-12)
+   - Considere volume, intensidade e densidade apropriados para o nível
+   - Adapte completamente aos equipamentos disponíveis
+
+2. EXERCÍCIOS ESPECÍFICOS:
+   - Escolha exercícios que maximizem o objetivo: ${goals}
+   - Inclua variações progressivas e regressivas
+   - Especifique técnica de execução biomecânica detalhada
+   - Adicione músculos primários e secundários trabalhados
+   - Inclua tempo sob tensão e cadência quando relevante
+
+3. PRESCRIÇÃO DETALHADA:
+   - Séries, repetições e descanso específicos por fase
+   - Percentual de carga ou percepção de esforço
+   - Progressões semanais concretas
+   - Adaptações para limitações: ${limitations}
+
+4. PERIODIZAÇÃO:
+   - Fase 1 (semanas 1-4): Adaptação anatômica
+   - Fase 2 (semanas 5-8): Desenvolvimento específico
+   - Fase 3 (semanas 9-12): Intensificação/Polimento
+
+5. AQUECIMENTO E RECUPERAÇÃO:
+   - Aquecimento específico para cada sessão (8-12 minutos)
+   - Alongamento e mobilidade pós-treino
+   - Protocolos de recuperação entre sessões
 
 RETORNE APENAS um JSON válido no seguinte formato:
 
 {
-  "title": "Plano de Treino Personalizado - [Objetivo Principal]",
-  "description": "Descrição detalhada considerando perfil completo, objetivos e limitações específicas",
+  "title": "Plano Personalizado: [Objetivo] - Nível [Nível]",
+  "description": "Plano periodizado de 12 semanas específico para [objetivo principal], considerando [limitações], com [X] sessões semanais usando [equipamentos]. Desenvolvido considerando perfil individual completo.",
   "difficulty_level": "iniciante|intermediario|avancado",
   "duration_weeks": 12,
   "exercises": [
     {
-      "name": "Nome do exercício completo",
-      "sets": 3,
+      "name": "DIA 1 - [Nome da Sessão]: Aquecimento Específico",
+      "sets": 1,
+      "reps": "10-12 minutos",
+      "rest": "Transição",
+      "instructions": "AQUECIMENTO DETALHADO: [5-6 exercícios específicos com descrição biomecânica completa, preparação articular, ativação neuromuscular, elevação da temperatura corporal]. Progressão: semana 1-2 (intensidade baixa), semana 3-4 (intensidade moderada)."
+    },
+    {
+      "name": "DIA 1: [Nome do Exercício Principal Específico]",
+      "sets": "3-4",
       "reps": "8-12",
-      "rest": "90s",
-      "instructions": "Instruções detalhadas de execução, músculos trabalhados, dicas biomecânicas e progressão"
+      "rest": "90-120s",
+      "instructions": "EXECUÇÃO TÉCNICA: [Posição inicial detalhada, fase excêntrica, fase concêntrica, respiração, músculos primários e estabilizadores]. PROGRESSÃO: Semana 1-2: [especificações], Semana 3-4: [especificações], etc. ADAPTAÇÕES: [considerações para limitações específicas]. VARIAÇÕES: [alternativas por nível]."
     }
   ],
   "nutrition_tips": [
-    "Dica nutricional 1 específica para o objetivo",
-    "Dica nutricional 2 específica para o perfil"
+    "Estratégia nutricional específica para [objetivo]: timing, macronutrientes e hidratação",
+    "Suplementação básica recomendada considerando [objetivo] e perfil individual",
+    "Timing nutricional pré e pós-treino otimizado para [objetivo]",
+    "Protocolo de hidratação específico para intensidade de treino planejada"
   ]
 }
 
-IMPORTANTE: 
-- Crie um plano COMPLETO com pelo menos ${userProfile.available_days || 3} dias de treino efetivo
-- Considere TODAS as limitações físicas mencionadas
-- Adapte os exercícios aos equipamentos disponíveis
-- Inclua progressão realista e segura
+REQUISITOS CRÍTICOS:
+- Crie NO MÍNIMO ${Math.max(userProfile.available_days || 3, 3) * 5} exercícios completos (incluindo aquecimentos específicos para cada dia)
+- Cada exercício deve ter instruções de NO MÍNIMO 80 palavras
+- Considere TODAS as limitações: ${limitations}
+- Adapte 100% aos equipamentos: ${equipment}
+- Faça progressão semanal específica e realista
+- Use terminology técnica profissional
 - O campo difficulty_level deve ser exatamente: "iniciante", "intermediario", ou "avancado"
-- Seja específico nas instruções biomecânicas
-- Retorne APENAS o JSON, sem markdown, sem explicações adicionais`;
+- Seja específico em músculos trabalhados, biomecânica e progressões
 
-    console.log('📤 Enviando requisição para Groq API...');
+RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
+
+    console.log('📤 Enviando requisição detalhada para Groq API...');
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -136,10 +192,14 @@ IMPORTANTE:
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
+          { 
+            role: 'system', 
+            content: 'Você é um personal trainer certificado especialista em ciência do exercício com 15 anos de experiência. Crie planos de treino extremamente detalhados e personalizados baseados no perfil completo do aluno.' 
+          },
           { role: 'user', content: prompt }
         ],
         max_tokens: 8000,
-        temperature: 0.3,
+        temperature: 0.2, // Menor para mais consistência
       }),
     });
 
@@ -149,7 +209,6 @@ IMPORTANTE:
       const errorText = await response.text();
       console.error('❌ Erro da API Groq:', response.status, errorText);
       
-      // Se der erro na API, usar plano fallback
       console.log('📋 Usando plano de fallback devido ao erro na API Groq');
       const fallbackPlan = createFallbackPlan(userProfile);
       
@@ -218,10 +277,20 @@ IMPORTANTE:
 
       // Adicionar flag indicando que veio da API Groq
       workoutPlan.source = 'groq_api';
+      workoutPlan.generated_for = {
+        goals: goals,
+        equipment: equipment,
+        level: fitnessLevel,
+        limitations: limitations,
+        days: userProfile.available_days || 3,
+        duration: userProfile.session_duration || 60
+      };
+      
+      console.log('🎯 Plano personalizado gerado com sucesso pela API Groq!');
       
     } catch (parseError) {
       console.error('❌ Erro ao fazer parse do JSON da API Groq:', parseError);
-      console.log('📄 Conteúdo recebido:', content);
+      console.log('📄 Conteúdo recebido:', content.substring(0, 500) + '...');
       
       // Usar plano de fallback
       console.log('📋 Usando plano de fallback devido ao erro de parse');
