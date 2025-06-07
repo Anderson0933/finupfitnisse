@@ -393,26 +393,24 @@ const WorkoutPlanGenerator = ({
     }
 
     setLoading(true);
-    const oldPlanId = workoutPlan?.title; // Store old plan ID before clearing
-    setWorkoutPlan(null); // Clear current plan before generating
-    setProgressMap(new Map()); // Clear progress map as well
+    const oldPlanId = workoutPlan?.title;
+    setWorkoutPlan(null);
+    setProgressMap(new Map());
     
     try {
       console.log('🚀 INICIANDO GERAÇÃO DO PLANO');
       const sessionDuration = formData.availableTime ? parseInt(formData.availableTime) || 60 : 60;
-      const availableDays = formData.availableDays ? parseInt(formData.availableDays) || 3 : 3; // Use selected days, default 3
+      const availableDays = formData.availableDays ? parseInt(formData.availableDays) || 3 : 3;
 
-      // Prepare goals, including "outros" text if selected
       let finalGoals = formData.goals || [];
       if (finalGoals.includes("outros")) {
-        finalGoals = finalGoals.filter(g => g !== "outros"); // Remove the placeholder
+        finalGoals = finalGoals.filter(g => g !== "outros");
         if (otherGoalsText.trim()) {
-          finalGoals.push(`outros: ${otherGoalsText.trim()}`); // Add formatted other text
+          finalGoals.push(`outros: ${otherGoalsText.trim()}`);
         }
       }
-      // Ensure at least one goal is sent, even if empty initially
       if (finalGoals.length === 0) {
-         finalGoals.push("saude_geral"); // Default goal if none selected
+         finalGoals.push("saude_geral");
          toast({ title: "Objetivo Padrão", description: "Nenhum objetivo selecionado, usando 'Saúde Geral'.", variant: "default" });
       }
 
@@ -423,8 +421,8 @@ const WorkoutPlanGenerator = ({
           weight: parseInt(formData.weight),
           height: parseInt(formData.height),
           fitness_level: formData.fitnessLevel,
-          fitness_goals: finalGoals, // Use the processed goals array
-          available_days: availableDays, // Use the parsed available days
+          fitness_goals: finalGoals,
+          available_days: availableDays,
           session_duration: sessionDuration,
           equipment: formData.equipment || 'peso_corporal',
           limitations: formData.limitations === 'outros'
@@ -435,7 +433,6 @@ const WorkoutPlanGenerator = ({
       };
 
       console.log('📤 Enviando para a API generate-workout-plan...');
-      // Use the existing Supabase client to invoke the function
       const { data, error: functionError } = await supabase.functions.invoke('generate-workout-plan', {
         body: requestData
       });
@@ -459,31 +456,39 @@ const WorkoutPlanGenerator = ({
         safety_guidelines: data.safety_guidelines
       };
 
-      // Save the new plan (this will also delete old progress via saveWorkoutPlan)
       const savedPlan = await saveWorkoutPlan(plan);
       if (!savedPlan) {
         setLoading(false);
-        return; // Stop if saving failed
+        return;
       }
 
       console.log('✅ Plano processado e salvo. Atualizando estado...');
-      setWorkoutPlan(savedPlan); // Use the potentially updated plan object
+      setWorkoutPlan(savedPlan);
       
       setActiveTab('plan');
       console.log('✅ Aba interna alterada para "plan"');
       
-      // Clear form data after successful generation
       clearFormData();
       
+      // Mostrar toast de sucesso
       toast({
         title: "Plano gerado e salvo!",
-        description: "Seu plano de treino personalizado está pronto e salvo.",
+        description: "Seu plano de treino personalizado está pronto.",
       });
+
+      // Mostrar toast adicional direcionando para o assistente
+      setTimeout(() => {
+        toast({
+          title: "💪 Dúvidas sobre o treino?",
+          description: "Fale com nosso Personal Trainer IA na aba Assistente para esclarecimentos!",
+          duration: 6000,
+        });
+      }, 2000);
 
     } catch (error: any) {
       console.error('💥 Erro ao gerar/salvar plano:', error);
       setWorkoutPlan(null);
-      setProgressMap(new Map()); // Clear progress on error too
+      setProgressMap(new Map());
       toast({
         title: "Erro ao Gerar Plano",
         description: error.message || 'Erro desconhecido.',

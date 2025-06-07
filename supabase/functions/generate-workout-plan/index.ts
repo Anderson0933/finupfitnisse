@@ -14,13 +14,13 @@ serve(async (req) => {
 
   try {
     const { userProfile } = await req.json();
-    console.log('Dados recebidos na API:', userProfile);
+    console.log('🚀 Dados recebidos na API:', userProfile);
 
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
-    if (!groqApiKey) {
-      console.error('GROQ_API_KEY não configurada');
-      console.log('Usando plano de fallback devido à chave não configurada');
+    if (!groqApiKey || groqApiKey.trim() === '') {
+      console.error('❌ GROQ_API_KEY não configurada ou vazia');
+      console.log('📋 Usando plano de fallback devido à chave não configurada');
       const fallbackPlan = createFallbackPlan(userProfile);
       
       return new Response(
@@ -34,7 +34,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Chave Groq configurada, gerando prompt...');
+    console.log('✅ Chave Groq configurada, gerando prompt...');
 
     // Mapear valores para português mais amigável
     const goalsMap = {
@@ -69,7 +69,7 @@ serve(async (req) => {
     const equipment = equipmentMap[userProfile.equipment] || userProfile.equipment || 'equipamentos básicos';
     const limitations = limitationsMap[userProfile.limitations] || userProfile.limitations || 'nenhuma limitação';
 
-    // Criar prompt muito mais detalhado para planos completos
+    // Criar prompt detalhado para planos completos
     const prompt = `Você é um personal trainer experiente e especialista em ciência do exercício. Crie um plano de treino EXTREMAMENTE DETALHADO e personalizado em português com base nas seguintes informações:
 
 PERFIL DO USUÁRIO:
@@ -93,120 +93,26 @@ INSTRUÇÕES PARA O PLANO:
 6. Adicione dicas de execução e músculos trabalhados
 7. Inclua variações para diferentes níveis
 8. Adicione protocolo de recuperação entre treinos
-9. NÃO inclua recomendações médicas ou avisos sobre consultar médicos
 
-RETORNE APENAS um JSON válido no seguinte formato EXPANDIDO:
+RETORNE APENAS um JSON válido no seguinte formato:
 
 {
   "title": "Plano de Treino Personalizado - [Objetivo Principal]",
   "description": "Descrição detalhada considerando perfil completo, objetivos e limitações específicas",
   "difficulty_level": "iniciante|intermediario|avancado",
   "duration_weeks": 12,
-  "weekly_schedule": {
-    "segunda": {
-      "focus": "Descrição do foco do dia",
-      "warm_up": [
-        {
-          "exercise": "Nome do aquecimento",
-          "duration": "tempo",
-          "instructions": "instruções detalhadas"
-        }
-      ],
-      "main_workout": [
-        {
-          "exercise": "Nome do exercício",
-          "muscle_groups": ["grupo muscular 1", "grupo muscular 2"],
-          "sets": 3,
-          "reps": "8-12",
-          "rest": "90s",
-          "weight_progression": "Como progredir na carga",
-          "execution_tips": "Dicas específicas de execução",
-          "biomechanics": "Explicação biomecânica do movimento",
-          "common_mistakes": "Erros comuns a evitar",
-          "modifications": {
-            "easier": "Versão mais fácil",
-            "harder": "Versão mais difícil"
-          }
-        }
-      ],
-      "cool_down": [
-        {
-          "exercise": "Alongamento específico",
-          "duration": "30s",
-          "instructions": "Como executar o alongamento"
-        }
-      ]
-    },
-    "terca": {
-      "focus": "Descanso ativo ou treino complementar",
-      "activities": ["Caminhada leve", "Alongamento", "Mobilidade"]
-    },
-    "quarta": {
-      "focus": "Foco do dia",
-      "warm_up": [],
-      "main_workout": [],
-      "cool_down": []
-    },
-    "quinta": {
-      "focus": "Descanso ou treino leve",
-      "activities": []
-    },
-    "sexta": {
-      "focus": "Foco do dia",
-      "warm_up": [],
-      "main_workout": [],
-      "cool_down": []
-    },
-    "sabado": {
-      "focus": "Treino opcional ou atividade recreativa",
-      "activities": []
-    },
-    "domingo": {
-      "focus": "Descanso completo",
-      "activities": ["Descanso total", "Hidratação", "Preparação para semana"]
+  "exercises": [
+    {
+      "name": "Nome do exercício completo",
+      "sets": 3,
+      "reps": "8-12",
+      "rest": "90s",
+      "instructions": "Instruções detalhadas de execução, músculos trabalhados, dicas biomecânicas e progressão"
     }
-  },
-  "progression_protocol": {
-    "week_1_2": "Adaptação e aprendizado dos movimentos",
-    "week_3_4": "Aumento gradual da intensidade",
-    "week_5_8": "Consolidação e progressão constante",
-    "week_9_12": "Intensificação e refinamento"
-  },
-  "nutrition_guidelines": {
-    "pre_workout": {
-      "timing": "30-60 minutos antes",
-      "foods": ["Sugestão 1", "Sugestão 2"],
-      "macros": "Proporção de carboidratos e proteínas"
-    },
-    "post_workout": {
-      "timing": "Até 30 minutos após",
-      "foods": ["Sugestão 1", "Sugestão 2"],
-      "macros": "Proporção para recuperação"
-    },
-    "daily_targets": {
-      "protein": "X gramas por kg de peso corporal",
-      "carbs": "Recomendação específica",
-      "fats": "Porcentagem do total calórico",
-      "water": "Litros por dia baseado no peso"
-    },
-    "supplements": ["Suplemento opcional 1", "Suplemento opcional 2"]
-  },
-  "recovery_protocols": {
-    "between_sets": "Tempo de descanso específico por tipo de exercício",
-    "between_workouts": "Protocolo de recuperação entre sessões",
-    "sleep": "Recomendações de sono para recuperação",
-    "stress_management": "Técnicas para reduzir cortisol"
-  },
-  "progress_tracking": {
-    "weekly_assessments": "O que medir semanalmente",
-    "monthly_evaluations": "Avaliações mensais completas",
-    "adjustment_protocols": "Quando e como ajustar o plano"
-  },
-  "safety_guidelines": [
-    "Dica de segurança 1 específica para o perfil",
-    "Dica de segurança 2 considerando limitações",
-    "Protocolo em caso de dor ou desconforto",
-    "Sinais de overtraining para observar"
+  ],
+  "nutrition_tips": [
+    "Dica nutricional 1 específica para o objetivo",
+    "Dica nutricional 2 específica para o perfil"
   ]
 }
 
@@ -217,10 +123,9 @@ IMPORTANTE:
 - Inclua progressão realista e segura
 - O campo difficulty_level deve ser exatamente: "iniciante", "intermediario", ou "avancado"
 - Seja específico nas instruções biomecânicas
-- NÃO inclua recomendações para consultar médicos
 - Retorne APENAS o JSON, sem markdown, sem explicações adicionais`;
 
-    console.log('Enviando requisição para Groq...');
+    console.log('📤 Enviando requisição para Groq API...');
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -238,14 +143,14 @@ IMPORTANTE:
       }),
     });
 
-    console.log('Status da resposta Groq:', response.status);
+    console.log('📊 Status da resposta Groq:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro da API Groq:', response.status, errorText);
+      console.error('❌ Erro da API Groq:', response.status, errorText);
       
-      // Se der erro, usar plano fallback
-      console.log('Usando plano de fallback devido ao erro na API');
+      // Se der erro na API, usar plano fallback
+      console.log('📋 Usando plano de fallback devido ao erro na API Groq');
       const fallbackPlan = createFallbackPlan(userProfile);
       
       return new Response(
@@ -260,12 +165,12 @@ IMPORTANTE:
     }
 
     const data = await response.json();
-    console.log('Resposta recebida do Groq');
+    console.log('✅ Resposta recebida do Groq com sucesso');
 
     let content = data.choices?.[0]?.message?.content || '';
 
-    if (!content) {
-      console.log('Conteúdo vazio, usando fallback');
+    if (!content || content.trim() === '') {
+      console.log('⚠️ Conteúdo vazio da API Groq, usando fallback');
       const fallbackPlan = createFallbackPlan(userProfile);
       
       return new Response(
@@ -298,7 +203,7 @@ IMPORTANTE:
     let workoutPlan;
     try {
       workoutPlan = JSON.parse(content);
-      console.log('JSON parseado com sucesso');
+      console.log('✅ JSON parseado com sucesso da API Groq');
       
       // Validar e corrigir difficulty_level
       const validLevels = ['iniciante', 'intermediario', 'avancado'];
@@ -306,25 +211,24 @@ IMPORTANTE:
         workoutPlan.difficulty_level = mapFitnessLevelToDifficulty(userProfile.fitness_level);
       }
       
-      // Converter estrutura nova para formato compatível com o frontend
-      if (workoutPlan.weekly_schedule) {
-        workoutPlan.exercises = convertWeeklyScheduleToExercises(workoutPlan.weekly_schedule);
-      }
-      
       // Validar estrutura básica
       if (!workoutPlan.title || !workoutPlan.exercises || !Array.isArray(workoutPlan.exercises)) {
-        throw new Error('Estrutura do JSON inválida');
+        throw new Error('Estrutura do JSON inválida da API Groq');
       }
+
+      // Adicionar flag indicando que veio da API Groq
+      workoutPlan.source = 'groq_api';
       
     } catch (parseError) {
-      console.error('Erro ao fazer parse do JSON:', parseError);
-      console.log('Conteúdo recebido:', content);
+      console.error('❌ Erro ao fazer parse do JSON da API Groq:', parseError);
+      console.log('📄 Conteúdo recebido:', content);
       
       // Usar plano de fallback
+      console.log('📋 Usando plano de fallback devido ao erro de parse');
       workoutPlan = createFallbackPlan(userProfile);
     }
 
-    console.log('Retornando plano final:', workoutPlan);
+    console.log('🎉 Retornando plano final gerado pela API Groq');
 
     return new Response(
       JSON.stringify(workoutPlan),
@@ -337,7 +241,7 @@ IMPORTANTE:
     );
 
   } catch (error) {
-    console.error('Erro no generate-workout-plan:', error);
+    console.error('💥 Erro geral no generate-workout-plan:', error);
     
     // Em caso de erro geral, retornar plano básico
     const basicPlan = createFallbackPlan(null);
@@ -354,48 +258,6 @@ IMPORTANTE:
     );
   }
 });
-
-function convertWeeklyScheduleToExercises(weeklySchedule: any): any[] {
-  const exercises = [];
-  let exerciseIndex = 0;
-  
-  Object.entries(weeklySchedule).forEach(([day, dayData]: [string, any]) => {
-    if (dayData.main_workout && Array.isArray(dayData.main_workout)) {
-      dayData.main_workout.forEach((exercise: any) => {
-        exercises.push({
-          name: `${day.charAt(0).toUpperCase() + day.slice(1)}: ${exercise.exercise}`,
-          sets: exercise.sets || 3,
-          reps: exercise.reps || "8-12",
-          rest: exercise.rest || "60s",
-          instructions: `${exercise.execution_tips || ''}\n\nBiomecânica: ${exercise.biomechanics || ''}\n\nMúsculos: ${exercise.muscle_groups ? exercise.muscle_groups.join(', ') : ''}\n\nProgressão: ${exercise.weight_progression || ''}\n\nErros comuns: ${exercise.common_mistakes || ''}`
-        });
-        exerciseIndex++;
-      });
-    }
-  });
-  
-  // Se não tiver exercícios suficientes, adicionar alguns básicos
-  if (exercises.length < 5) {
-    exercises.push(
-      {
-        name: "Aquecimento Geral",
-        sets: 1,
-        reps: "5-10 min",
-        rest: "N/A",
-        instructions: "Caminhada leve, movimentos articulares e ativação muscular progressiva"
-      },
-      {
-        name: "Exercício Principal 1",
-        sets: 3,
-        reps: "8-12",
-        rest: "90s",
-        instructions: "Exercício focado no objetivo principal do treino"
-      }
-    );
-  }
-  
-  return exercises;
-}
 
 function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
   switch (fitnessLevel) {
@@ -437,6 +299,7 @@ function createFallbackPlan(userProfile: any) {
     description: `Plano personalizado focado em ${goalDesc} para nível ${difficultyLevel}. Este treino foi desenvolvido considerando seu perfil e objetivos específicos.`,
     difficulty_level: difficultyLevel,
     duration_weeks: 12,
+    source: 'fallback',
     exercises: [
       {
         name: "Segunda-feira: Aquecimento Dinâmico",
