@@ -22,7 +22,7 @@ import {
   Calendar,
   Activity,
   Heart,
-  Muscle,
+  Dumbbell as DumbbellIcon,
   Timer,
   Trophy,
   Star,
@@ -111,7 +111,7 @@ const WorkoutPlanDisplay = ({
   const getExerciseTypeIcon = (exerciseName: string) => {
     const name = exerciseName.toLowerCase();
     if (name.includes('aquecimento') || name.includes('alongamento')) return <Zap className="h-5 w-5 text-orange-500" />;
-    if (name.includes('flexão') || name.includes('supino')) return <Muscle className="h-5 w-5 text-blue-500" />;
+    if (name.includes('flexão') || name.includes('supino')) return <DumbbellIcon className="h-5 w-5 text-blue-500" />;
     if (name.includes('agachamento') || name.includes('leg')) return <Activity className="h-5 w-5 text-green-500" />;
     if (name.includes('abdominal') || name.includes('prancha')) return <Target className="h-5 w-5 text-purple-500" />;
     if (name.includes('cardio') || name.includes('corrida')) return <Heart className="h-5 w-5 text-red-500" />;
@@ -205,13 +205,11 @@ const WorkoutPlanDisplay = ({
                 ></div>
               </div>
               
-              {/* Indicador de origem da API */}
-              {plan.source === 'groq_api' && (
-                <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
-                  <Zap className="h-4 w-4" />
-                  <span className="font-medium">Plano gerado por IA personalizada</span>
-                </div>
-              )}
+              {/* Indicador de plano gerado por IA */}
+              <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+                <Zap className="h-4 w-4" />
+                <span className="font-medium">Plano gerado por IA personalizada</span>
+              </div>
             </div>
             
             {/* Botões de ação */}
