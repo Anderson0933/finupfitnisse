@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Dumbbell, Mail, Lock, User, Eye, EyeOff, Zap, Target, TrendingUp } from 'lucide-react';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -221,6 +222,17 @@ const Auth = () => {
                         </div>
                       ) : 'Entrar'}
                     </Button>
+                    
+                    <div className="relative my-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-white/20"></div>
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-transparent px-2 text-gray-400">ou</span>
+                      </div>
+                    </div>
+                    
+                    <GoogleSignInButton />
                   </form>
                 </TabsContent>
 
@@ -287,6 +299,17 @@ const Auth = () => {
                         </div>
                       ) : 'Criar conta'}
                     </Button>
+                    
+                    <div className="relative my-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-white/20"></div>
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-transparent px-2 text-gray-400">ou</span>
+                      </div>
+                    </div>
+                    
+                    <GoogleSignInButton />
                   </form>
                 </TabsContent>
               </Tabs>
