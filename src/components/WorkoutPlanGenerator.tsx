@@ -150,7 +150,10 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
     try {
       const { data, error } = await supabase
         .from('user_workout_plans')
-        .insert([{ user_id: user.id, plan_data: workoutPlan }]);
+        .insert({
+          user_id: user.id,
+          plan_data: workoutPlan as any
+        });
 
       if (error) {
         console.error("Erro ao salvar o plano:", error);
