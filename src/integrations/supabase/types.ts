@@ -168,48 +168,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_gamification: {
-        Row: {
-          achievements_unlocked: string[]
-          best_streak: number
-          created_at: string
-          current_level: number
-          current_streak: number
-          fitness_category: string
-          last_activity_date: string | null
-          total_workouts_completed: number
-          total_xp: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          achievements_unlocked?: string[]
-          best_streak?: number
-          created_at?: string
-          current_level?: number
-          current_streak?: number
-          fitness_category?: string
-          last_activity_date?: string | null
-          total_workouts_completed?: number
-          total_xp?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          achievements_unlocked?: string[]
-          best_streak?: number
-          created_at?: string
-          current_level?: number
-          current_streak?: number
-          fitness_category?: string
-          last_activity_date?: string | null
-          total_workouts_completed?: number
-          total_xp?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_profiles: {
         Row: {
           age: number | null
