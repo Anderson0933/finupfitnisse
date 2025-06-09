@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,7 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface GamificationSectionProps {
   user: SupabaseUser | null;
+  fitnessLevel?: string; // Novo prop para o nível de condicionamento
 }
 
 interface UserLevel {
@@ -50,7 +50,7 @@ interface Achievement {
   category: 'workout' | 'nutrition' | 'consistency' | 'progress';
 }
 
-const GamificationSection = ({ user }: GamificationSectionProps) => {
+const GamificationSection = ({ user, fitnessLevel = 'sedentario' }: GamificationSectionProps) => {
   const [userXP, setUserXP] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
@@ -74,62 +74,165 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
     return levels.find(level => xp < level.xpRequired) || null;
   };
 
-  const defaultAchievements: Achievement[] = [
-    {
-      id: 'first-workout',
-      title: 'Primeiro Passo',
-      description: 'Complete seu primeiro treino',
-      icon: <Dumbbell className="h-6 w-6 text-blue-600" />,
-      xpReward: 50,
-      unlocked: totalWorkouts >= 1,
-      category: 'workout'
-    },
-    {
-      id: 'streak-3',
-      title: 'Consistência',
-      description: 'Mantenha uma sequência de 3 dias',
-      icon: <Flame className="h-6 w-6 text-orange-600" />,
-      xpReward: 75,
-      unlocked: currentStreak >= 3,
-      category: 'consistency'
-    },
-    {
-      id: 'workout-10',
-      title: 'Dedicação',
-      description: 'Complete 10 treinos',
-      icon: <Trophy className="h-6 w-6 text-yellow-600" />,
-      xpReward: 100,
-      unlocked: totalWorkouts >= 10,
-      category: 'workout'
-    },
-    {
-      id: 'streak-7',
-      title: 'Força de Vontade',
-      description: 'Sequência de 7 dias consecutivos',
-      icon: <Star className="h-6 w-6 text-purple-600" />,
-      xpReward: 150,
-      unlocked: currentStreak >= 7,
-      category: 'consistency'
-    },
-    {
-      id: 'workout-25',
-      title: 'Guerreiro',
-      description: 'Complete 25 treinos',
-      icon: <Medal className="h-6 w-6 text-green-600" />,
-      xpReward: 200,
-      unlocked: totalWorkouts >= 25,
-      category: 'workout'
-    },
-    {
-      id: 'streak-30',
-      title: 'Imparável',
-      description: 'Mantenha 30 dias de atividade',
-      icon: <Crown className="h-6 w-6 text-gold-600" />,
-      xpReward: 300,
-      unlocked: currentStreak >= 30,
-      category: 'consistency'
-    }
-  ];
+  // Conquistas específicas por nível de condicionamento
+  const getAchievementsByFitnessLevel = (level: string): Achievement[] => {
+    const baseAchievements = {
+      sedentario: [
+        {
+          id: 'first-step',
+          title: 'Primeiro Passo',
+          description: 'Complete seu primeiro exercício',
+          icon: <Dumbbell className="h-6 w-6 text-blue-600" />,
+          xpReward: 25,
+          unlocked: totalWorkouts >= 1,
+          category: 'workout' as const
+        },
+        {
+          id: 'week-1',
+          title: 'Uma Semana Ativa',
+          description: 'Mantenha 3 dias de atividade',
+          icon: <Flame className="h-6 w-6 text-orange-600" />,
+          xpReward: 50,
+          unlocked: currentStreak >= 3,
+          category: 'consistency' as const
+        },
+        {
+          id: 'basic-routine',
+          title: 'Rotina Básica',
+          description: 'Complete 5 exercícios',
+          icon: <Star className="h-6 w-6 text-purple-600" />,
+          xpReward: 75,
+          unlocked: totalWorkouts >= 5,
+          category: 'workout' as const
+        },
+        {
+          id: 'motivation',
+          title: 'Motivação',
+          description: 'Mantenha 7 dias consecutivos',
+          icon: <Heart className="h-6 w-6 text-red-600" />,
+          xpReward: 100,
+          unlocked: currentStreak >= 7,
+          category: 'consistency' as const
+        }
+      ],
+      iniciante: [
+        {
+          id: 'getting-started',
+          title: 'Começando Bem',
+          description: 'Complete 3 treinos',
+          icon: <Target className="h-6 w-6 text-green-600" />,
+          xpReward: 50,
+          unlocked: totalWorkouts >= 3,
+          category: 'workout' as const
+        },
+        {
+          id: 'consistency-week',
+          title: 'Semana Consistente',
+          description: 'Mantenha 5 dias de atividade',
+          icon: <Flame className="h-6 w-6 text-orange-600" />,
+          xpReward: 75,
+          unlocked: currentStreak >= 5,
+          category: 'consistency' as const
+        },
+        {
+          id: 'first-milestone',
+          title: 'Primeiro Marco',
+          description: 'Complete 10 treinos',
+          icon: <Trophy className="h-6 w-6 text-yellow-600" />,
+          xpReward: 100,
+          unlocked: totalWorkouts >= 10,
+          category: 'workout' as const
+        },
+        {
+          id: 'steady-progress',
+          title: 'Progresso Constante',
+          description: 'Mantenha 14 dias consecutivos',
+          icon: <TrendingUp className="h-6 w-6 text-blue-600" />,
+          xpReward: 150,
+          unlocked: currentStreak >= 14,
+          category: 'consistency' as const
+        }
+      ],
+      intermediario: [
+        {
+          id: 'intermediate-start',
+          title: 'Nível Intermediário',
+          description: 'Complete 5 treinos',
+          icon: <Dumbbell className="h-6 w-6 text-blue-600" />,
+          xpReward: 75,
+          unlocked: totalWorkouts >= 5,
+          category: 'workout' as const
+        },
+        {
+          id: 'solid-base',
+          title: 'Base Sólida',
+          description: 'Mantenha 7 dias consecutivos',
+          icon: <Flame className="h-6 w-6 text-orange-600" />,
+          xpReward: 100,
+          unlocked: currentStreak >= 7,
+          category: 'consistency' as const
+        },
+        {
+          id: 'commitment',
+          title: 'Comprometimento',
+          description: 'Complete 20 treinos',
+          icon: <Medal className="h-6 w-6 text-green-600" />,
+          xpReward: 150,
+          unlocked: totalWorkouts >= 20,
+          category: 'workout' as const
+        },
+        {
+          id: 'advanced-streak',
+          title: 'Sequência Avançada',
+          description: 'Mantenha 21 dias consecutivos',
+          icon: <Star className="h-6 w-6 text-purple-600" />,
+          xpReward: 200,
+          unlocked: currentStreak >= 21,
+          category: 'consistency' as const
+        }
+      ],
+      avancado: [
+        {
+          id: 'elite-level',
+          title: 'Nível Elite',
+          description: 'Complete 10 treinos intensos',
+          icon: <Crown className="h-6 w-6 text-gold-600" />,
+          xpReward: 100,
+          unlocked: totalWorkouts >= 10,
+          category: 'workout' as const
+        },
+        {
+          id: 'advanced-consistency',
+          title: 'Consistência Avançada',
+          description: 'Mantenha 10 dias consecutivos',
+          icon: <Flame className="h-6 w-6 text-orange-600" />,
+          xpReward: 125,
+          unlocked: currentStreak >= 10,
+          category: 'consistency' as const
+        },
+        {
+          id: 'master-trainer',
+          title: 'Mestre dos Treinos',
+          description: 'Complete 30 treinos',
+          icon: <Award className="h-6 w-6 text-orange-600" />,
+          xpReward: 200,
+          unlocked: totalWorkouts >= 30,
+          category: 'workout' as const
+        },
+        {
+          id: 'champion',
+          title: 'Campeão',
+          description: 'Mantenha 30 dias consecutivos',
+          icon: <Trophy className="h-6 w-6 text-yellow-600" />,
+          xpReward: 300,
+          unlocked: currentStreak >= 30,
+          category: 'consistency' as const
+        }
+      ]
+    };
+
+    return baseAchievements[level as keyof typeof baseAchievements] || baseAchievements.sedentario;
+  };
 
   useEffect(() => {
     const loadGamificationData = async () => {
@@ -154,16 +257,26 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
         setCurrentStreak(simulatedStreak);
         setTotalWorkouts(simulatedWorkouts);
 
-        // Atualizar achievements baseado nos dados
-        const updatedAchievements = defaultAchievements.map(achievement => ({
+        // Atualizar achievements baseado no nível de condicionamento
+        const levelAchievements = getAchievementsByFitnessLevel(fitnessLevel);
+        const updatedAchievements = levelAchievements.map(achievement => ({
           ...achievement,
-          unlocked: achievement.id === 'first-workout' ? simulatedWorkouts >= 1 :
-                   achievement.id === 'streak-3' ? simulatedStreak >= 3 :
-                   achievement.id === 'workout-10' ? simulatedWorkouts >= 10 :
-                   achievement.id === 'streak-7' ? simulatedStreak >= 7 :
-                   achievement.id === 'workout-25' ? simulatedWorkouts >= 25 :
-                   achievement.id === 'streak-30' ? simulatedStreak >= 30 :
-                   false
+          unlocked: achievement.id.includes('workout') ? 
+            (achievement.id === 'first-step' || achievement.id === 'getting-started' || achievement.id === 'intermediate-start' || achievement.id === 'elite-level') ? simulatedWorkouts >= 1 :
+            achievement.id === 'basic-routine' ? simulatedWorkouts >= 5 :
+            achievement.id === 'first-milestone' ? simulatedWorkouts >= 10 :
+            achievement.id === 'commitment' ? simulatedWorkouts >= 20 :
+            achievement.id === 'master-trainer' ? simulatedWorkouts >= 30 :
+            false :
+            achievement.id.includes('consistency') ?
+            (achievement.id === 'week-1') ? simulatedStreak >= 3 :
+            (achievement.id === 'motivation' || achievement.id === 'consistency-week') ? simulatedStreak >= 5 :
+            (achievement.id === 'solid-base') ? simulatedStreak >= 7 :
+            (achievement.id === 'advanced-consistency') ? simulatedStreak >= 10 :
+            (achievement.id === 'steady-progress') ? simulatedStreak >= 14 :
+            (achievement.id === 'advanced-streak') ? simulatedStreak >= 21 :
+            (achievement.id === 'champion') ? simulatedStreak >= 30 :
+            false : false
         }));
 
         setAchievements(updatedAchievements);
@@ -176,7 +289,7 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
     };
 
     loadGamificationData();
-  }, [user]);
+  }, [user, fitnessLevel]);
 
   const currentLevel = getCurrentLevel(userXP);
   const nextLevel = getNextLevel(userXP);
@@ -197,6 +310,16 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
     );
   }
 
+  // Mapear nível de condicionamento para exibição
+  const fitnessLevelLabels = {
+    sedentario: 'Sedentário',
+    iniciante: 'Iniciante',
+    intermediario: 'Intermediário',
+    avancado: 'Avançado'
+  };
+
+  const currentFitnessLabel = fitnessLevelLabels[fitnessLevel as keyof typeof fitnessLevelLabels] || 'Iniciante';
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -210,6 +333,8 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
           </CardTitle>
           <CardDescription className="text-yellow-700 text-sm md:text-base">
             Conquiste XP, desbloqueie conquistas e suba de nível com seus treinos!
+            <br />
+            <span className="font-semibold">Nível de Condicionamento: {currentFitnessLabel}</span>
           </CardDescription>
         </CardHeader>
       </Card>
@@ -296,7 +421,7 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <Award className="h-6 w-6 text-purple-600" />
-            Conquistas ({unlockedAchievements.length}/{achievements.length})
+            Conquistas para {currentFitnessLabel} ({unlockedAchievements.length}/{achievements.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -363,6 +488,8 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
           <h3 className="text-xl font-bold text-purple-800 mb-2">Continue Evoluindo!</h3>
           <p className="text-purple-600 mb-4">
             Cada treino completo, cada meta atingida te leva mais perto da sua melhor versão!
+            <br />
+            <span className="text-sm font-medium">Conquistas adaptadas ao seu nível: {currentFitnessLabel}</span>
           </p>
           <div className="flex justify-center gap-2">
             <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
