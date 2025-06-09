@@ -135,8 +135,15 @@ const WorkoutPlanDisplay = ({
   const handleExerciseCompletion = async (itemIdentifier: string, currentStatus: boolean) => {
     console.log('🎯 Exercise completion triggered:', { itemIdentifier, currentStatus });
     
-    // Se o exercício foi marcado como concluído (estava false, agora será true)
-    if (!currentStatus) {
+    // Calcular o novo status (inverso do atual)
+    const newStatus = !currentStatus;
+    console.log('🔄 Status mudará de', currentStatus, 'para', newStatus);
+    
+    // Atualizar o progresso local PRIMEIRO
+    onProgressChange(itemIdentifier, newStatus);
+    
+    // Se o exercício foi marcado como concluído (novo status = true)
+    if (newStatus) {
       console.log('💪 Exercício sendo marcado como concluído! Registrando no sistema de gamificação...');
       
       // Determinar XP baseado no nível de dificuldade do plano
@@ -156,9 +163,6 @@ const WorkoutPlanDisplay = ({
     } else {
       console.log('📝 Exercício sendo desmarcado');
     }
-    
-    // Atualiza o progresso local SEMPRE (seja marcando ou desmarcando)
-    onProgressChange(itemIdentifier, currentStatus);
   };
 
   const completedExercises = plan.exercises?.filter((_, index) => {
