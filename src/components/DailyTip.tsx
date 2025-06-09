@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, RefreshCw, Apple, Dumbbell, Heart, Zap, Target, Brain } from 'lucide-react';
+import { Lightbulb, RefreshCw, Apple, Dumbbell, Heart, Zap, Target, Brain, Clock, Utensils, Droplets, Moon, FlameKindling, Shield } from 'lucide-react';
 
 const DailyTip = () => {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
@@ -49,6 +49,104 @@ const DailyTip = () => {
       title: 'Visualização funciona',
       content: 'Visualize seus exercícios antes de executá-los. Isso melhora a coordenação e força neural.',
       color: 'from-indigo-500 to-indigo-600'
+    },
+    {
+      category: 'Recuperação',
+      icon: <Moon className="h-5 w-5" />,
+      title: 'Sono é ganho muscular',
+      content: 'Dormir 7-9 horas é quando seus músculos realmente crescem. O descanso é parte do treino!',
+      color: 'from-slate-500 to-slate-600'
+    },
+    {
+      category: 'Treino',
+      icon: <Clock className="h-5 w-5" />,
+      title: 'Descanso entre séries',
+      content: 'Para hipertrofia: 60-90s. Para força: 2-3min. Para resistência: 30-60s.',
+      color: 'from-blue-500 to-blue-600'
+    },
+    {
+      category: 'Nutrição',
+      icon: <Utensils className="h-5 w-5" />,
+      title: 'Coma carboidratos antes',
+      content: 'Consuma carboidratos 1-2 horas antes do treino para ter energia máxima nos exercícios.',
+      color: 'from-green-500 to-green-600'
+    },
+    {
+      category: 'Hidratação',
+      icon: <Droplets className="h-5 w-5" />,
+      title: 'Beba água durante o dia',
+      content: 'Mantenha-se hidratado o dia todo. A sede já é sinal de desidratação leve!',
+      color: 'from-cyan-500 to-cyan-600'
+    },
+    {
+      category: 'Treino',
+      icon: <FlameKindling className="h-5 w-5" />,
+      title: 'Variedade é fundamental',
+      content: 'Mude seu treino a cada 6-8 semanas para evitar adaptação e continuar progredindo.',
+      color: 'from-red-500 to-red-600'
+    },
+    {
+      category: 'Prevenção',
+      icon: <Shield className="h-5 w-5" />,
+      title: 'Alongue após treinar',
+      content: 'Dedique 10 minutos ao alongamento pós-treino. Melhora flexibilidade e reduz dores.',
+      color: 'from-teal-500 to-teal-600'
+    },
+    {
+      category: 'Motivação',
+      icon: <Target className="h-5 w-5" />,
+      title: 'Estabeleça metas pequenas',
+      content: 'Divida grandes objetivos em metas semanais. Cada pequena conquista te motiva mais!',
+      color: 'from-amber-500 to-amber-600'
+    },
+    {
+      category: 'Nutrição',
+      icon: <Apple className="h-5 w-5" />,
+      title: 'Frutas pré-treino',
+      content: 'Banana ou maçã 30min antes do treino fornecem energia rápida e natural.',
+      color: 'from-lime-500 to-lime-600'
+    },
+    {
+      category: 'Treino',
+      icon: <Dumbbell className="h-5 w-5" />,
+      title: 'Exercícios compostos',
+      content: 'Priorizem agachamento, levantamento terra e supino. Trabalham múltiplos músculos!',
+      color: 'from-violet-500 to-violet-600'
+    },
+    {
+      category: 'Mental',
+      icon: <Brain className="h-5 w-5" />,
+      title: 'Música aumenta performance',
+      content: 'Músicas com 120-140 BPM podem aumentar sua força e resistência em até 15%!',
+      color: 'from-fuchsia-500 to-fuchsia-600'
+    },
+    {
+      category: 'Recuperação',
+      icon: <Heart className="h-5 w-5" />,
+      title: 'Stress prejudica ganhos',
+      content: 'Alto stress libera cortisol, que quebra músculos. Pratique relaxamento e meditação.',
+      color: 'from-rose-500 to-rose-600'
+    },
+    {
+      category: 'Nutrição',
+      icon: <Zap className="h-5 w-5" />,
+      title: 'Não pule refeições',
+      content: 'Coma a cada 3-4 horas para manter o metabolismo ativo e evitar perda muscular.',
+      color: 'from-emerald-500 to-emerald-600'
+    },
+    {
+      category: 'Treino',
+      icon: <Target className="h-5 w-5" />,
+      title: 'Progresso gradual',
+      content: 'Aumente peso/repetições gradualmente. Força vem com paciência e consistência.',
+      color: 'from-sky-500 to-sky-600'
+    },
+    {
+      category: 'Motivação',
+      icon: <FlameKindling className="h-5 w-5" />,
+      title: 'Celebre pequenas vitórias',
+      content: 'Completou a semana de treinos? Parabéns! Reconheça e celebre cada conquista.',
+      color: 'from-orange-500 to-red-500'
     }
   ];
 

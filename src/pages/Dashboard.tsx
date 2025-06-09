@@ -12,7 +12,6 @@ import ProgressTracker from '@/components/ProgressTracker';
 import NutritionAssistant from '@/components/NutritionAssistant';
 import PaymentManager from '@/components/PaymentManager';
 import DailyTip from '@/components/DailyTip';
-import WeatherWidget from '@/components/WeatherWidget';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
@@ -270,11 +269,10 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Novos componentes: Dica do Dia e Weather Widget */}
+        {/* Componente Dica do Dia */}
         {hasAccess && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 md:mb-8">
+          <div className="mb-6 md:mb-8">
             <DailyTip />
-            <WeatherWidget />
           </div>
         )}
 
