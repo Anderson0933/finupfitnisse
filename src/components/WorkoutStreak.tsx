@@ -29,37 +29,34 @@ const WorkoutStreak = ({ user }: WorkoutStreakProps) => {
     if (!user) return;
 
     try {
-      // Buscar dados de gamificação do usuário
-      const { data: gamificationData } = await supabase
-        .from('user_gamification')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      // Buscar progresso dos planos para calcular workouts
+      // Buscar todos os treinos completados ordenados por data
       const { data: progressData } = await supabase
         .from('plan_progress')
         .select('*')
         .eq('user_id', user.id)
-        .eq('is_completed', true);
+        .eq('is_completed', true)
+        .order('created_at', { ascending: true });
 
-      if (gamificationData) {
+      if (progressData && progressData.length > 0) {
+        const workoutDates = progressData.map(p => new Date(p.created_at).toDateString());
+        const uniqueDates = [...new Set(workoutDates)].sort();
+        
+        const currentStreak = calculateCurrentStreak(uniqueDates);
+        const bestStreak = calculateBestStreak(uniqueDates);
+        const lastWorkout = new Date(progressData[progressData.length - 1].created_at);
+
         setStreakData({
-          currentStreak: gamificationData.current_streak || 0,
-          bestStreak: gamificationData.best_streak || 0,
-          totalWorkouts: gamificationData.total_workouts_completed || 0,
-          lastWorkoutDate: gamificationData.last_activity_date 
-            ? new Date(gamificationData.last_activity_date) 
-            : null
+          currentStreak,
+          bestStreak,
+          totalWorkouts: progressData.length,
+          lastWorkoutDate: lastWorkout
         });
       } else {
-        // Se não existe registro de gamificação, criar um baseado no progresso
-        const totalCompleted = progressData?.length || 0;
         setStreakData({
-          currentStreak: totalCompleted > 0 ? 1 : 0,
-          bestStreak: totalCompleted > 0 ? 1 : 0,
-          totalWorkouts: totalCompleted,
-          lastWorkoutDate: totalCompleted > 0 ? new Date() : null
+          currentStreak: 0,
+          bestStreak: 0,
+          totalWorkouts: 0,
+          lastWorkoutDate: null
         });
       }
     } catch (error) {
@@ -67,6 +64,54 @@ const WorkoutStreak = ({ user }: WorkoutStreakProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateCurrentStreak = (dates: string[]) => {
+    if (dates.length === 0) return 0;
+
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+    
+    // Verificar se treinou hoje ou ontem para manter o streak
+    const lastWorkoutDate = dates[dates.length - 1];
+    if (lastWorkoutDate !== today && lastWorkoutDate !== yesterday) {
+      return 0;
+    }
+
+    let streak = 1;
+    for (let i = dates.length - 2; i >= 0; i--) {
+      const currentDate = new Date(dates[i + 1]);
+      const previousDate = new Date(dates[i]);
+      const diffDays = Math.floor((currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  };
+
+  const calculateBestStreak = (dates: string[]) => {
+    if (dates.length === 0) return 0;
+
+    let bestStreak = 1;
+    let currentStreak = 1;
+
+    for (let i = 1; i < dates.length; i++) {
+      const currentDate = new Date(dates[i]);
+      const previousDate = new Date(dates[i - 1]);
+      const diffDays = Math.floor((currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) {
+        currentStreak++;
+        bestStreak = Math.max(bestStreak, currentStreak);
+      } else {
+        currentStreak = 1;
+      }
+    }
+    return bestStreak;
   };
 
   const getStreakLevel = (streak: number) => {
