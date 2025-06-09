@@ -15,7 +15,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { CalendarIcon, Code, MessageSquare, Settings, Dumbbell } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
 
 import WorkoutPlanGenerator from '@/components/WorkoutPlanGenerator';
 import GamificationSection from '@/components/GamificationSection';
@@ -114,11 +113,6 @@ const Dashboard = () => {
 
         if (error) {
           console.error("Error fetching workout plan:", error);
-          // toast({
-          //   title: "Erro ao carregar plano de treino",
-          //   description: "Tente gerar um novo plano.",
-          //   variant: "destructive",
-          // })
         }
 
         if (data?.plan_data) {
