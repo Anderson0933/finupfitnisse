@@ -143,6 +143,7 @@ interface WorkoutPlanGeneratorProps {
   workoutPlan: WorkoutPlan | null;
   setWorkoutPlan: (plan: WorkoutPlan | null) => void;
   initialActiveTab?: 'form' | 'plan';
+  onSwitchToAssistant?: () => void; // Nova prop para navegação
 }
 
 // FORM PERSISTENCE KEY
@@ -152,7 +153,8 @@ const WorkoutPlanGenerator = ({
   user, 
   workoutPlan, 
   setWorkoutPlan,
-  initialActiveTab = 'form'
+  initialActiveTab = 'form',
+  onSwitchToAssistant
 }: WorkoutPlanGeneratorProps) => {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -880,6 +882,7 @@ const WorkoutPlanGenerator = ({
               onGenerateNew={() => setActiveTab('form')}
               progressMap={progressMap}
               onProgressChange={handleProgressChange}
+              onSwitchToAssistant={onSwitchToAssistant}
             />
           ) : (
             // Empty State
