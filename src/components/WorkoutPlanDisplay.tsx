@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,31 +79,43 @@ const WorkoutPlanDisplay = ({
   const handleMainTabSwitch = (tabValue: string) => {
     console.log('🎯 Tentando mudar para a tab:', tabValue);
     
-    const mainTabsContainer = document.querySelector('.main-dashboard-tabs');
+    // Buscar o container das tabs principais
+    const mainTabsContainer = document.querySelector('[data-state="active"][role="tablist"]')?.closest('.main-dashboard-tabs') ||
+                             document.querySelector('.main-dashboard-tabs');
+    
     console.log('📋 Container das tabs encontrado:', !!mainTabsContainer);
     
     if (mainTabsContainer) {
-      const targetTrigger = mainTabsContainer.querySelector(`[value="${tabValue}"]`) as HTMLElement;
+      // Buscar o trigger específico da tab desejada
+      const targetTrigger = mainTabsContainer.querySelector(`[role="tab"][value="${tabValue}"]`) as HTMLElement;
       console.log('🎯 Trigger encontrado:', !!targetTrigger);
       
       if (targetTrigger) {
         console.log('✅ Clicando no trigger do assistente');
         targetTrigger.click();
         
+        // Verificar se funcionou após um pequeno delay
         setTimeout(() => {
-          const activeTab = mainTabsContainer.querySelector('[data-state="active"]');
+          const activeTab = mainTabsContainer.querySelector('[data-state="active"][role="tab"]');
           console.log('📊 Tab ativa após click:', activeTab?.getAttribute('value'));
         }, 100);
       } else {
         console.warn(`❌ Tab com value "${tabValue}" não encontrada`);
+        // Debug: mostrar todas as tabs disponíveis
         const allTriggers = mainTabsContainer.querySelectorAll('[role="tab"]');
         console.log('🔍 Todos os triggers encontrados:', allTriggers.length);
         allTriggers.forEach((trigger, index) => {
-          console.log(`Tab ${index}:`, trigger.getAttribute('value'), trigger.textContent);
+          console.log(`Tab ${index}:`, trigger.getAttribute('value'), trigger.textContent?.trim());
         });
       }
     } else {
       console.warn('❌ Container das tabs principais não encontrado');
+      // Fallback: tentar encontrar qualquer tab com o valor desejado
+      const fallbackTrigger = document.querySelector(`[role="tab"][value="${tabValue}"]`) as HTMLElement;
+      if (fallbackTrigger) {
+        console.log('🔄 Usando fallback trigger');
+        fallbackTrigger.click();
+      }
     }
   };
 
