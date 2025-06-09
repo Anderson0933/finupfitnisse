@@ -13,11 +13,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { CalendarIcon, Code, MessageSquare, Settings, Dumbbell } from "lucide-react"
+import { CalendarIcon, Code, MessageSquare, Settings, Dumbbell, Apple, HelpCircle, CreditCard } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 import WorkoutPlanGenerator from '@/components/WorkoutPlanGenerator';
 import GamificationSection from '@/components/GamificationSection';
+import AIAssistant from '@/components/AIAssistant';
+import NutritionAssistant from '@/components/NutritionAssistant';
+import FAQSection from '@/components/FAQSection';
+import PaymentManager from '@/components/PaymentManager';
 
 import { supabase } from '@/integrations/supabase/client';
 import { WorkoutPlan } from '@/components/WorkoutPlanGenerator';
@@ -29,6 +33,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("gamification");
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
 
   // Adicionar estado para armazenar o nível de condicionamento
   const [userFitnessLevel, setUserFitnessLevel] = useState<string>('sedentario');
@@ -134,6 +139,34 @@ const Dashboard = () => {
 
     loadWorkoutPlan();
   }, [user, toast]);
+
+  // Verificar assinatura ativa
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (data && !error) {
+          setHasActiveSubscription(true);
+        } else {
+          setHasActiveSubscription(false);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar assinatura:', error);
+        setHasActiveSubscription(false);
+      }
+    };
+
+    checkSubscription();
+  }, [user]);
 
   // Adicionar função para carregar o nível de condicionamento do usuário
   useEffect(() => {
@@ -262,9 +295,43 @@ const Dashboard = () => {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="gamification" className="data-[state=active]:bg-gray-100">Gamificação</TabsTrigger>
-            <TabsTrigger value="workout" className="data-[state=active]:bg-gray-100">Treino</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="gamification" className="data-[state=active]:bg-gray-100">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Evolução</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="workout" className="data-[state=active]:bg-gray-100">
+              <div className="flex items-center gap-2">
+                <Dumbbell className="h-4 w-4" />
+                <span className="hidden sm:inline">Treino</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="assistant" className="data-[state=active]:bg-gray-100">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">Assistente</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="nutrition" className="data-[state=active]:bg-gray-100">
+              <div className="flex items-center gap-2">
+                <Apple className="h-4 w-4" />
+                <span className="hidden sm:inline">Nutrição</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="faq" className="data-[state=active]:bg-gray-100">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Dúvidas</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="payment" className="data-[state=active]:bg-gray-100">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                <span className="hidden sm:inline">Assinatura</span>
+              </div>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="gamification">
@@ -280,6 +347,25 @@ const Dashboard = () => {
               workoutPlan={workoutPlan}
               setWorkoutPlan={setWorkoutPlan}
               onSwitchToAssistant={() => setActiveTab('assistant')}
+            />
+          </TabsContent>
+
+          <TabsContent value="assistant">
+            <AIAssistant user={user} />
+          </TabsContent>
+
+          <TabsContent value="nutrition">
+            <NutritionAssistant user={user} />
+          </TabsContent>
+
+          <TabsContent value="faq">
+            <FAQSection onSwitchToAssistant={() => setActiveTab('assistant')} />
+          </TabsContent>
+
+          <TabsContent value="payment">
+            <PaymentManager 
+              user={user} 
+              hasActiveSubscription={hasActiveSubscription}
             />
           </TabsContent>
         </Tabs>
