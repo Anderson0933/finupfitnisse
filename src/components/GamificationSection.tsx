@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,10 +60,6 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-
-  // Ref para evitar múltiplas chamadas
-  const updateInProgress = useRef(false);
-  const hasShownInitialToasts = useRef(false);
 
   const levels: UserLevel[] = [
     { level: 1, title: 'Iniciante', xpRequired: 0, color: 'bg-gray-100 text-gray-800', icon: <User className="h-4 w-4" /> },
@@ -139,14 +135,10 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
     }
   ];
 
-  const updateGamificationData = async (newWorkouts: number, newStreak: number, currentXP: number, showToasts: boolean = false) => {
-    if (!user || updateInProgress.current) return;
-
-    updateInProgress.current = true;
+  const updateGamificationData = async (newWorkouts: number, newStreak: number, newXP: number) => {
+    if (!user) return;
 
     try {
-      console.log('🎮 Atualizando gamificação:', { newWorkouts, newStreak, currentXP });
-
       // Verificar conquistas desbloqueadas
       const newUnlockedAchievements = [...unlockedAchievements];
       let xpToAdd = 0;
@@ -164,29 +156,16 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
           if (shouldUnlock) {
             newUnlockedAchievements.push(achievement.id);
             xpToAdd += achievement.xpReward;
-            
-            if (showToasts && hasShownInitialToasts.current) {
-              toast({
-                title: "🏆 Nova Conquista Desbloqueada!",
-                description: `${achievement.title} (+${achievement.xpReward} XP)`,
-              });
-            }
+            toast({
+              title: "🏆 Nova Conquista Desbloqueada!",
+              description: `${achievement.title} (+${achievement.xpReward} XP)`,
+            });
           }
         }
       });
 
-      const finalXP = currentXP + xpToAdd;
+      const finalXP = newXP + xpToAdd;
       const newLevel = getCurrentLevelData(finalXP).level;
-      const oldLevel = getCurrentLevelData(currentXP).level;
-
-      // Mostrar toast de level up apenas se houve mudança
-      if (showToasts && newLevel > oldLevel && hasShownInitialToasts.current) {
-        const levelData = getCurrentLevelData(finalXP);
-        toast({
-          title: "🎉 Level Up!",
-          description: `Você alcançou o nível ${newLevel} - ${levelData.title}!`,
-        });
-      }
 
       // Atualizar no banco de dados
       const { error } = await supabase
@@ -203,19 +182,14 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
         });
 
       if (error) {
-        console.error('❌ Erro ao atualizar gamificação:', error);
+        console.error('Erro ao atualizar gamificação:', error);
       } else {
-        console.log('✅ Gamificação atualizada com sucesso');
         setUserXP(finalXP);
         setCurrentLevel(newLevel);
         setUnlockedAchievements(newUnlockedAchievements);
-        setTotalWorkouts(newWorkouts);
-        setCurrentStreak(newStreak);
       }
     } catch (error) {
-      console.error('💥 Erro ao processar gamificação:', error);
-    } finally {
-      updateInProgress.current = false;
+      console.error('Erro ao processar gamificação:', error);
     }
   };
 
@@ -225,102 +199,87 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
 
       try {
         setLoading(true);
-        console.log('🔄 Carregando dados de gamificação...');
 
         // Buscar dados de gamificação salvos
-        const { data: gamificationData, error: gamificationError } = await supabase
+        const { data: gamificationData } = await supabase
           .from('user_gamification')
           .select('*')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        if (gamificationError) {
-          console.error('❌ Erro ao buscar gamificação:', gamificationError);
-        }
-
-        // Buscar progresso atual dos exercícios uma única vez
-        const { data: progressData, error: progressError } = await supabase
+        // Buscar progresso atual dos exercícios
+        const { data: progressData } = await supabase
           .from('plan_progress')
           .select('*')
           .eq('user_id', user.id)
           .eq('is_completed', true);
 
-        if (progressError) {
-          console.error('❌ Erro ao buscar progresso:', progressError);
-        }
-
         const completedItems = progressData?.length || 0;
-        const calculatedWorkouts = Math.floor(completedItems / 3); // Simular treinos completos
+        const newWorkouts = Math.floor(completedItems / 3); // Simular treinos completos
         
         // Calcular streak baseado na última atividade
-        let calculatedStreak = 0;
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        let streak = 0;
         if (gamificationData?.last_activity_date) {
           const lastActivity = new Date(gamificationData.last_activity_date);
-          const today = new Date();
           const diffTime = Math.abs(today.getTime() - lastActivity.getTime());
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           
           if (diffDays <= 1) {
-            calculatedStreak = gamificationData.current_streak || 0;
+            streak = gamificationData.current_streak || 0;
+            if (completedItems > 0) streak = Math.min(streak + 1, 30);
           }
+        } else if (completedItems > 0) {
+          streak = 1;
         }
 
         if (gamificationData) {
-          // Usar dados salvos
-          console.log('✅ Dados de gamificação encontrados:', gamificationData);
+          // Usar dados salvos e atualizar se necessário
           setUserXP(gamificationData.total_xp || 0);
-          setCurrentStreak(gamificationData.current_streak || 0);
-          setTotalWorkouts(gamificationData.total_workouts_completed || 0);
+          setCurrentStreak(gamificationData.current_streak || streak);
+          setTotalWorkouts(Math.max(gamificationData.total_workouts_completed || 0, newWorkouts));
           setCurrentLevel(gamificationData.current_level || 1);
           setUnlockedAchievements(gamificationData.achievements_unlocked || []);
 
-          // Verificar se há progresso novo apenas se há diferença significativa
-          const hasNewProgress = calculatedWorkouts > (gamificationData.total_workouts_completed || 0);
-          
-          if (hasNewProgress) {
-            console.log('🆕 Novo progresso detectado, atualizando...');
-            // Dar tempo para mostrar os dados atuais primeiro
-            setTimeout(() => {
-              updateGamificationData(
-                calculatedWorkouts,
-                Math.max(gamificationData.current_streak || 0, calculatedStreak),
-                gamificationData.total_xp || 0,
-                true
-              );
-            }, 1000);
+          // Verificar se há progresso novo para atualizar
+          if (newWorkouts > (gamificationData.total_workouts_completed || 0) || 
+              streak > (gamificationData.current_streak || 0)) {
+            await updateGamificationData(
+              Math.max(gamificationData.total_workouts_completed || 0, newWorkouts),
+              Math.max(gamificationData.current_streak || 0, streak),
+              gamificationData.total_xp || 0
+            );
           }
         } else {
           // Primeira vez - criar dados iniciais
-          console.log('🆕 Criando dados iniciais de gamificação...');
-          setCurrentStreak(calculatedStreak);
-          setTotalWorkouts(calculatedWorkouts);
+          setCurrentStreak(streak);
+          setTotalWorkouts(newWorkouts);
           setUnlockedAchievements([]);
           
-          if (calculatedWorkouts > 0 || calculatedStreak > 0) {
-            await updateGamificationData(calculatedWorkouts, calculatedStreak, 0, false);
+          if (newWorkouts > 0 || streak > 0) {
+            await updateGamificationData(newWorkouts, streak, 0);
           }
         }
 
         // Atualizar achievements com status atual
-        const savedAchievements = gamificationData?.achievements_unlocked || [];
         const updatedAchievements = defaultAchievements.map(achievement => ({
           ...achievement,
-          unlocked: savedAchievements.includes(achievement.id)
+          unlocked: (gamificationData?.achievements_unlocked || []).includes(achievement.id)
         }));
         setAchievements(updatedAchievements);
 
-        // Marcar que os toasts iniciais foram mostrados
-        hasShownInitialToasts.current = true;
-
       } catch (error) {
-        console.error('💥 Erro ao carregar dados de gamificação:', error);
+        console.error('Erro ao carregar dados de gamificação:', error);
       } finally {
         setLoading(false);
       }
     };
 
     loadGamificationData();
-  }, [user?.id]); // Dependência mais específica
+  }, [user]);
 
   const currentLevelData = getCurrentLevelData(userXP);
   const nextLevel = getNextLevel(userXP);
