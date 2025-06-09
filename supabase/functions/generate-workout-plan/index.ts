@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -35,8 +36,7 @@ serve(async (req) => {
 
     console.log('✅ Chave Groq configurada, gerando prompt personalizado...');
 
-    // ... keep existing code (mapping objects for goals, equipment, limitations, fitness level)
-
+    // Mapear valores para português mais amigável
     const goalsMap = {
       'perder_peso': 'perder peso e queimar gordura corporal',
       'ganhar_massa': 'ganhar massa muscular e hipertrofia',
@@ -44,8 +44,7 @@ serve(async (req) => {
       'condicionamento': 'melhorar condicionamento cardiovascular',
       'forca': 'aumentar força e potência muscular',
       'flexibilidade': 'melhorar flexibilidade e mobilidade',
-      'geral': 'condicionamento físico geral',
-      'hipertrofia': 'ganhar massa muscular e hipertrofia'
+      'geral': 'condicionamento físico geral'
     };
 
     const equipmentMap = {
@@ -72,15 +71,13 @@ serve(async (req) => {
       'moderado': 'moderadamente ativo - alguma experiência com treinos',
       'ativo': 'ativo - experiência regular com exercícios',
       'muito_ativo': 'muito ativo - experiência avançada em treinamento',
-      'avancado': 'atlético avançado - alto nível de condicionamento',
-      'iniciante': 'iniciante - pouca experiência em treinamento'
+      'avancado': 'atlético avançado - alto nível de condicionamento'
     };
 
     const goals = goalsMap[userProfile.fitness_goals?.[0]] || userProfile.fitness_goals?.[0] || 'melhorar condicionamento geral';
     const equipment = equipmentMap[userProfile.equipment] || userProfile.equipment || 'equipamentos básicos';
     const limitations = limitationsMap[userProfile.limitations] || userProfile.limitations || 'nenhuma limitação';
     const fitnessLevel = fitnessLevelMap[userProfile.fitness_level] || userProfile.fitness_level || 'iniciante';
-    const availableDays = userProfile.available_days || 3;
 
     // Calcular IMC para personalização adicional
     let imcInfo = '';
@@ -94,9 +91,6 @@ serve(async (req) => {
       else imcInfo += 'Obesidade - exercícios de baixo impacto e queima calórica';
     }
 
-    // Definir estrutura clara dos dias da semana baseada nos dias disponíveis
-    const dayStructure = getDayStructure(availableDays);
-
     // Criar prompt super detalhado e personalizado
     const prompt = `Você é um renomado personal trainer certificado com 15 anos de experiência em treinamento personalizado. Crie um plano de treino EXTREMAMENTE DETALHADO, ESPECÍFICO e PERSONALIZADO em português baseado no perfil completo abaixo:
 
@@ -108,65 +102,63 @@ PERFIL COMPLETO DO ALUNO:
 - ${imcInfo}
 - Nível atual: ${fitnessLevel}
 - Objetivo principal: ${goals}
-- Dias disponíveis: ${availableDays} por semana
+- Dias disponíveis: ${userProfile.available_days || 3} por semana
 - Duração por sessão: ${userProfile.session_duration || 60} minutos
 - Equipamentos disponíveis: ${equipment}
 - Limitações físicas: ${limitations}
 
-ESTRUTURA OBRIGATÓRIA DOS DIAS:
-${dayStructure.map((day, index) => `Treino ${index + 1}: ${day}`).join('\n')}
+INSTRUÇÕES DETALHADAS PARA UM PLANO PROFISSIONAL:
 
-INSTRUÇÕES CRÍTICAS PARA ESTRUTURA DO TREINO:
+1. ESTRUTURA DO TREINO:
+   - Crie um plano periodizado com divisão específica para ${userProfile.available_days || 3} dias
+   - Inclua progressão semanal detalhada (semanas 1-4, 5-8, 9-12)
+   - Considere volume, intensidade e densidade apropriados para o nível
+   - Adapte completamente aos equipamentos disponíveis
 
-1. NOMENCLATURA OBRIGATÓRIA DOS EXERCÍCIOS (USE EXATAMENTE ESTA ESTRUTURA):
-   - "Semana 1 - ${dayStructure[0]}: [Nome do Exercício]"
-   - "Semana 1 - ${dayStructure[1]}: [Nome do Exercício]"
-   ${availableDays >= 3 ? `- "Semana 1 - ${dayStructure[2]}: [Nome do Exercício]"` : ''}
-   ${availableDays >= 4 ? `- "Semana 1 - ${dayStructure[3]}: [Nome do Exercício]"` : ''}
-   ${availableDays >= 5 ? `- "Semana 1 - ${dayStructure[4]}: [Nome do Exercício]"` : ''}
-   
-   Continue para todas as 12 semanas:
-   - "Semana 2 - ${dayStructure[0]}: [Nome do Exercício]"
-   - "Semana 3 - ${dayStructure[0]}: [Nome do Exercício]"
-   - Até "Semana 12 - ${dayStructure[availableDays-1]}: [Nome do Exercício]"
-
-2. DISTRIBUIÇÃO DOS TREINOS:
-   - CADA SEMANA DEVE TER EXATAMENTE ${availableDays} TREINOS
-   - Total: ${availableDays * 12} exercícios (${availableDays} treinos x 12 semanas)
-   - JAMAIS deixe uma semana com menos treinos que o solicitado
-
-3. EXERCÍCIOS ESPECÍFICOS:
+2. EXERCÍCIOS ESPECÍFICOS:
    - Escolha exercícios que maximizem o objetivo: ${goals}
    - Inclua variações progressivas e regressivas
    - Especifique técnica de execução biomecânica detalhada
    - Adicione músculos primários e secundários trabalhados
+   - Inclua tempo sob tensão e cadência quando relevante
 
-4. PRESCRIÇÃO DETALHADA:
-   - Séries, repetições e descanso específicos por semana
+3. PRESCRIÇÃO DETALHADA:
+   - Séries, repetições e descanso específicos por fase
    - Percentual de carga ou percepção de esforço
    - Progressões semanais concretas
    - Adaptações para limitações: ${limitations}
 
-5. PERIODIZAÇÃO POR SEMANAS:
-   - Semanas 1-3: Adaptação anatômica
-   - Semanas 4-6: Desenvolvimento básico
-   - Semanas 7-9: Intensificação
-   - Semanas 10-12: Polimento/Pico
+4. PERIODIZAÇÃO:
+   - Fase 1 (semanas 1-4): Adaptação anatômica
+   - Fase 2 (semanas 5-8): Desenvolvimento específico
+   - Fase 3 (semanas 9-12): Intensificação/Polimento
+
+5. AQUECIMENTO E RECUPERAÇÃO:
+   - Aquecimento específico para cada sessão (8-12 minutos)
+   - Alongamento e mobilidade pós-treino
+   - Protocolos de recuperação entre sessões
 
 RETORNE APENAS um JSON válido no seguinte formato:
 
 {
-  "title": "Plano Periodizado: [Objetivo] - Nível [Nível]",
-  "description": "Plano periodizado de 12 semanas específico para [objetivo principal], considerando [limitações], com ${availableDays} sessões semanais usando [equipamentos]. Desenvolvido considerando perfil individual completo.",
+  "title": "Plano Personalizado: [Objetivo] - Nível [Nível]",
+  "description": "Plano periodizado de 12 semanas específico para [objetivo principal], considerando [limitações], com [X] sessões semanais usando [equipamentos]. Desenvolvido considerando perfil individual completo.",
   "difficulty_level": "iniciante|intermediario|avancado",
   "duration_weeks": 12,
   "exercises": [
     {
-      "name": "Semana 1 - ${dayStructure[0]}: [Exercício Principal 1]",
-      "sets": "3",
+      "name": "DIA 1 - [Nome da Sessão]: Aquecimento Específico",
+      "sets": 1,
+      "reps": "10-12 minutos",
+      "rest": "Transição",
+      "instructions": "AQUECIMENTO DETALHADO: [5-6 exercícios específicos com descrição biomecânica completa, preparação articular, ativação neuromuscular, elevação da temperatura corporal]. Progressão: semana 1-2 (intensidade baixa), semana 3-4 (intensidade moderada)."
+    },
+    {
+      "name": "DIA 1: [Nome do Exercício Principal Específico]",
+      "sets": "3-4",
       "reps": "8-12",
       "rest": "90-120s",
-      "instructions": "EXECUÇÃO TÉCNICA detalhada. Semana 1: Foco na adaptação anatômica. MÚSCULOS: [primários e secundários]. PROGRESSÃO: [detalhes específicos]."
+      "instructions": "EXECUÇÃO TÉCNICA: [Posição inicial detalhada, fase excêntrica, fase concêntrica, respiração, músculos primários e estabilizadores]. PROGRESSÃO: Semana 1-2: [especificações], Semana 3-4: [especificações], etc. ADAPTAÇÕES: [considerações para limitações específicas]. VARIAÇÕES: [alternativas por nível]."
     }
   ],
   "nutrition_tips": [
@@ -178,13 +170,14 @@ RETORNE APENAS um JSON válido no seguinte formato:
 }
 
 REQUISITOS CRÍTICOS:
-- Crie EXATAMENTE ${availableDays * 12} exercícios completos (${availableDays} treinos x 12 semanas)
-- CADA SEMANA deve ter EXATAMENTE ${availableDays} treinos
-- SEMPRE use a nomenclatura: "Semana X - [Dia da Semana]: [Exercício]"
+- Crie NO MÍNIMO ${Math.max(userProfile.available_days || 3, 3) * 5} exercícios completos (incluindo aquecimentos específicos para cada dia)
 - Cada exercício deve ter instruções de NO MÍNIMO 80 palavras
 - Considere TODAS as limitações: ${limitations}
 - Adapte 100% aos equipamentos: ${equipment}
+- Faça progressão semanal específica e realista
+- Use terminology técnica profissional
 - O campo difficulty_level deve ser exatamente: "iniciante", "intermediario", ou "avancado"
+- Seja específico em músculos trabalhados, biomecânica e progressões
 
 RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
 
@@ -206,7 +199,7 @@ RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
           { role: 'user', content: prompt }
         ],
         max_tokens: 8000,
-        temperature: 0.2,
+        temperature: 0.2, // Menor para mais consistência
       }),
     });
 
@@ -289,7 +282,7 @@ RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
         equipment: equipment,
         level: fitnessLevel,
         limitations: limitations,
-        days: availableDays,
+        days: userProfile.available_days || 3,
         duration: userProfile.session_duration || 60
       };
       
@@ -335,24 +328,10 @@ RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
   }
 });
 
-function getDayStructure(availableDays: number): string[] {
-  const dayOptions = [
-    ['Segunda-feira', 'Quarta-feira'],
-    ['Segunda-feira', 'Quarta-feira', 'Sexta-feira'],
-    ['Segunda-feira', 'Terça-feira', 'Quinta-feira', 'Sexta-feira'],
-    ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'],
-    ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'],
-    ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
-  ];
-  
-  return dayOptions[Math.min(availableDays - 1, dayOptions.length - 1)] || dayOptions[2];
-}
-
 function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
   switch (fitnessLevel) {
     case 'sedentario':
     case 'pouco_ativo':
-    case 'iniciante':
       return 'iniciante';
     case 'moderado':
     case 'ativo':
@@ -367,9 +346,8 @@ function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
 }
 
 function createFallbackPlan(userProfile: any) {
-  const level = userProfile?.fitness_level || 'iniciante';
+  const level = userProfile?.fitness_level || 'sedentario';
   const goals = userProfile?.fitness_goals?.[0] || 'condicionamento geral';
-  const availableDays = userProfile?.available_days || 3;
   const difficultyLevel = mapFitnessLevelToDifficulty(level);
   
   // Mapear objetivos para descrição
@@ -380,59 +358,76 @@ function createFallbackPlan(userProfile: any) {
     'condicionamento': 'melhora do condicionamento físico',
     'forca': 'aumento da força',
     'flexibilidade': 'melhora da flexibilidade',
-    'geral': 'condicionamento geral',
-    'hipertrofia': 'ganho de massa muscular e hipertrofia'
+    'geral': 'condicionamento geral'
   };
 
   const goalDesc = goalsDescription[goals] || 'condicionamento geral';
-  const dayStructure = getDayStructure(availableDays);
-  
-  // Criar exercícios garantindo exatamente availableDays treinos por semana
-  const exercises = [];
-  
-  // Exercícios base por dia
-  const exercisesByDay = {
-    'Segunda-feira': ['Agachamento Livre', 'Flexão de Braço', 'Prancha Isométrica'],
-    'Terça-feira': ['Afundo Alternado', 'Flexão Inclinada', 'Ponte Glútea'],
-    'Quarta-feira': ['Agachamento Sumo', 'Flexão Diamante', 'Mountain Climber'],
-    'Quinta-feira': ['Agachamento Búlgaro', 'Flexão Declinada', 'Prancha Lateral'],
-    'Sexta-feira': ['Agachamento Jump', 'Flexão Hindu', 'Burpee Modificado'],
-    'Sábado': ['Circuito Funcional', 'Core Training', 'Mobilidade'],
-    'Domingo': ['Yoga Flow', 'Alongamento', 'Relaxamento']
-  };
-  
-  for (let week = 1; week <= 12; week++) {
-    for (let dayIndex = 0; dayIndex < availableDays; dayIndex++) {
-      const dayName = dayStructure[dayIndex];
-      const dayExercises = exercisesByDay[dayName] || exercisesByDay['Segunda-feira'];
-      
-      dayExercises.forEach((exerciseName) => {
-        exercises.push({
-          name: `Semana ${week} - ${dayName}: ${exerciseName}`,
-          sets: week <= 4 ? 2 : 3,
-          reps: week <= 4 ? "8-10" : "10-15",
-          rest: "60-90s",
-          instructions: `EXECUÇÃO TÉCNICA: Técnica biomecânica detalhada para ${exerciseName}. Semana ${week}: Progressão adequada considerando ${goalDesc}. MÚSCULOS: Grupos musculares específicos trabalhados. ADAPTAÇÕES: Considerações para nível ${difficultyLevel}.`
-        });
-      });
-    }
-  }
   
   return {
-    title: `Plano Periodizado ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
-    description: `Plano periodizado de 12 semanas específico para ${goalDesc} para nível ${difficultyLevel}, com ${availableDays} sessões semanais. Este treino foi desenvolvido considerando seu perfil e objetivos específicos.`,
+    title: `Plano de Treino ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
+    description: `Plano personalizado focado em ${goalDesc} para nível ${difficultyLevel}. Este treino foi desenvolvido considerando seu perfil e objetivos específicos.`,
     difficulty_level: difficultyLevel,
     duration_weeks: 12,
     source: 'fallback',
-    exercises: exercises,
+    exercises: [
+      {
+        name: "Segunda-feira: Aquecimento Dinâmico",
+        sets: 1,
+        reps: "8-10 minutos",
+        rest: "N/A",
+        instructions: "Aquecimento articular completo: rotações de pescoço, ombros, quadris e tornozelos. Caminhada no local com elevação gradual dos joelhos. Polichinelos leves. Prepare o corpo para os exercícios principais."
+      },
+      {
+        name: "Segunda-feira: Agachamento Livre",
+        sets: level === 'sedentario' ? 3 : 4,
+        reps: level === 'sedentario' ? "8-10" : "12-15",
+        rest: "90s",
+        instructions: "Posição inicial: pés na largura dos ombros, pontas levemente para fora. Descida: flexione quadris e joelhos simultaneamente, mantendo o peso nos calcanhares. Desça até coxas paralelas ao chão. Subida: empurre o chão com os pés, ativando glúteos e quadríceps. Mantenha o tronco ereto e core ativado durante todo movimento."
+      },
+      {
+        name: "Segunda-feira: Flexão de Braço",
+        sets: 3,
+        reps: level === 'sedentario' ? "5-8" : "10-15",
+        rest: "60s",
+        instructions: "Posição: apoio nas mãos (na largura dos ombros) e pontas dos pés. Corpo alinhado da cabeça aos calcanhares. Descida controlada até peito quase tocar o solo. Subida explosiva estendendo completamente os braços. Respiração: inspire na descida, expire na subida. Variação mais fácil: apoio nos joelhos."
+      },
+      {
+        name: "Quarta-feira: Prancha Isométrica",
+        sets: 3,
+        reps: level === 'sedentario' ? "20-30s" : "45-60s",
+        rest: "45s",
+        instructions: "Posição: apoio nos antebraços e pontas dos pés. Corpo reto como uma tábua. Core contraído, glúteos ativados. Respiração normal e controlada. Olhar fixo no chão. Evite arquear as costas ou elevar muito o quadril. Foque na qualidade da contração abdominal."
+      },
+      {
+        name: "Quarta-feira: Afundo Alternado",
+        sets: 3,
+        reps: level === 'sedentario' ? "6-8 cada perna" : "10-12 cada perna",
+        rest: "60s",
+        instructions: "Passo à frente amplo, descendo até formar 90° em ambos os joelhos. Joelho da frente alinhado com o tornozelo. Tronco ereto, core ativado. Impulso com perna da frente para retornar. Alterne as pernas. Trabalha quadríceps, glúteos e melhora equilíbrio e coordenação."
+      },
+      {
+        name: "Sexta-feira: Burpee Modificado",
+        sets: level === 'sedentario' ? 2 : 3,
+        reps: level === 'sedentario' ? "3-5" : "5-8",
+        rest: "90s",
+        instructions: "Movimento completo: agachamento, apoio no chão, extensão das pernas (posição de flexão), retorno à posição de agachamento, salto com braços elevados. Exercício metabólico completo que trabalha força e condicionamento. Execute com controle, priorizando a técnica sobre a velocidade."
+      },
+      {
+        name: "Alongamento Final Completo",
+        sets: 1,
+        reps: "10-15 minutos",
+        rest: "N/A",
+        instructions: "Sequência de alongamentos estáticos: quadríceps (30s), isquiotibiais (30s), panturrilha (30s), glúteos (30s), peitoral (30s), ombros (30s), lombar (30s). Respiração profunda e relaxante. Mantenha cada posição sem dor, apenas tensão confortável. Essencial para recuperação e flexibilidade."
+      }
+    ],
     nutrition_tips: [
-      "Semana 1-2: Proteína pós-treino moderada (15-20g) para adaptação inicial",
-      "Semana 3-4: Aumento para 25-30g de proteína pós-treino para suporte à recuperação",
-      "Hidratação progressiva: 35ml por kg de peso + 300ml extra nas primeiras semanas",
-      "Carboidratos pré-treino: começar com 20-30g, progredir para 30-50g",
-      "Timing nutricional: manter consistência nos horários das refeições",
-      "Sono reparador: 7-9h por noite, especialmente importante nas primeiras semanas",
-      "Suplementação básica: considere apenas após a terceira semana de adaptação"
+      "Proteína pós-treino: consuma 20-30g dentro de 30min após exercitar-se (whey, ovos, frango, peixe)",
+      "Hidratação otimizada: 35ml por kg de peso corporal + 500-750ml extra nos dias de treino",
+      "Carboidratos pré-treino: consuma 30-50g de carboidratos complexos 1-2h antes (aveia, batata-doce, banana)",
+      "Timing nutricional: café da manhã rico em proteína, almoço balanceado, jantar leve 3h antes de dormir",
+      "Micronutrientes essenciais: inclua vegetais coloridos, frutas variadas e oleaginosas para vitaminas e minerais",
+      "Sono reparador: 7-9h por noite para recuperação muscular e produção de hormônios anabólicos",
+      "Suplementação básica: considere vitamina D, ômega-3 e multivitamínico após consulta profissional"
     ]
   };
 }
