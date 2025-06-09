@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { GamificationManager } from './GamificationPersistentManager';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GamificationSectionProps {
   user: SupabaseUser | null;
