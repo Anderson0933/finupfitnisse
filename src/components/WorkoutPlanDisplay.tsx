@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,8 +30,6 @@ import {
   Flame
 } from 'lucide-react';
 import { WorkoutPlan } from './WorkoutPlanGenerator';
-import { useWorkoutCompletion } from '@/hooks/useWorkoutCompletion';
-import { User as SupabaseUser } from '@supabase/supabase-js';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,8 +49,7 @@ interface WorkoutPlanDisplayProps {
   onGenerateNew: () => void;
   progressMap: Map<string, boolean>;
   onProgressChange: (itemIdentifier: string, currentStatus: boolean) => void;
-  onSwitchToAssistant?: () => void;
-  user: SupabaseUser | null;
+  onSwitchToAssistant?: () => void; // Nova prop para navegação
 }
 
 const WorkoutPlanDisplay = ({
@@ -61,11 +59,8 @@ const WorkoutPlanDisplay = ({
   onGenerateNew,
   progressMap,
   onProgressChange,
-  onSwitchToAssistant,
-  user
+  onSwitchToAssistant
 }: WorkoutPlanDisplayProps) => {
-  const { handleWorkoutCompletion } = useWorkoutCompletion(user);
-
   const getDifficultyColor = (level: string) => {
     switch (level) {
       case 'iniciante': return 'bg-green-100 text-green-800 border-green-300';
@@ -130,39 +125,6 @@ const WorkoutPlanDisplay = ({
     if (name.includes('abdominal') || name.includes('prancha')) return <Target className="h-5 w-5 text-purple-500" />;
     if (name.includes('cardio') || name.includes('corrida')) return <Heart className="h-5 w-5 text-red-500" />;
     return <Dumbbell className="h-5 w-5 text-gray-500" />;
-  };
-
-  const handleExerciseCompletion = async (itemIdentifier: string, currentStatus: boolean) => {
-    console.log('🎯 Exercise completion triggered:', { itemIdentifier, currentStatus });
-    
-    // Calcular o novo status (inverso do atual)
-    const newStatus = !currentStatus;
-    console.log('🔄 Status mudará de', currentStatus, 'para', newStatus);
-    
-    // Atualizar o progresso local PRIMEIRO - passando o novo status
-    onProgressChange(itemIdentifier, newStatus);
-    
-    // Se o exercício foi marcado como concluído (novo status = true)
-    if (newStatus) {
-      console.log('💪 Exercício sendo marcado como concluído! Registrando no sistema de gamificação...');
-      
-      // Determinar XP baseado no nível de dificuldade do plano
-      let xpGained = 10; // XP base por exercício
-      if (plan.difficulty_level === 'intermediario') {
-        xpGained = 15;
-      } else if (plan.difficulty_level === 'avancado') {
-        xpGained = 20;
-      }
-      
-      try {
-        await handleWorkoutCompletion(xpGained);
-        console.log(`✅ Registrado: +${xpGained} XP pela conclusão do exercício`);
-      } catch (error) {
-        console.error('❌ Erro ao registrar conclusão do exercício:', error);
-      }
-    } else {
-      console.log('📝 Exercício sendo desmarcado');
-    }
   };
 
   const completedExercises = plan.exercises?.filter((_, index) => {
@@ -328,10 +290,7 @@ const WorkoutPlanDisplay = ({
                         <div className="flex flex-col items-center gap-2">
                           <Checkbox
                             checked={isCompleted}
-                            onCheckedChange={() => {
-                              console.log('🔄 Checkbox clicked:', { itemIdentifier, currentStatus: isCompleted });
-                              handleExerciseCompletion(itemIdentifier, isCompleted);
-                            }}
+                            onCheckedChange={() => onProgressChange(itemIdentifier, isCompleted)}
                             className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 w-5 h-5"
                           />
                           {getExerciseTypeIcon(exercise.name)}
