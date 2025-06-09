@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +12,7 @@ import ProgressTracker from '@/components/ProgressTracker';
 import NutritionAssistant from '@/components/NutritionAssistant';
 import PaymentManager from '@/components/PaymentManager';
 import DailyTip from '@/components/DailyTip';
-import WorkoutStreak from '@/components/WorkoutStreak';
+import WeatherWidget from '@/components/WeatherWidget';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
@@ -271,11 +270,11 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Novos componentes: Dica do Dia e Streak de Treinos */}
+        {/* Novos componentes: Dica do Dia e Weather Widget */}
         {hasAccess && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 md:mb-8">
             <DailyTip />
-            <WorkoutStreak user={user} />
+            <WeatherWidget />
           </div>
         )}
 
