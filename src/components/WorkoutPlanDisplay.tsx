@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ interface WorkoutPlanDisplayProps {
   onGenerateNew: () => void;
   progressMap: Map<string, boolean>;
   onProgressChange: (itemIdentifier: string, currentStatus: boolean) => void;
+  onSwitchToAssistant?: () => void; // Nova prop para navegação
 }
 
 const WorkoutPlanDisplay = ({
@@ -56,7 +58,8 @@ const WorkoutPlanDisplay = ({
   onDeletePlan,
   onGenerateNew,
   progressMap,
-  onProgressChange
+  onProgressChange,
+  onSwitchToAssistant
 }: WorkoutPlanDisplayProps) => {
   const getDifficultyColor = (level: string) => {
     switch (level) {
@@ -76,69 +79,41 @@ const WorkoutPlanDisplay = ({
     }
   };
 
-  const handleMainTabSwitch = (tabValue: string) => {
-    console.log('🎯 Tentando mudar para a tab:', tabValue);
+  const handleMainTabSwitch = () => {
+    console.log('🎯 Tentando mudar para a tab do assistente');
     
-    // Múltiplas estratégias para encontrar e clicar na tab
-    const strategies = [
-      // Estratégia 1: Buscar por data-value específico
-      () => document.querySelector(`[data-value="${tabValue}"]`) as HTMLElement,
-      
-      // Estratégia 2: Buscar por value em tabs com role="tab"
-      () => document.querySelector(`[role="tab"][value="${tabValue}"]`) as HTMLElement,
-      
-      // Estratégia 3: Buscar dentro do container main-dashboard-tabs
-      () => {
-        const container = document.querySelector('.main-dashboard-tabs');
-        return container?.querySelector(`[value="${tabValue}"]`) as HTMLElement;
-      },
-      
-      // Estratégia 4: Buscar por texto contendo "Assistente"
-      () => {
-        const triggers = document.querySelectorAll('[role="tab"]');
-        for (const trigger of triggers) {
-          if (trigger.textContent?.toLowerCase().includes('assistente')) {
-            return trigger as HTMLElement;
-          }
-        }
-        return null;
-      }
-    ];
-
-    let targetTrigger: HTMLElement | null = null;
-    
-    // Tentar cada estratégia até encontrar o trigger
-    for (let i = 0; i < strategies.length; i++) {
-      targetTrigger = strategies[i]();
-      if (targetTrigger) {
-        console.log(`✅ Trigger encontrado com estratégia ${i + 1}`);
-        break;
-      }
-    }
-    
-    if (targetTrigger) {
-      console.log('🎯 Clicando no trigger do assistente');
-      targetTrigger.click();
-      
-      // Verificar se funcionou após um pequeno delay
-      setTimeout(() => {
-        const activeTab = document.querySelector('[data-state="active"][role="tab"]');
-        console.log('📊 Tab ativa após click:', activeTab?.getAttribute('value') || activeTab?.textContent);
-      }, 100);
+    if (onSwitchToAssistant) {
+      console.log('✅ Usando callback para mudar para assistente');
+      onSwitchToAssistant();
     } else {
-      console.warn('❌ Nenhuma estratégia conseguiu encontrar a tab');
+      console.warn('❌ Callback onSwitchToAssistant não fornecido');
+      // Fallback para o método anterior
+      const mainTabsContainer = document.querySelector('.main-dashboard-tabs');
+      console.log('📋 Container das tabs encontrado:', !!mainTabsContainer);
       
-      // Debug: mostrar todas as tabs disponíveis
-      const allTriggers = document.querySelectorAll('[role="tab"]');
-      console.log('🔍 Debug - Todas as tabs encontradas:');
-      allTriggers.forEach((trigger, index) => {
-        console.log(`Tab ${index}:`, {
-          value: trigger.getAttribute('value'),
-          dataValue: trigger.getAttribute('data-value'),
-          text: trigger.textContent?.trim(),
-          element: trigger
-        });
-      });
+      if (mainTabsContainer) {
+        const targetTrigger = mainTabsContainer.querySelector(`[value="assistant"]`) as HTMLElement;
+        console.log('🎯 Trigger encontrado:', !!targetTrigger);
+        
+        if (targetTrigger) {
+          console.log('✅ Clicando no trigger do assistente');
+          targetTrigger.click();
+          
+          setTimeout(() => {
+            const activeTab = mainTabsContainer.querySelector('[data-state="active"]');
+            console.log('📊 Tab ativa após click:', activeTab?.getAttribute('value'));
+          }, 100);
+        } else {
+          console.warn(`❌ Tab com value "assistant" não encontrada`);
+          const allTriggers = mainTabsContainer.querySelectorAll('[role="tab"]');
+          console.log('🔍 Todos os triggers encontrados:', allTriggers.length);
+          allTriggers.forEach((trigger, index) => {
+            console.log(`Tab ${index}:`, trigger.getAttribute('value'), trigger.textContent);
+          });
+        }
+      } else {
+        console.warn('❌ Container das tabs principais não encontrado');
+      }
     }
   };
 
@@ -182,7 +157,7 @@ const WorkoutPlanDisplay = ({
               </div>
             </div>
             <Button 
-              onClick={() => handleMainTabSwitch('assistant')}
+              onClick={handleMainTabSwitch}
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs md:text-sm px-3 md:px-4 py-2 flex-shrink-0 shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <MessageCircle className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
