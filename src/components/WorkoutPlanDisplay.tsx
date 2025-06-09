@@ -79,49 +79,88 @@ const WorkoutPlanDisplay = ({
     }
   };
 
-  // Função para organizar exercícios por dia da semana
-  const organizeExercisesByDay = (exercises: any[]) => {
-    const daysOfWeek = [
-      'Segunda-feira', 'Terça-feira', 'Quarta-feira', 
-      'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'
-    ];
-    
-    const exercisesByDay: { [key: string]: any[] } = {};
+  // Função para organizar exercícios por semanas e dias
+  const organizeExercisesByWeeksAndDays = (exercises: any[]) => {
+    const weeklyPlan: { [key: string]: { [key: string]: any[] } } = {};
     
     exercises.forEach((exercise, index) => {
       const exerciseName = exercise.name.toLowerCase();
       
-      // Detectar o dia baseado no nome do exercício
-      let dayKey = '';
+      // Detectar semana
+      let weekKey = 'Primeira Semana';
+      if (exerciseName.includes('semana 2') || exerciseName.includes('segunda semana')) {
+        weekKey = 'Segunda Semana';
+      } else if (exerciseName.includes('semana 3') || exerciseName.includes('terceira semana')) {
+        weekKey = 'Terceira Semana';
+      } else if (exerciseName.includes('semana 4') || exerciseName.includes('quarta semana')) {
+        weekKey = 'Quarta Semana';
+      } else if (exerciseName.includes('semana 5') || exerciseName.includes('quinta semana')) {
+        weekKey = 'Quinta Semana';
+      } else if (exerciseName.includes('semana 6') || exerciseName.includes('sexta semana')) {
+        weekKey = 'Sexta Semana';
+      } else if (exerciseName.includes('semana 7') || exerciseName.includes('sétima semana')) {
+        weekKey = 'Sétima Semana';
+      } else if (exerciseName.includes('semana 8') || exerciseName.includes('oitava semana')) {
+        weekKey = 'Oitava Semana';
+      } else if (exerciseName.includes('semana 9') || exerciseName.includes('nona semana')) {
+        weekKey = 'Nona Semana';
+      } else if (exerciseName.includes('semana 10') || exerciseName.includes('décima semana')) {
+        weekKey = 'Décima Semana';
+      } else if (exerciseName.includes('semana 11') || exerciseName.includes('décima primeira semana')) {
+        weekKey = 'Décima Primeira Semana';
+      } else if (exerciseName.includes('semana 12') || exerciseName.includes('décima segunda semana')) {
+        weekKey = 'Décima Segunda Semana';
+      }
       
-      if (exerciseName.includes('dia 1') || exerciseName.includes('segunda')) {
-        dayKey = 'Segunda-feira';
-      } else if (exerciseName.includes('dia 2') || exerciseName.includes('terça')) {
-        dayKey = 'Terça-feira';
-      } else if (exerciseName.includes('dia 3') || exerciseName.includes('quarta')) {
-        dayKey = 'Quarta-feira';
-      } else if (exerciseName.includes('dia 4') || exerciseName.includes('quinta')) {
-        dayKey = 'Quinta-feira';
-      } else if (exerciseName.includes('dia 5') || exerciseName.includes('sexta')) {
-        dayKey = 'Sexta-feira';
+      // Detectar dia da semana
+      let dayKey = 'Treino 1';
+      if (exerciseName.includes('dia 1') || exerciseName.includes('segunda') || exerciseName.includes('treino a')) {
+        dayKey = 'Treino 1 - Segunda-feira';
+      } else if (exerciseName.includes('dia 2') || exerciseName.includes('terça') || exerciseName.includes('treino b')) {
+        dayKey = 'Treino 2 - Terça-feira';
+      } else if (exerciseName.includes('dia 3') || exerciseName.includes('quarta') || exerciseName.includes('treino c')) {
+        dayKey = 'Treino 3 - Quarta-feira';
+      } else if (exerciseName.includes('dia 4') || exerciseName.includes('quinta') || exerciseName.includes('treino d')) {
+        dayKey = 'Treino 4 - Quinta-feira';
+      } else if (exerciseName.includes('dia 5') || exerciseName.includes('sexta') || exerciseName.includes('treino e')) {
+        dayKey = 'Treino 5 - Sexta-feira';
       } else if (exerciseName.includes('sábado') || exerciseName.includes('sabado')) {
-        dayKey = 'Sábado';
+        dayKey = 'Treino 6 - Sábado';
       } else if (exerciseName.includes('domingo')) {
-        dayKey = 'Domingo';
+        dayKey = 'Treino 7 - Domingo';
       } else {
-        // Se não conseguir detectar o dia, usar um contador
+        // Fallback: distribuir por índice
         const dayIndex = index % 7;
-        dayKey = daysOfWeek[dayIndex];
+        const dayNames = [
+          'Treino 1 - Segunda-feira', 'Treino 2 - Terça-feira', 'Treino 3 - Quarta-feira',
+          'Treino 4 - Quinta-feira', 'Treino 5 - Sexta-feira', 'Treino 6 - Sábado', 'Treino 7 - Domingo'
+        ];
+        dayKey = dayNames[dayIndex];
       }
       
-      if (!exercisesByDay[dayKey]) {
-        exercisesByDay[dayKey] = [];
+      if (!weeklyPlan[weekKey]) {
+        weeklyPlan[weekKey] = {};
       }
       
-      exercisesByDay[dayKey].push({ ...exercise, originalIndex: index });
+      if (!weeklyPlan[weekKey][dayKey]) {
+        weeklyPlan[weekKey][dayKey] = [];
+      }
+      
+      // Limpar o nome do exercício removendo prefixos
+      const cleanName = exercise.name
+        .replace(/DIA \d+\s*[-:]?\s*/i, '')
+        .replace(/SEMANA \d+\s*[-:]?\s*/i, '')
+        .replace(/TREINO [A-Z]\s*[-:]?\s*/i, '')
+        .trim();
+      
+      weeklyPlan[weekKey][dayKey].push({ 
+        ...exercise, 
+        name: cleanName,
+        originalIndex: index 
+      });
     });
     
-    return exercisesByDay;
+    return weeklyPlan;
   };
 
   const handleMainTabSwitch = () => {
@@ -180,7 +219,7 @@ const WorkoutPlanDisplay = ({
   const totalExercises = plan.exercises?.length || 0;
   const progressPercentage = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
-  const exercisesByDay = organizeExercisesByDay(plan.exercises || []);
+  const weeklyPlan = organizeExercisesByWeeksAndDays(plan.exercises || []);
 
   return (
     <div className="space-y-6">
@@ -307,124 +346,143 @@ const WorkoutPlanDisplay = ({
         </CardHeader>
 
         <CardContent className="p-6">
-          {/* Exercícios organizados por dia da semana */}
-          <div className="space-y-6">
+          {/* Exercícios organizados por semanas e dias */}
+          <div className="space-y-8">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold text-green-800 flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-lg">
                   <Dumbbell className="h-6 w-6 text-green-600" />
                 </div>
-                Plano Semanal Personalizado
+                Plano Periodizado de {plan.duration_weeks} Semanas
               </h3>
               <div className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
                 {completedExercises} de {totalExercises} concluídos
               </div>
             </div>
             
-            {Object.entries(exercisesByDay).map(([dayName, dayExercises]) => (
-              <Card key={dayName} className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-green-50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-bold text-blue-800 flex items-center gap-3">
-                    <div className="p-2 bg-blue-600 rounded-lg shadow-md">
-                      <Calendar className="h-5 w-5 text-white" />
+            {Object.entries(weeklyPlan).map(([weekName, weekDays]) => (
+              <Card key={weekName} className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl font-bold text-purple-800 flex items-center gap-3">
+                    <div className="p-2 bg-purple-600 rounded-lg shadow-md">
+                      <Calendar className="h-6 w-6 text-white" />
                     </div>
-                    {dayName}
-                    <Badge variant="outline" className="text-blue-700 border-blue-300 text-xs">
-                      {dayExercises.length} exercício{dayExercises.length > 1 ? 's' : ''}
+                    {weekName}
+                    <Badge variant="outline" className="text-purple-700 border-purple-300 text-sm">
+                      {Object.keys(weekDays).length} treino{Object.keys(weekDays).length > 1 ? 's' : ''}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {dayExercises.map((exercise, exerciseIndex) => {
-                      const itemIdentifier = `${exercise.name}_${exercise.originalIndex}`;
-                      const isCompleted = progressMap.get(itemIdentifier) || false;
-                      
-                      return (
-                        <Card key={exerciseIndex} className={`border transition-all duration-300 hover:shadow-md ${
-                          isCompleted 
-                            ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-300' 
-                            : 'border-gray-200 hover:border-blue-300'
-                        }`}>
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-4">
-                              <div className="flex flex-col items-center gap-2">
-                                <Checkbox
-                                  checked={isCompleted}
-                                  onCheckedChange={() => onProgressChange(itemIdentifier, isCompleted)}
-                                  className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 w-5 h-5"
-                                />
-                                {getExerciseTypeIcon(exercise.name)}
-                              </div>
-                              
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-3 mb-3">
-                                  <h4 className={`font-bold text-base ${
-                                    isCompleted 
-                                      ? 'text-green-800 line-through opacity-75' 
-                                      : 'text-gray-800'
-                                  }`}>
-                                    {exercise.name.replace(/DIA \d+\s*[-:]?\s*/i, '').trim()}
-                                  </h4>
-                                  {isCompleted && (
-                                    <Badge className="bg-green-100 text-green-800 border-green-300 text-xs px-2 py-1">
-                                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                                      Concluído
-                                    </Badge>
-                                  )}
-                                </div>
-                                
-                                {/* Métricas do exercício */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                                  <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                                    <Target className="h-4 w-4 text-blue-600" />
-                                    <div>
-                                      <span className="font-semibold text-blue-800 text-sm">Séries:</span>
-                                      <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-blue-700'}`}>
-                                        {exercise.sets}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
-                                    <Activity className="h-4 w-4 text-purple-600" />
-                                    <div>
-                                      <span className="font-semibold text-purple-800 text-sm">Reps:</span>
-                                      <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-purple-700'}`}>
-                                        {exercise.reps}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
-                                    <Timer className="h-4 w-4 text-orange-600" />
-                                    <div>
-                                      <span className="font-semibold text-orange-800 text-sm">Descanso:</span>
-                                      <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-orange-700'}`}>
-                                        {exercise.rest}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {/* Instruções detalhadas */}
-                                <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <Info className="h-4 w-4 text-gray-600" />
-                                    <span className="font-semibold text-gray-800 text-sm">Instruções:</span>
-                                  </div>
-                                  <p className={`text-sm leading-relaxed ${
-                                    isCompleted ? 'text-green-700' : 'text-gray-700'
-                                  }`}>
-                                    {exercise.instructions}
-                                  </p>
-                                </div>
-                              </div>
+                  <div className="space-y-6">
+                    {Object.entries(weekDays).map(([dayName, dayExercises]) => (
+                      <Card key={dayName} className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-green-50">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg font-bold text-blue-800 flex items-center gap-3">
+                            <div className="p-2 bg-blue-600 rounded-lg shadow-md">
+                              <Activity className="h-5 w-5 text-white" />
                             </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                            {dayName}
+                            <Badge variant="outline" className="text-blue-700 border-blue-300 text-xs">
+                              {dayExercises.length} exercício{dayExercises.length > 1 ? 's' : ''}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {dayExercises.map((exercise, exerciseIndex) => {
+                              const itemIdentifier = `${exercise.name}_${exercise.originalIndex}`;
+                              const isCompleted = progressMap.get(itemIdentifier) || false;
+                              
+                              return (
+                                <Card key={exerciseIndex} className={`border transition-all duration-300 hover:shadow-md ${
+                                  isCompleted 
+                                    ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-300' 
+                                    : 'border-gray-200 hover:border-blue-300'
+                                }`}>
+                                  <CardContent className="p-4">
+                                    <div className="flex items-start gap-4">
+                                      <div className="flex flex-col items-center gap-2">
+                                        <Checkbox
+                                          checked={isCompleted}
+                                          onCheckedChange={() => onProgressChange(itemIdentifier, isCompleted)}
+                                          className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 w-5 h-5"
+                                        />
+                                        {getExerciseTypeIcon(exercise.name)}
+                                      </div>
+                                      
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-3 mb-3">
+                                          <h4 className={`font-bold text-base ${
+                                            isCompleted 
+                                              ? 'text-green-800 line-through opacity-75' 
+                                              : 'text-gray-800'
+                                          }`}>
+                                            {exercise.name}
+                                          </h4>
+                                          {isCompleted && (
+                                            <Badge className="bg-green-100 text-green-800 border-green-300 text-xs px-2 py-1">
+                                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                                              Concluído
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Métricas do exercício */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                                          <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                                            <Target className="h-4 w-4 text-blue-600" />
+                                            <div>
+                                              <span className="font-semibold text-blue-800 text-sm">Séries:</span>
+                                              <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-blue-700'}`}>
+                                                {exercise.sets}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
+                                            <Activity className="h-4 w-4 text-purple-600" />
+                                            <div>
+                                              <span className="font-semibold text-purple-800 text-sm">Reps:</span>
+                                              <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-purple-700'}`}>
+                                                {exercise.reps}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="flex items-center gap-2 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
+                                            <Timer className="h-4 w-4 text-orange-600" />
+                                            <div>
+                                              <span className="font-semibold text-orange-800 text-sm">Descanso:</span>
+                                              <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-orange-700'}`}>
+                                                {exercise.rest}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Instruções detalhadas */}
+                                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <Info className="h-4 w-4 text-gray-600" />
+                                            <span className="font-semibold text-gray-800 text-sm">Instruções:</span>
+                                          </div>
+                                          <p className={`text-sm leading-relaxed ${
+                                            isCompleted ? 'text-green-700' : 'text-gray-700'
+                                          }`}>
+                                            {exercise.instructions}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

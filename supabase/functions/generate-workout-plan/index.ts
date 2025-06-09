@@ -109,56 +109,73 @@ PERFIL COMPLETO DO ALUNO:
 
 INSTRUÇÕES DETALHADAS PARA UM PLANO PROFISSIONAL:
 
-1. ESTRUTURA DO TREINO:
-   - Crie um plano periodizado com divisão específica para ${userProfile.available_days || 3} dias
-   - Inclua progressão semanal detalhada (semanas 1-4, 5-8, 9-12)
-   - Considere volume, intensidade e densidade apropriados para o nível
-   - Adapte completamente aos equipamentos disponíveis
+1. ESTRUTURA DO TREINO PERIODIZADO:
+   - Crie um plano de 12 semanas dividido em 4 fases de 3 semanas cada
+   - PRIMEIRA SEMANA: Adaptação anatômica (cargas leves, foco na técnica)
+   - SEGUNDA SEMANA: Progressão gradual (aumento de 10-15% na intensidade)
+   - TERCEIRA SEMANA: Consolidação (manutenção da carga, melhora da execução)
+   - QUARTA SEMANA: Progressão para próxima fase
+   - Continue este padrão até a 12ª semana
 
-2. EXERCÍCIOS ESPECÍFICOS:
+2. NOMENCLATURA OBRIGATÓRIA DOS EXERCÍCIOS:
+   - Use SEMPRE: "PRIMEIRA SEMANA - Treino 1: [Nome do Exercício]"
+   - Use SEMPRE: "SEGUNDA SEMANA - Treino 1: [Nome do Exercício]"
+   - Use SEMPRE: "TERCEIRA SEMANA - Treino 2: [Nome do Exercício]"
+   - E assim por diante até "DÉCIMA SEGUNDA SEMANA"
+   - Para aquecimentos: "PRIMEIRA SEMANA - Aquecimento Específico"
+
+3. EXERCÍCIOS ESPECÍFICOS:
    - Escolha exercícios que maximizem o objetivo: ${goals}
    - Inclua variações progressivas e regressivas
    - Especifique técnica de execução biomecânica detalhada
    - Adicione músculos primários e secundários trabalhados
    - Inclua tempo sob tensão e cadência quando relevante
 
-3. PRESCRIÇÃO DETALHADA:
-   - Séries, repetições e descanso específicos por fase
+4. PRESCRIÇÃO DETALHADA:
+   - Séries, repetições e descanso específicos por semana
    - Percentual de carga ou percepção de esforço
    - Progressões semanais concretas
    - Adaptações para limitações: ${limitations}
 
-4. PERIODIZAÇÃO:
-   - Fase 1 (semanas 1-4): Adaptação anatômica
-   - Fase 2 (semanas 5-8): Desenvolvimento específico
-   - Fase 3 (semanas 9-12): Intensificação/Polimento
+5. PERIODIZAÇÃO POR SEMANAS:
+   - Semanas 1-3: Adaptação anatômica
+   - Semanas 4-6: Desenvolvimento básico
+   - Semanas 7-9: Intensificação
+   - Semanas 10-12: Polimento/Pico
 
-5. AQUECIMENTO E RECUPERAÇÃO:
-   - Aquecimento específico para cada sessão (8-12 minutos)
+6. AQUECIMENTO E RECUPERAÇÃO:
+   - Aquecimento específico para cada semana (8-12 minutos)
    - Alongamento e mobilidade pós-treino
    - Protocolos de recuperação entre sessões
 
 RETORNE APENAS um JSON válido no seguinte formato:
 
 {
-  "title": "Plano Personalizado: [Objetivo] - Nível [Nível]",
+  "title": "Plano Periodizado: [Objetivo] - Nível [Nível]",
   "description": "Plano periodizado de 12 semanas específico para [objetivo principal], considerando [limitações], com [X] sessões semanais usando [equipamentos]. Desenvolvido considerando perfil individual completo.",
   "difficulty_level": "iniciante|intermediario|avancado",
   "duration_weeks": 12,
   "exercises": [
     {
-      "name": "DIA 1 - [Nome da Sessão]: Aquecimento Específico",
+      "name": "PRIMEIRA SEMANA - Aquecimento Específico",
       "sets": 1,
       "reps": "10-12 minutos",
       "rest": "Transição",
-      "instructions": "AQUECIMENTO DETALHADO: [5-6 exercícios específicos com descrição biomecânica completa, preparação articular, ativação neuromuscular, elevação da temperatura corporal]. Progressão: semana 1-2 (intensidade baixa), semana 3-4 (intensidade moderada)."
+      "instructions": "AQUECIMENTO DETALHADO: [5-6 exercícios específicos com descrição biomecânica completa, preparação articular, ativação neuromuscular, elevação da temperatura corporal]. Progressão específica para primeira semana com intensidade baixa."
     },
     {
-      "name": "DIA 1: [Nome do Exercício Principal Específico]",
-      "sets": "3-4",
+      "name": "PRIMEIRA SEMANA - Treino 1: [Nome do Exercício Principal Específico]",
+      "sets": "3",
       "reps": "8-12",
       "rest": "90-120s",
-      "instructions": "EXECUÇÃO TÉCNICA: [Posição inicial detalhada, fase excêntrica, fase concêntrica, respiração, músculos primários e estabilizadores]. PROGRESSÃO: Semana 1-2: [especificações], Semana 3-4: [especificações], etc. ADAPTAÇÕES: [considerações para limitações específicas]. VARIAÇÕES: [alternativas por nível]."
+      "instructions": "EXECUÇÃO TÉCNICA: [Posição inicial detalhada, fase excêntrica, fase concêntrica, respiração, músculos primários e estabilizadores]. PRIMEIRA SEMANA: Foco total na adaptação anatômica e aprendizado motor. ADAPTAÇÕES: [considerações para limitações específicas]. VARIAÇÕES: [alternativas por nível]."
+    },
+    {
+      "name": "SEGUNDA SEMANA - Treino 1: [Mesmo exercício com progressão]",
+      "sets": "3-4",
+      "reps": "10-15",
+      "rest": "90-120s",
+      "instructions": "EXECUÇÃO TÉCNICA: [mesma base técnica]. SEGUNDA SEMANA: Progressão gradual com 10-15% mais intensidade ou volume. Manter foco na técnica perfeita. ADAPTAÇÕES: [considerações específicas]. VARIAÇÕES: [progressões para segunda semana]."
     }
   ],
   "nutrition_tips": [
@@ -170,7 +187,8 @@ RETORNE APENAS um JSON válido no seguinte formato:
 }
 
 REQUISITOS CRÍTICOS:
-- Crie NO MÍNIMO ${Math.max(userProfile.available_days || 3, 3) * 5} exercícios completos (incluindo aquecimentos específicos para cada dia)
+- Crie NO MÍNIMO ${Math.max(userProfile.available_days || 3, 3) * 12} exercícios completos (incluindo progressões semanais)
+- SEMPRE use a nomenclatura: "PRIMEIRA SEMANA", "SEGUNDA SEMANA", etc.
 - Cada exercício deve ter instruções de NO MÍNIMO 80 palavras
 - Considere TODAS as limitações: ${limitations}
 - Adapte 100% aos equipamentos: ${equipment}
@@ -364,70 +382,70 @@ function createFallbackPlan(userProfile: any) {
   const goalDesc = goalsDescription[goals] || 'condicionamento geral';
   
   return {
-    title: `Plano de Treino ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
-    description: `Plano personalizado focado em ${goalDesc} para nível ${difficultyLevel}. Este treino foi desenvolvido considerando seu perfil e objetivos específicos.`,
+    title: `Plano Periodizado ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
+    description: `Plano periodizado de 12 semanas específico para ${goalDesc} para nível ${difficultyLevel}. Este treino foi desenvolvido considerando seu perfil e objetivos específicos.`,
     difficulty_level: difficultyLevel,
     duration_weeks: 12,
     source: 'fallback',
     exercises: [
       {
-        name: "Segunda-feira: Aquecimento Dinâmico",
+        name: "PRIMEIRA SEMANA - Aquecimento Dinâmico",
         sets: 1,
         reps: "8-10 minutos",
         rest: "N/A",
-        instructions: "Aquecimento articular completo: rotações de pescoço, ombros, quadris e tornozelos. Caminhada no local com elevação gradual dos joelhos. Polichinelos leves. Prepare o corpo para os exercícios principais."
+        instructions: "Aquecimento articular completo: rotações de pescoço, ombros, quadris e tornozelos. Caminhada no local com elevação gradual dos joelhos. Polichinelos leves. PRIMEIRA SEMANA: Foco na adaptação e preparação do sistema cardiovascular."
       },
       {
-        name: "Segunda-feira: Agachamento Livre",
-        sets: level === 'sedentario' ? 3 : 4,
-        reps: level === 'sedentario' ? "8-10" : "12-15",
-        rest: "90s",
-        instructions: "Posição inicial: pés na largura dos ombros, pontas levemente para fora. Descida: flexione quadris e joelhos simultaneamente, mantendo o peso nos calcanhares. Desça até coxas paralelas ao chão. Subida: empurre o chão com os pés, ativando glúteos e quadríceps. Mantenha o tronco ereto e core ativado durante todo movimento."
-      },
-      {
-        name: "Segunda-feira: Flexão de Braço",
-        sets: 3,
-        reps: level === 'sedentario' ? "5-8" : "10-15",
-        rest: "60s",
-        instructions: "Posição: apoio nas mãos (na largura dos ombros) e pontas dos pés. Corpo alinhado da cabeça aos calcanhares. Descida controlada até peito quase tocar o solo. Subida explosiva estendendo completamente os braços. Respiração: inspire na descida, expire na subida. Variação mais fácil: apoio nos joelhos."
-      },
-      {
-        name: "Quarta-feira: Prancha Isométrica",
-        sets: 3,
-        reps: level === 'sedentario' ? "20-30s" : "45-60s",
-        rest: "45s",
-        instructions: "Posição: apoio nos antebraços e pontas dos pés. Corpo reto como uma tábua. Core contraído, glúteos ativados. Respiração normal e controlada. Olhar fixo no chão. Evite arquear as costas ou elevar muito o quadril. Foque na qualidade da contração abdominal."
-      },
-      {
-        name: "Quarta-feira: Afundo Alternado",
-        sets: 3,
-        reps: level === 'sedentario' ? "6-8 cada perna" : "10-12 cada perna",
-        rest: "60s",
-        instructions: "Passo à frente amplo, descendo até formar 90° em ambos os joelhos. Joelho da frente alinhado com o tornozelo. Tronco ereto, core ativado. Impulso com perna da frente para retornar. Alterne as pernas. Trabalha quadríceps, glúteos e melhora equilíbrio e coordenação."
-      },
-      {
-        name: "Sexta-feira: Burpee Modificado",
+        name: "PRIMEIRA SEMANA - Treino 1: Agachamento Livre",
         sets: level === 'sedentario' ? 2 : 3,
-        reps: level === 'sedentario' ? "3-5" : "5-8",
+        reps: level === 'sedentario' ? "8-10" : "10-12",
         rest: "90s",
-        instructions: "Movimento completo: agachamento, apoio no chão, extensão das pernas (posição de flexão), retorno à posição de agachamento, salto com braços elevados. Exercício metabólico completo que trabalha força e condicionamento. Execute com controle, priorizando a técnica sobre a velocidade."
+        instructions: "Posição inicial: pés na largura dos ombros, pontas levemente para fora. Descida: flexione quadris e joelhos simultaneamente, mantendo o peso nos calcanhares. Desça até coxas paralelas ao chão. Subida: empurre o chão com os pés, ativando glúteos e quadríceps. PRIMEIRA SEMANA: Cargas muito leves, foco total na técnica e mobilidade articular."
       },
       {
-        name: "Alongamento Final Completo",
-        sets: 1,
-        reps: "10-15 minutos",
-        rest: "N/A",
-        instructions: "Sequência de alongamentos estáticos: quadríceps (30s), isquiotibiais (30s), panturrilha (30s), glúteos (30s), peitoral (30s), ombros (30s), lombar (30s). Respiração profunda e relaxante. Mantenha cada posição sem dor, apenas tensão confortável. Essencial para recuperação e flexibilidade."
+        name: "PRIMEIRA SEMANA - Treino 1: Flexão de Braço",
+        sets: 2,
+        reps: level === 'sedentario' ? "5-8" : "8-10",
+        rest: "60s",
+        instructions: "Posição: apoio nas mãos (na largura dos ombros) e pontas dos pés. Corpo alinhado da cabeça aos calcanhares. Descida controlada até peito quase tocar o solo. Subida explosiva estendendo completamente os braços. PRIMEIRA SEMANA: Adaptação dos músculos estabilizadores, pode usar apoio nos joelhos se necessário."
+      },
+      {
+        name: "SEGUNDA SEMANA - Treino 1: Agachamento Livre",
+        sets: level === 'sedentario' ? 3 : 4,
+        reps: level === 'sedentario' ? "10-12" : "12-15",
+        rest: "90s",
+        instructions: "Mesma técnica da primeira semana. SEGUNDA SEMANA: Progressão gradual com 15% mais repetições. Manter cadência controlada (2 segundos descida, 1 segundo subida). Foco na ativação dos glúteos e core."
+      },
+      {
+        name: "SEGUNDA SEMANA - Treino 1: Flexão de Braço",
+        sets: 3,
+        reps: level === 'sedentario' ? "8-10" : "10-12",
+        rest: "60s",
+        instructions: "Progressão da primeira semana. SEGUNDA SEMANA: Aumento do volume total, manter técnica perfeita. Se conseguir fazer todas as repetições facilmente, progredir para flexão completa (sair do apoio nos joelhos)."
+      },
+      {
+        name: "TERCEIRA SEMANA - Treino 1: Agachamento com Pausa",
+        sets: level === 'sedentario' ? 3 : 4,
+        reps: level === 'sedentario' ? "10-12" : "12-15",
+        rest: "90-120s",
+        instructions: "Mesmo movimento do agachamento livre, mas com pausa de 2 segundos na posição mais baixa. TERCEIRA SEMANA: Consolidação da força e melhora da estabilidade. Maior ativação muscular devido à pausa isométrica."
+      },
+      {
+        name: "TERCEIRA SEMANA - Treino 1: Flexão Diamante (Iniciantes: Normal)",
+        sets: 3,
+        reps: level === 'sedentario' ? "6-8" : "8-12",
+        rest: "90s",
+        instructions: "Para iniciantes: flexão normal com técnica aperfeiçoada. Para intermediários: flexão diamante (mãos formando diamante). TERCEIRA SEMANA: Variação para estimular diferentes padrões de movimento e evitar adaptação."
       }
     ],
     nutrition_tips: [
-      "Proteína pós-treino: consuma 20-30g dentro de 30min após exercitar-se (whey, ovos, frango, peixe)",
-      "Hidratação otimizada: 35ml por kg de peso corporal + 500-750ml extra nos dias de treino",
-      "Carboidratos pré-treino: consuma 30-50g de carboidratos complexos 1-2h antes (aveia, batata-doce, banana)",
-      "Timing nutricional: café da manhã rico em proteína, almoço balanceado, jantar leve 3h antes de dormir",
-      "Micronutrientes essenciais: inclua vegetais coloridos, frutas variadas e oleaginosas para vitaminas e minerais",
-      "Sono reparador: 7-9h por noite para recuperação muscular e produção de hormônios anabólicos",
-      "Suplementação básica: considere vitamina D, ômega-3 e multivitamínico após consulta profissional"
+      "PRIMEIRA E SEGUNDA SEMANA: Proteína pós-treino moderada (15-20g) para adaptação inicial",
+      "TERCEIRA SEMANA: Aumento para 25-30g de proteína pós-treino para suporte à recuperação",
+      "Hidratação progressiva: 35ml por kg de peso + 300ml extra na primeira semana, 500ml extra da segunda semana em diante",
+      "Carboidratos pré-treino: começar com 20-30g na primeira semana, progredir para 30-50g",
+      "Timing nutricional: manter consistência nos horários das refeições para regular o metabolismo",
+      "Sono reparador: 7-9h por noite, especialmente importante nas primeiras semanas de adaptação",
+      "Suplementação básica: considere apenas após a terceira semana, quando o corpo estiver adaptado"
     ]
   };
 }
