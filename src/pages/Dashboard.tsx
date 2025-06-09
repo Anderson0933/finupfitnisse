@@ -1,6 +1,5 @@
+
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -14,22 +13,17 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { CalendarIcon, Code, MessageSquare, Settings } from "lucide-react"
+import { CalendarIcon, Code, MessageSquare, Settings, Dumbbell } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { Icons } from "@/components/icons"
-import { Link } from "@nextui-org/react";
 
 import WorkoutPlanGenerator from '@/components/WorkoutPlanGenerator';
 import GamificationSection from '@/components/GamificationSection';
-import AssistantSection from '@/components/AssistantSection';
 
 import { supabase } from '@/integrations/supabase/client';
 import { WorkoutPlan } from '@/components/WorkoutPlanGenerator';
 
 const Dashboard = () => {
-  const router = useRouter();
-  const { status, data: session } = useSession();
   const { toast } = useToast();
 
   const [user, setUser] = useState<any>(null);
@@ -41,69 +35,70 @@ const Dashboard = () => {
   const [userFitnessLevel, setUserFitnessLevel] = useState<string>('sedentario');
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    }
-  }, [status, router]);
-
-  useEffect(() => {
     const fetchUser = async () => {
-      if (session?.user?.email) {
-        try {
-          setLoading(true);
-          const { data: userData, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', session.user.email)
-            .single();
+      try {
+        setLoading(true);
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        if (!authUser) {
+          console.log("No authenticated user found");
+          setLoading(false);
+          return;
+        }
 
+        // Buscar dados do usuário na tabela profiles
+        const { data: userData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching user data:", error);
+          toast({
+            title: "Erro ao carregar dados do usuário",
+            description: "Tente novamente mais tarde.",
+            variant: "destructive",
+          })
+        }
+
+        if (userData) {
+          setUser({ ...authUser, ...userData });
+        } else {
+          console.log("User not found in database, creating...");
+          // Create user in database
+          const { data, error } = await supabase
+            .from('profiles')
+            .insert([
+              { id: authUser.id, full_name: authUser.user_metadata?.full_name || authUser.email },
+            ])
+            .select()
           if (error) {
-            console.error("Error fetching user data:", error);
+            console.error("Error creating user:", error);
             toast({
-              title: "Erro ao carregar dados do usuário",
+              title: "Erro ao criar usuário",
               description: "Tente novamente mais tarde.",
               variant: "destructive",
             })
           }
-
-          if (userData) {
-            setUser(userData);
-          } else {
-            console.log("User not found in database, creating...");
-            // Create user in database
-            const { data, error } = await supabase
-              .from('users')
-              .insert([
-                { email: session.user.email, full_name: session.user.name },
-              ])
-              .select()
-            if (error) {
-              console.error("Error creating user:", error);
-              toast({
-                title: "Erro ao criar usuário",
-                description: "Tente novamente mais tarde.",
-                variant: "destructive",
-              })
-            }
-            if (data) {
-              setUser(data[0]);
-            }
+          if (data) {
+            setUser({ ...authUser, ...data[0] });
           }
-        } catch (error) {
-          console.error("Unexpected error:", error);
-          toast({
-            title: "Erro inesperado",
-            description: "Ocorreu um erro inesperado. Tente novamente mais tarde.",
-            variant: "destructive",
-          })
-        } finally {
-          setLoading(false);
         }
+      } catch (error) {
+        console.error("Unexpected error:", error);
+        toast({
+          title: "Erro inesperado",
+          description: "Ocorreu um erro inesperado. Tente novamente mais tarde.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUser();
-  }, [session?.user?.email, toast]);
+  }, [toast]);
 
   useEffect(() => {
     const loadWorkoutPlan = async () => {
@@ -127,7 +122,7 @@ const Dashboard = () => {
         }
 
         if (data?.plan_data) {
-          setWorkoutPlan(data.plan_data as WorkoutPlan);
+          setWorkoutPlan(data.plan_data as unknown as WorkoutPlan);
         } else {
           setWorkoutPlan(null);
         }
@@ -183,7 +178,12 @@ const Dashboard = () => {
     loadUserFitnessLevel();
   }, [user]);
 
-  if (status === "loading" || loading) {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white shadow-md">
@@ -236,17 +236,17 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2 font-bold">
-            <Icons.logo className="h-6 w-6" />
+          <div className="flex items-center gap-2 font-bold">
+            <Dumbbell className="h-6 w-6" />
             <span>FitnessAI</span>
-          </Link>
+          </div>
           <div className="flex items-center gap-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || "Avatar"} />
-                    <AvatarFallback>{session?.user?.name?.charAt(0).toUpperCase() || "F"}</AvatarFallback>
+                    <AvatarImage src={user?.user_metadata?.avatar_url || ""} alt={user?.full_name || "Avatar"} />
+                    <AvatarFallback>{user?.full_name?.charAt(0).toUpperCase() || "F"}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -257,7 +257,7 @@ const Dashboard = () => {
                   <span>Configurações</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer" onSelect={() => signOut()}>
+                <DropdownMenuItem className="cursor-pointer" onSelect={handleSignOut}>
                   Sair
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -268,10 +268,9 @@ const Dashboard = () => {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="gamification" className="data-[state=active]:bg-gray-100">Gamificação</TabsTrigger>
             <TabsTrigger value="workout" className="data-[state=active]:bg-gray-100">Treino</TabsTrigger>
-            <TabsTrigger value="assistant" className="data-[state=active]:bg-gray-100">Assistente</TabsTrigger>
           </TabsList>
 
           <TabsContent value="gamification">
@@ -288,10 +287,6 @@ const Dashboard = () => {
               setWorkoutPlan={setWorkoutPlan}
               onSwitchToAssistant={() => setActiveTab('assistant')}
             />
-          </TabsContent>
-
-          <TabsContent value="assistant">
-            <AssistantSection workoutPlan={workoutPlan} />
           </TabsContent>
         </Tabs>
       </main>
