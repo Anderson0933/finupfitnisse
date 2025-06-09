@@ -51,7 +51,7 @@ interface WorkoutPlanDisplayProps {
   progressMap: Map<string, boolean>;
   onProgressChange: (itemIdentifier: string, currentStatus: boolean) => void;
   onSwitchToAssistant?: () => void;
-  user: SupabaseUser | null; // Novo prop para o usuário
+  user: SupabaseUser | null;
 }
 
 const WorkoutPlanDisplay = ({
@@ -133,12 +133,11 @@ const WorkoutPlanDisplay = ({
   };
 
   const handleExerciseCompletion = async (itemIdentifier: string, currentStatus: boolean) => {
-    // Primeiro, atualiza o progresso local
-    onProgressChange(itemIdentifier, currentStatus);
+    console.log('🎯 Exercise completion triggered:', { itemIdentifier, currentStatus });
     
-    // Se o exercício foi marcado como concluído (estava false, agora true)
+    // Se o exercício foi marcado como concluído (estava false, agora será true)
     if (!currentStatus) {
-      console.log('💪 Exercício concluído! Registrando no sistema de gamificação...');
+      console.log('💪 Exercício sendo marcado como concluído! Registrando no sistema de gamificação...');
       
       // Determinar XP baseado no nível de dificuldade do plano
       let xpGained = 10; // XP base por exercício
@@ -154,7 +153,12 @@ const WorkoutPlanDisplay = ({
       } catch (error) {
         console.error('❌ Erro ao registrar conclusão do exercício:', error);
       }
+    } else {
+      console.log('📝 Exercício sendo desmarcado');
     }
+    
+    // Atualiza o progresso local SEMPRE (seja marcando ou desmarcando)
+    onProgressChange(itemIdentifier, currentStatus);
   };
 
   const completedExercises = plan.exercises?.filter((_, index) => {
@@ -320,7 +324,10 @@ const WorkoutPlanDisplay = ({
                         <div className="flex flex-col items-center gap-2">
                           <Checkbox
                             checked={isCompleted}
-                            onCheckedChange={() => handleExerciseCompletion(itemIdentifier, isCompleted)}
+                            onCheckedChange={() => {
+                              console.log('🔄 Checkbox clicked:', { itemIdentifier, currentStatus: isCompleted });
+                              handleExerciseCompletion(itemIdentifier, isCompleted);
+                            }}
                             className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 w-5 h-5"
                           />
                           {getExerciseTypeIcon(exercise.name)}
