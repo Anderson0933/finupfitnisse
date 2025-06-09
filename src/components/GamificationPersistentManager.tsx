@@ -2,20 +2,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { Tables } from '@/integrations/supabase/types';
 
-interface UserGamificationData {
-  user_id: string;
-  total_xp: number;
-  current_level: number;
-  achievements_unlocked: string[];
-  total_workouts_completed: number;
-  current_streak: number;
-  best_streak: number;
-  last_activity_date: string | null;
-  fitness_category: 'iniciante' | 'intermediario' | 'avancado';
-  created_at: string;
-  updated_at: string;
-}
+type UserGamificationData = Tables<'user_gamification'>;
 
 export class GamificationManager {
   static async getUserGamificationData(userId: string): Promise<UserGamificationData | null> {
