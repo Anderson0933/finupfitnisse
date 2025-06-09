@@ -49,7 +49,7 @@ interface WorkoutPlanDisplayProps {
   onGenerateNew: () => void;
   progressMap: Map<string, boolean>;
   onProgressChange: (itemIdentifier: string, currentStatus: boolean) => void;
-  onSwitchToAssistant?: () => void; // Nova prop para navegação
+  onSwitchToAssistant?: () => void;
 }
 
 const WorkoutPlanDisplay = ({
@@ -77,6 +77,51 @@ const WorkoutPlanDisplay = ({
       case 'avancado': return <Trophy className="h-4 w-4" />;
       default: return <Activity className="h-4 w-4" />;
     }
+  };
+
+  // Função para organizar exercícios por dia da semana
+  const organizeExercisesByDay = (exercises: any[]) => {
+    const daysOfWeek = [
+      'Segunda-feira', 'Terça-feira', 'Quarta-feira', 
+      'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'
+    ];
+    
+    const exercisesByDay: { [key: string]: any[] } = {};
+    
+    exercises.forEach((exercise, index) => {
+      const exerciseName = exercise.name.toLowerCase();
+      
+      // Detectar o dia baseado no nome do exercício
+      let dayKey = '';
+      
+      if (exerciseName.includes('dia 1') || exerciseName.includes('segunda')) {
+        dayKey = 'Segunda-feira';
+      } else if (exerciseName.includes('dia 2') || exerciseName.includes('terça')) {
+        dayKey = 'Terça-feira';
+      } else if (exerciseName.includes('dia 3') || exerciseName.includes('quarta')) {
+        dayKey = 'Quarta-feira';
+      } else if (exerciseName.includes('dia 4') || exerciseName.includes('quinta')) {
+        dayKey = 'Quinta-feira';
+      } else if (exerciseName.includes('dia 5') || exerciseName.includes('sexta')) {
+        dayKey = 'Sexta-feira';
+      } else if (exerciseName.includes('sábado') || exerciseName.includes('sabado')) {
+        dayKey = 'Sábado';
+      } else if (exerciseName.includes('domingo')) {
+        dayKey = 'Domingo';
+      } else {
+        // Se não conseguir detectar o dia, usar um contador
+        const dayIndex = index % 7;
+        dayKey = daysOfWeek[dayIndex];
+      }
+      
+      if (!exercisesByDay[dayKey]) {
+        exercisesByDay[dayKey] = [];
+      }
+      
+      exercisesByDay[dayKey].push({ ...exercise, originalIndex: index });
+    });
+    
+    return exercisesByDay;
   };
 
   const handleMainTabSwitch = () => {
@@ -134,6 +179,8 @@ const WorkoutPlanDisplay = ({
 
   const totalExercises = plan.exercises?.length || 0;
   const progressPercentage = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
+
+  const exercisesByDay = organizeExercisesByDay(plan.exercises || []);
 
   return (
     <div className="space-y-6">
@@ -260,111 +307,128 @@ const WorkoutPlanDisplay = ({
         </CardHeader>
 
         <CardContent className="p-6">
-          {/* Exercícios */}
+          {/* Exercícios organizados por dia da semana */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold text-green-800 flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-lg">
                   <Dumbbell className="h-6 w-6 text-green-600" />
                 </div>
-                Exercícios do Plano Personalizado
+                Plano Semanal Personalizado
               </h3>
               <div className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
                 {completedExercises} de {totalExercises} concluídos
               </div>
             </div>
             
-            <div className="grid gap-4">
-              {plan.exercises?.map((exercise, index) => {
-                const itemIdentifier = `${exercise.name}_${index}`;
-                const isCompleted = progressMap.get(itemIdentifier) || false;
-                
-                return (
-                  <Card key={index} className={`border-2 transition-all duration-300 hover:shadow-lg ${
-                    isCompleted 
-                      ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-300 shadow-md' 
-                      : 'border-gray-200 hover:border-green-300'
-                  }`}>
-                    <CardContent className="p-5">
-                      <div className="flex items-start gap-4">
-                        <div className="flex flex-col items-center gap-2">
-                          <Checkbox
-                            checked={isCompleted}
-                            onCheckedChange={() => onProgressChange(itemIdentifier, isCompleted)}
-                            className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 w-5 h-5"
-                          />
-                          {getExerciseTypeIcon(exercise.name)}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <h4 className={`font-bold text-lg ${
-                              isCompleted 
-                                ? 'text-green-800 line-through opacity-75' 
-                                : 'text-gray-800'
-                            }`}>
-                              {exercise.name}
-                            </h4>
-                            {isCompleted && (
-                              <Badge className="bg-green-100 text-green-800 border-green-300 text-xs px-2 py-1">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Concluído
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {/* Métricas do exercício */}
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                            <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                              <Target className="h-4 w-4 text-blue-600" />
-                              <div>
-                                <span className="font-semibold text-blue-800 text-sm">Séries:</span>
-                                <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-blue-700'}`}>
-                                  {exercise.sets}
-                                </span>
+            {Object.entries(exercisesByDay).map(([dayName, dayExercises]) => (
+              <Card key={dayName} className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-green-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-bold text-blue-800 flex items-center gap-3">
+                    <div className="p-2 bg-blue-600 rounded-lg shadow-md">
+                      <Calendar className="h-5 w-5 text-white" />
+                    </div>
+                    {dayName}
+                    <Badge variant="outline" className="text-blue-700 border-blue-300 text-xs">
+                      {dayExercises.length} exercício{dayExercises.length > 1 ? 's' : ''}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {dayExercises.map((exercise, exerciseIndex) => {
+                      const itemIdentifier = `${exercise.name}_${exercise.originalIndex}`;
+                      const isCompleted = progressMap.get(itemIdentifier) || false;
+                      
+                      return (
+                        <Card key={exerciseIndex} className={`border transition-all duration-300 hover:shadow-md ${
+                          isCompleted 
+                            ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-300' 
+                            : 'border-gray-200 hover:border-blue-300'
+                        }`}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-4">
+                              <div className="flex flex-col items-center gap-2">
+                                <Checkbox
+                                  checked={isCompleted}
+                                  onCheckedChange={() => onProgressChange(itemIdentifier, isCompleted)}
+                                  className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 w-5 h-5"
+                                />
+                                {getExerciseTypeIcon(exercise.name)}
+                              </div>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-3 mb-3">
+                                  <h4 className={`font-bold text-base ${
+                                    isCompleted 
+                                      ? 'text-green-800 line-through opacity-75' 
+                                      : 'text-gray-800'
+                                  }`}>
+                                    {exercise.name.replace(/DIA \d+\s*[-:]?\s*/i, '').trim()}
+                                  </h4>
+                                  {isCompleted && (
+                                    <Badge className="bg-green-100 text-green-800 border-green-300 text-xs px-2 py-1">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      Concluído
+                                    </Badge>
+                                  )}
+                                </div>
+                                
+                                {/* Métricas do exercício */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                                  <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                                    <Target className="h-4 w-4 text-blue-600" />
+                                    <div>
+                                      <span className="font-semibold text-blue-800 text-sm">Séries:</span>
+                                      <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-blue-700'}`}>
+                                        {exercise.sets}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
+                                    <Activity className="h-4 w-4 text-purple-600" />
+                                    <div>
+                                      <span className="font-semibold text-purple-800 text-sm">Reps:</span>
+                                      <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-purple-700'}`}>
+                                        {exercise.reps}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
+                                    <Timer className="h-4 w-4 text-orange-600" />
+                                    <div>
+                                      <span className="font-semibold text-orange-800 text-sm">Descanso:</span>
+                                      <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-orange-700'}`}>
+                                        {exercise.rest}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Instruções detalhadas */}
+                                <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Info className="h-4 w-4 text-gray-600" />
+                                    <span className="font-semibold text-gray-800 text-sm">Instruções:</span>
+                                  </div>
+                                  <p className={`text-sm leading-relaxed ${
+                                    isCompleted ? 'text-green-700' : 'text-gray-700'
+                                  }`}>
+                                    {exercise.instructions}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                            
-                            <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
-                              <Activity className="h-4 w-4 text-purple-600" />
-                              <div>
-                                <span className="font-semibold text-purple-800 text-sm">Reps:</span>
-                                <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-purple-700'}`}>
-                                  {exercise.reps}
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
-                              <Timer className="h-4 w-4 text-orange-600" />
-                              <div>
-                                <span className="font-semibold text-orange-800 text-sm">Descanso:</span>
-                                <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-orange-700'}`}>
-                                  {exercise.rest}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Instruções detalhadas */}
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Info className="h-4 w-4 text-gray-600" />
-                              <span className="font-semibold text-gray-800 text-sm">Instruções Detalhadas:</span>
-                            </div>
-                            <p className={`text-sm leading-relaxed ${
-                              isCompleted ? 'text-green-700' : 'text-gray-700'
-                            }`}>
-                              {exercise.instructions}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Dicas Nutricionais */}
