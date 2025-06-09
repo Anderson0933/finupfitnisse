@@ -203,8 +203,6 @@ const Dashboard = () => {
     );
   }
 
-  const defaultMainTab = workoutPlan ? 'workout' : 'workout';
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
       <header className="border-b border-blue-200 bg-white/90 backdrop-blur-xl shadow-sm sticky top-0 z-10">
@@ -272,7 +270,7 @@ const Dashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full main-dashboard-tabs">
-          <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
+          <TabsList className="grid w-full grid-cols-7 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
             <TabsTrigger value="workout" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <Dumbbell className="h-4 w-4" /> <span className="text-xs md:text-sm">Treinos</span> {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
@@ -284,6 +282,12 @@ const Dashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="nutrition" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <Apple className="h-4 w-4" /> <span className="text-xs md:text-sm">Nutrição</span> {!hasAccess && <Lock className="h-3 w-3" />}
+            </TabsTrigger>
+            <TabsTrigger value="faq" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3">
+              <HelpCircle className="h-4 w-4" /> <span className="text-xs md:text-sm">Dúvidas</span>
+            </TabsTrigger>
+            <TabsTrigger value="gamification" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-yellow-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
+              <Trophy className="h-4 w-4" /> <span className="text-xs md:text-sm">Conquistas</span> {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
             <TabsTrigger value="payment" data-value="payment" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3">
               <CreditCard className="h-4 w-4" /> <span className="text-xs md:text-sm">Pagamento</span>
@@ -317,6 +321,16 @@ const Dashboard = () => {
           <TabsContent value="nutrition">
             <LockedFeature title="Nutrição">
               <NutritionAssistant user={user} />
+            </LockedFeature>
+          </TabsContent>
+
+          <TabsContent value="faq">
+            <FAQSection onSwitchToAssistant={switchToAssistant} />
+          </TabsContent>
+
+          <TabsContent value="gamification">
+            <LockedFeature title="Conquistas">
+              <GamificationSection user={user} />
             </LockedFeature>
           </TabsContent>
 
