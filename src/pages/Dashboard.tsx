@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +12,8 @@ import AIAssistant from '@/components/AIAssistant';
 import ProgressTracker from '@/components/ProgressTracker';
 import NutritionAssistant from '@/components/NutritionAssistant';
 import PaymentManager from '@/components/PaymentManager';
+import DailyTip from '@/components/DailyTip';
+import WorkoutStreak from '@/components/WorkoutStreak';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
@@ -267,6 +270,14 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Novos componentes: Dica do Dia e Streak de Treinos */}
+        {hasAccess && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 md:mb-8">
+            <DailyTip />
+            <WorkoutStreak user={user} />
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full main-dashboard-tabs">
           <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
