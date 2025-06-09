@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -169,13 +170,13 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
           );
         }
 
-        // Atualizar estados
+        // Atualizar estados com type assertion para fitness_category
         setUserXP(gamificationData.total_xp);
         setCurrentStreak(gamificationData.current_streak);
         setTotalWorkouts(gamificationData.total_workouts_completed);
         setCurrentLevel(gamificationData.current_level);
         setBestStreak(gamificationData.best_streak);
-        setFitnessCategory(gamificationData.fitness_category);
+        setFitnessCategory(gamificationData.fitness_category as 'iniciante' | 'intermediario' | 'avancado');
         setUnlockedAchievements(gamificationData.achievements_unlocked);
 
       } catch (error) {
