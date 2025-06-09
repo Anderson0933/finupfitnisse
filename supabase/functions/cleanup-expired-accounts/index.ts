@@ -26,18 +26,47 @@ serve(async (req) => {
     
     console.log(`📅 Buscando usuários criados antes de: ${limitDate.toISOString()}`)
 
-    // Buscar todos os usuários do auth que foram criados há mais de 48h
-    const { data: authUsers, error: authError } = await supabaseClient.auth.admin.listUsers()
+    // Buscar TODOS os usuários do auth com paginação
+    let allUsers = []
+    let page = 1
+    const perPage = 1000 // Máximo permitido pela API
     
-    if (authError) {
-      console.error('❌ Erro ao buscar usuários do auth:', authError)
-      throw authError
+    while (true) {
+      console.log(`📄 Buscando página ${page} de usuários...`)
+      
+      const { data: authUsers, error: authError } = await supabaseClient.auth.admin.listUsers({
+        page: page,
+        perPage: perPage
+      })
+      
+      if (authError) {
+        console.error('❌ Erro ao buscar usuários do auth:', authError)
+        throw authError
+      }
+
+      console.log(`📊 Página ${page}: ${authUsers.users.length} usuários encontrados`)
+      
+      if (authUsers.users.length === 0) {
+        break // Não há mais usuários
+      }
+      
+      allUsers.push(...authUsers.users)
+      
+      if (authUsers.users.length < perPage) {
+        break // Última página
+      }
+      
+      page++
     }
 
+    console.log(`👥 Total de usuários encontrados: ${allUsers.length}`)
+
     // Filtrar usuários criados há mais de 48h
-    const expiredUsers = authUsers.users.filter(user => {
+    const expiredUsers = allUsers.filter(user => {
       const userCreatedAt = new Date(user.created_at)
-      return userCreatedAt < limitDate
+      const isExpired = userCreatedAt < limitDate
+      console.log(`🔍 Usuário ${user.email} criado em ${user.created_at} - Expirado: ${isExpired}`)
+      return isExpired
     })
 
     console.log(`👥 Encontrados ${expiredUsers.length} usuários criados há mais de 48h para verificar`)
@@ -123,6 +152,7 @@ serve(async (req) => {
         message: `Limpeza concluída: ${deletedCount} contas excluídas`,
         deletedCount,
         checkedUsers: expiredUsers.length,
+        totalUsers: allUsers.length,
         timestamp: new Date().toISOString()
       }),
       { 
