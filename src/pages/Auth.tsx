@@ -119,17 +119,17 @@ const Auth = () => {
 
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-900 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
             <CardHeader className="text-center pb-4">
               <div className="flex items-center justify-center mb-4">
-                <div className="p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl border border-blue-400/30">
-                  <KeyRound className="h-8 w-8 text-blue-400" />
+                <div className="p-3 bg-orange-500/20 backdrop-blur-sm rounded-xl border border-orange-400/30">
+                  <KeyRound className="h-8 w-8 text-orange-400" />
                 </div>
               </div>
               <CardTitle className="text-2xl text-white">Esqueceu a senha?</CardTitle>
-              <CardDescription className="text-blue-200">
+              <CardDescription className="text-orange-200">
                 Digite seu email para receber um link de redefinição
               </CardDescription>
             </CardHeader>
@@ -144,7 +144,7 @@ const Auth = () => {
                       placeholder="Seu email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                      className="pl-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                       required
                     />
                   </div>
@@ -152,7 +152,7 @@ const Auth = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="w-full h-12 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                   disabled={resetLoading}
                 >
                   {resetLoading ? (
@@ -180,10 +180,10 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-900 flex">
       {/* Left Side - Hero Section */}
       <div className="hidden lg:flex lg:flex-1 flex-col justify-center items-center p-12 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-green-600/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 via-red-600/20 to-pink-600/20" />
         <div className="relative z-10 max-w-md text-center">
           <div className="flex items-center justify-center mb-8">
             <div className="p-4 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
@@ -191,18 +191,18 @@ const Auth = () => {
             </div>
           </div>
           
-          <h1 className="text-5xl font-bold mb-4 gradient-text bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold mb-4 gradient-text bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 bg-clip-text text-transparent">
             FitAI Pro
           </h1>
           
-          <p className="text-xl text-blue-200 mb-8">
+          <p className="text-xl text-orange-200 mb-8">
             Seu Personal Trainer com Inteligência Artificial
           </p>
           
           <div className="space-y-6">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Zap className="h-6 w-6 text-blue-400" />
+              <div className="p-2 bg-orange-500/20 rounded-lg">
+                <Zap className="h-6 w-6 text-orange-400" />
               </div>
               <div className="text-left">
                 <h3 className="font-semibold">Treinos Personalizados</h3>
@@ -211,8 +211,8 @@ const Auth = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Target className="h-6 w-6 text-purple-400" />
+              <div className="p-2 bg-red-500/20 rounded-lg">
+                <Target className="h-6 w-6 text-red-400" />
               </div>
               <div className="text-left">
                 <h3 className="font-semibold">Acompanhamento Inteligente</h3>
@@ -221,8 +221,8 @@ const Auth = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-400" />
+              <div className="p-2 bg-pink-500/20 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-pink-400" />
               </div>
               <div className="text-left">
                 <h3 className="font-semibold">Resultados Garantidos</h3>
@@ -244,13 +244,13 @@ const Auth = () => {
               </div>
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">FitAI Pro</h1>
-            <p className="text-blue-200">Seu Personal Trainer IA</p>
+            <p className="text-orange-200">Seu Personal Trainer IA</p>
           </div>
 
           <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-2xl text-white">Bem-vindo</CardTitle>
-              <CardDescription className="text-blue-200">
+              <CardDescription className="text-orange-200">
                 Entre ou crie sua conta para começar
               </CardDescription>
             </CardHeader>
@@ -282,7 +282,7 @@ const Auth = () => {
                           placeholder="Seu email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="pl-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                          className="pl-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                           required
                         />
                       </div>
@@ -296,7 +296,7 @@ const Auth = () => {
                           placeholder="Sua senha"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 pr-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                          className="pl-10 pr-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                           required
                         />
                         <button
@@ -314,7 +314,7 @@ const Auth = () => {
                         type="button"
                         variant="ghost"
                         onClick={() => setShowForgotPassword(true)}
-                        className="text-sm text-blue-400 hover:text-blue-300 hover:bg-transparent p-0 h-auto font-normal"
+                        className="text-sm text-orange-400 hover:text-orange-300 hover:bg-transparent p-0 h-auto font-normal"
                       >
                         Esqueceu a senha?
                       </Button>
@@ -322,7 +322,7 @@ const Auth = () => {
                     
                     <Button 
                       type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                      className="w-full h-12 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                       disabled={loading}
                     >
                       {loading ? (
@@ -345,7 +345,7 @@ const Auth = () => {
                           placeholder="Seu nome completo"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
-                          className="pl-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
+                          className="pl-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-red-400 focus:ring-1 focus:ring-red-400"
                           required
                         />
                       </div>
@@ -359,7 +359,7 @@ const Auth = () => {
                           placeholder="Seu email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="pl-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
+                          className="pl-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-red-400 focus:ring-1 focus:ring-red-400"
                           required
                         />
                       </div>
@@ -373,7 +373,7 @@ const Auth = () => {
                           placeholder="Criar senha"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 pr-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
+                          className="pl-10 pr-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-red-400 focus:ring-1 focus:ring-red-400"
                           required
                         />
                         <button
@@ -388,7 +388,7 @@ const Auth = () => {
                     
                     <Button 
                       type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-purple-600 to-green-600 hover:from-purple-700 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                      className="w-full h-12 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                       disabled={loading}
                     >
                       {loading ? (

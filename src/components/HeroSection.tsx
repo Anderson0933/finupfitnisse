@@ -21,17 +21,17 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="min-h-screen flex items-center">
-          <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center w-full">
             {/* Content */}
-            <div className="text-center lg:text-left animate-fade-in">
+            <div className="text-center lg:text-left animate-fade-in order-2 lg:order-1">
               {/* Fitness Badge */}
-              <div className="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 text-orange-300 text-sm font-medium mb-8 backdrop-blur-sm">
-                <Dumbbell className="h-5 w-5 mr-2 text-orange-400" />
+              <div className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 text-orange-300 text-xs sm:text-sm font-medium mb-6 sm:mb-8 backdrop-blur-sm">
+                <Dumbbell className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-orange-400" />
                 🔥 Transformação Corporal com IA
               </div>
 
               {/* Main heading with fitness focus */}
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight mb-8">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight mb-6 sm:mb-8">
                 <span className="text-white">DESTRUA</span>
                 <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-500 to-pink-500">SEUS LIMITES</span>
@@ -40,7 +40,7 @@ const HeroSection = () => {
               </h1>
 
               {/* Strong fitness description */}
-              <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+              <p className="text-base sm:text-lg lg:text-xl text-gray-300 mb-8 sm:mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
                 💪 <strong className="text-orange-400">Personal trainer IA 24/7</strong> que cria treinos intensos, 
                 acompanha cada repetição e acelera seus resultados. 
                 <br />
@@ -48,68 +48,67 @@ const HeroSection = () => {
               </p>
 
               {/* Stats row */}
-              <div className="flex flex-wrap justify-center lg:justify-start gap-6 mb-10">
+              <div className="flex flex-wrap justify-center lg:justify-start gap-4 sm:gap-6 mb-8 sm:mb-10">
                 <div className="flex items-center text-white">
-                  <div className="bg-orange-500 rounded-full p-2 mr-3">
-                    <Target className="h-5 w-5" />
+                  <div className="bg-orange-500 rounded-full p-1.5 sm:p-2 mr-2 sm:mr-3">
+                    <Target className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-2xl">95%</div>
-                    <div className="text-sm text-gray-400">Taxa de Sucesso</div>
+                    <div className="font-bold text-lg sm:text-2xl">95%</div>
+                    <div className="text-xs sm:text-sm text-gray-400">Taxa de Sucesso</div>
                   </div>
                 </div>
                 <div className="flex items-center text-white">
-                  <div className="bg-blue-500 rounded-full p-2 mr-3">
-                    <TrendingUp className="h-5 w-5" />
+                  <div className="bg-blue-500 rounded-full p-1.5 sm:p-2 mr-2 sm:mr-3">
+                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-2xl">30</div>
-                    <div className="text-sm text-gray-400">Dias Resultados</div>
+                    <div className="font-bold text-lg sm:text-2xl">30</div>
+                    <div className="text-xs sm:text-sm text-gray-400">Dias Resultados</div>
                   </div>
                 </div>
                 <div className="flex items-center text-white">
-                  <div className="bg-green-500 rounded-full p-2 mr-3">
-                    <Users className="h-5 w-5" />
+                  <div className="bg-green-500 rounded-full p-1.5 sm:p-2 mr-2 sm:mr-3">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-2xl">15K+</div>
-                    <div className="text-sm text-gray-400">Transformados</div>
+                    <div className="font-bold text-lg sm:text-2xl">15K+</div>
+                    <div className="text-xs sm:text-sm text-gray-400">Transformados</div>
                   </div>
                 </div>
               </div>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start mb-6 sm:mb-8">
                 <Button 
                   size="lg" 
-                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-10 py-6 text-xl font-bold shadow-2xl transform hover:scale-105 transition-all duration-300"
+                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-6 sm:px-10 py-4 sm:py-6 text-lg sm:text-xl font-bold shadow-2xl transform hover:scale-105 transition-all duration-300 w-full sm:w-auto"
                   onClick={() => window.location.href = '/auth'}
                 >
                   🚀 INICIAR TRANSFORMAÇÃO
                 </Button>
                 <Button 
                   size="lg" 
-                  variant="outline" 
-                  className="border-2 border-white/30 text-white hover:bg-white/10 px-8 py-6 text-lg backdrop-blur-sm"
+                  className="border-2 border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-400 px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-lg backdrop-blur-sm bg-transparent w-full sm:w-auto"
                   onClick={() => setIsVideoPlaying(true)}
                 >
-                  <Play className="h-6 w-6 mr-2" />
-                  Ver Transformações
+                  <Play className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
+                  Ver Demonstração
                 </Button>
               </div>
 
               {/* Social proof with fitness focus */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 text-sm text-gray-300">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-6 text-sm text-gray-300">
                 <div className="flex items-center gap-3">
                   <div className="flex -space-x-2">
                     {[1,2,3,4,5].map((i) => (
-                      <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-400 to-red-500 border-2 border-slate-900 flex items-center justify-center">
-                        <Dumbbell className="h-4 w-4 text-white" />
+                      <div key={i} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-orange-400 to-red-500 border-2 border-slate-900 flex items-center justify-center">
+                        <Dumbbell className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                       </div>
                     ))}
                   </div>
                   <div className="flex items-center gap-1">
-                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                    <Star className="h-4 w-4 sm:h-5 sm:w-5 fill-yellow-400 text-yellow-400" />
                     <span className="font-bold text-white">4.9/5</span>
                   </div>
                 </div>
@@ -121,47 +120,47 @@ const HeroSection = () => {
             </div>
 
             {/* Fitness Dashboard Mock */}
-            <div className="relative animate-slide-up">
-              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-3xl p-8 shadow-2xl backdrop-blur-sm border border-white/10">
+            <div className="relative animate-slide-up order-1 lg:order-2">
+              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl backdrop-blur-sm border border-white/10">
                 {/* Workout Dashboard */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-white font-bold text-xl">💪 Seu Treino Hoje</h3>
+                    <h3 className="text-white font-bold text-lg sm:text-xl">💪 Seu Treino Hoje</h3>
                     <div className="flex items-center gap-2">
-                      <Trophy className="h-6 w-6 text-yellow-400" />
-                      <span className="text-yellow-400 font-bold">Nível 8</span>
+                      <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-400" />
+                      <span className="text-yellow-400 font-bold text-sm sm:text-base">Nível 8</span>
                     </div>
                   </div>
                   
                   {/* Workout Cards */}
-                  <div className="space-y-4">
-                    <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl p-4 border border-orange-500/30">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-orange-500/30">
                       <div className="flex items-center justify-between text-white">
                         <div>
-                          <div className="font-bold">🔥 Supino Inclinado</div>
-                          <div className="text-sm text-gray-300">4x12 • 80kg</div>
+                          <div className="font-bold text-sm sm:text-base">🔥 Supino Inclinado</div>
+                          <div className="text-xs sm:text-sm text-gray-300">4x12 • 80kg</div>
                         </div>
-                        <div className="bg-green-500 px-3 py-1 rounded-full text-xs font-bold">FEITO</div>
+                        <div className="bg-green-500 px-2 sm:px-3 py-1 rounded-full text-xs font-bold">FEITO</div>
                       </div>
                     </div>
                     
-                    <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl p-4 border border-blue-500/30">
+                    <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-blue-500/30">
                       <div className="flex items-center justify-between text-white">
                         <div>
-                          <div className="font-bold">💥 Agachamento Búlgaro</div>
-                          <div className="text-sm text-gray-300">3x15 cada perna</div>
+                          <div className="font-bold text-sm sm:text-base">💥 Agachamento Búlgaro</div>
+                          <div className="text-xs sm:text-sm text-gray-300">3x15 cada perna</div>
                         </div>
-                        <div className="bg-orange-500 px-3 py-1 rounded-full text-xs font-bold animate-pulse">ATIVO</div>
+                        <div className="bg-orange-500 px-2 sm:px-3 py-1 rounded-full text-xs font-bold animate-pulse">ATIVO</div>
                       </div>
                     </div>
                     
-                    <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-500/30">
+                    <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-purple-500/30">
                       <div className="flex items-center justify-between text-white">
                         <div>
-                          <div className="font-bold">⚡ HIIT Cardio</div>
-                          <div className="text-sm text-gray-300">20 min • Alta intensidade</div>
+                          <div className="font-bold text-sm sm:text-base">⚡ HIIT Cardio</div>
+                          <div className="text-xs sm:text-sm text-gray-300">20 min • Alta intensidade</div>
                         </div>
-                        <div className="bg-gray-600 px-3 py-1 rounded-full text-xs">PRÓXIMO</div>
+                        <div className="bg-gray-600 px-2 sm:px-3 py-1 rounded-full text-xs">PRÓXIMO</div>
                       </div>
                     </div>
                   </div>
@@ -169,25 +168,25 @@ const HeroSection = () => {
                   {/* Progress */}
                   <div className="pt-4 border-t border-white/10">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-white font-semibold">Progresso Semanal</span>
-                      <span className="text-green-400 font-bold text-xl">92%</span>
+                      <span className="text-white font-semibold text-sm sm:text-base">Progresso Semanal</span>
+                      <span className="text-green-400 font-bold text-lg sm:text-xl">92%</span>
                     </div>
-                    <div className="w-full bg-gray-700 rounded-full h-3">
-                      <div className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full animate-pulse" style={{ width: '92%' }}></div>
+                    <div className="w-full bg-gray-700 rounded-full h-2 sm:h-3">
+                      <div className="bg-gradient-to-r from-green-400 to-blue-500 h-2 sm:h-3 rounded-full animate-pulse" style={{ width: '92%' }}></div>
                     </div>
-                    <div className="text-center mt-3 text-green-400 font-bold text-sm">
+                    <div className="text-center mt-2 sm:mt-3 text-green-400 font-bold text-xs sm:text-sm">
                       🎯 Meta: Queimar 2.500 calorias esta semana
                     </div>
                   </div>
                 </div>
 
                 {/* Floating elements */}
-                <div className="absolute -top-6 -right-6 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-4 shadow-lg animate-float">
-                  <Dumbbell className="h-8 w-8 text-white" />
+                <div className="absolute -top-4 -right-4 sm:-top-6 sm:-right-6 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-2 sm:p-4 shadow-lg animate-float">
+                  <Dumbbell className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                 </div>
                 
-                <div className="absolute -bottom-6 -left-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full p-4 shadow-lg animate-float" style={{ animationDelay: '1s' }}>
-                  <Zap className="h-8 w-8 text-white" />
+                <div className="absolute -bottom-4 -left-4 sm:-bottom-6 sm:-left-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full p-2 sm:p-4 shadow-lg animate-float" style={{ animationDelay: '1s' }}>
+                  <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                 </div>
               </div>
             </div>
@@ -198,10 +197,10 @@ const HeroSection = () => {
       {/* Video Modal */}
       {isVideoPlaying && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-2xl p-6 max-w-4xl w-full border border-white/10">
+          <div className="bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 max-w-4xl w-full border border-white/10">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white">🏆 Transformações Reais</h3>
-              <Button variant="ghost" onClick={() => setIsVideoPlaying(false)} className="text-white hover:bg-white/10">
+              <h3 className="text-lg sm:text-xl font-bold text-white">🏆 Demonstração do App</h3>
+              <Button variant="ghost" onClick={() => setIsVideoPlaying(false)} className="text-white hover:bg-white/10 text-lg sm:text-xl">
                 ✕
               </Button>
             </div>
