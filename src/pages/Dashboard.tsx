@@ -22,6 +22,19 @@ const Dashboard = () => {
   const { toast } = useToast();
 
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('workout');
+
+  // Função para mudar para a aba do assistente
+  const switchToAssistant = () => {
+    console.log('🎯 Mudando para a aba do assistente via callback');
+    setActiveTab('assistant');
+  };
+
+  useEffect(() => {
+    // Definir a aba inicial baseada no plano de treino
+    const initialTab = workoutPlan ? 'workout' : 'workout';
+    setActiveTab(initialTab);
+  }, [workoutPlan]);
 
   useEffect(() => {
     const initializeDashboard = async () => {
@@ -255,7 +268,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue={defaultMainTab} className="w-full main-dashboard-tabs">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full main-dashboard-tabs">
           <TabsList className="grid w-full grid-cols-5 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
             <TabsTrigger value="workout" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <Dumbbell className="h-4 w-4" /> <span className="text-xs md:text-sm">Treinos</span> {!hasAccess && <Lock className="h-3 w-3" />}
@@ -281,6 +294,7 @@ const Dashboard = () => {
                 workoutPlan={workoutPlan} 
                 setWorkoutPlan={setWorkoutPlan} 
                 initialActiveTab={workoutPlan ? 'plan' : 'form'}
+                onSwitchToAssistant={switchToAssistant}
               />
             </LockedFeature>
           </TabsContent>
