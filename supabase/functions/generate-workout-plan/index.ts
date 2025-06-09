@@ -44,7 +44,8 @@ serve(async (req) => {
       'condicionamento': 'melhorar condicionamento cardiovascular',
       'forca': 'aumentar força e potência muscular',
       'flexibilidade': 'melhorar flexibilidade e mobilidade',
-      'geral': 'condicionamento físico geral'
+      'geral': 'condicionamento físico geral',
+      'hipertrofia': 'ganhar massa muscular e hipertrofia'
     };
 
     const equipmentMap = {
@@ -71,13 +72,15 @@ serve(async (req) => {
       'moderado': 'moderadamente ativo - alguma experiência com treinos',
       'ativo': 'ativo - experiência regular com exercícios',
       'muito_ativo': 'muito ativo - experiência avançada em treinamento',
-      'avancado': 'atlético avançado - alto nível de condicionamento'
+      'avancado': 'atlético avançado - alto nível de condicionamento',
+      'iniciante': 'iniciante - pouca experiência em treinamento'
     };
 
     const goals = goalsMap[userProfile.fitness_goals?.[0]] || userProfile.fitness_goals?.[0] || 'melhorar condicionamento geral';
     const equipment = equipmentMap[userProfile.equipment] || userProfile.equipment || 'equipamentos básicos';
     const limitations = limitationsMap[userProfile.limitations] || userProfile.limitations || 'nenhuma limitação';
     const fitnessLevel = fitnessLevelMap[userProfile.fitness_level] || userProfile.fitness_level || 'iniciante';
+    const availableDays = userProfile.available_days || 3;
 
     // Calcular IMC para personalização adicional
     let imcInfo = '';
@@ -102,80 +105,87 @@ PERFIL COMPLETO DO ALUNO:
 - ${imcInfo}
 - Nível atual: ${fitnessLevel}
 - Objetivo principal: ${goals}
-- Dias disponíveis: ${userProfile.available_days || 3} por semana
+- Dias disponíveis: ${availableDays} por semana
 - Duração por sessão: ${userProfile.session_duration || 60} minutos
 - Equipamentos disponíveis: ${equipment}
 - Limitações físicas: ${limitations}
 
-INSTRUÇÕES DETALHADAS PARA UM PLANO PROFISSIONAL:
+INSTRUÇÕES CRÍTICAS PARA ESTRUTURA DO TREINO:
 
-1. ESTRUTURA DO TREINO PERIODIZADO:
-   - Crie um plano de 12 semanas dividido em 4 fases de 3 semanas cada
-   - PRIMEIRA SEMANA: Adaptação anatômica (cargas leves, foco na técnica)
-   - SEGUNDA SEMANA: Progressão gradual (aumento de 10-15% na intensidade)
-   - TERCEIRA SEMANA: Consolidação (manutenção da carga, melhora da execução)
-   - QUARTA SEMANA: Progressão para próxima fase
-   - Continue este padrão até a 12ª semana
+1. ESTRUTURA OBRIGATÓRIA POR SEMANA:
+   - CADA SEMANA DEVE TER EXATAMENTE ${availableDays} TREINOS
+   - Exemplo: Se são 3 dias por semana, cada semana deve ter "Treino A", "Treino B" e "Treino C"
+   - JAMAIS deixe uma semana com menos treinos que o solicitado
 
 2. NOMENCLATURA OBRIGATÓRIA DOS EXERCÍCIOS:
-   - Use SEMPRE: "PRIMEIRA SEMANA - Treino 1: [Nome do Exercício]"
-   - Use SEMPRE: "SEGUNDA SEMANA - Treino 1: [Nome do Exercício]"
-   - Use SEMPRE: "TERCEIRA SEMANA - Treino 2: [Nome do Exercício]"
+   - Use SEMPRE: "PRIMEIRA SEMANA - Treino A: [Nome do Exercício]"
+   - Use SEMPRE: "PRIMEIRA SEMANA - Treino B: [Nome do Exercício]"  
+   - Use SEMPRE: "PRIMEIRA SEMANA - Treino C: [Nome do Exercício]"
+   - Continue: "SEGUNDA SEMANA - Treino A: [Nome do Exercício]"
    - E assim por diante até "DÉCIMA SEGUNDA SEMANA"
-   - Para aquecimentos: "PRIMEIRA SEMANA - Aquecimento Específico"
+   - Para aquecimentos: "PRIMEIRA SEMANA - Aquecimento (Treino A)"
 
-3. EXERCÍCIOS ESPECÍFICOS:
+3. DISTRIBUIÇÃO DOS TREINOS:
+   - ${availableDays} dias por semana = ${availableDays * 12} treinos totais em 12 semanas
+   - Cada semana OBRIGATORIAMENTE deve ter ${availableDays} treinos diferentes
+   - Se 3 dias: Treino A (Segunda), Treino B (Quarta), Treino C (Sexta)
+   - Se 4 dias: Treino A, B, C, D por semana
+   - Se 5 dias: Treino A, B, C, D, E por semana
+
+4. EXERCÍCIOS ESPECÍFICOS:
    - Escolha exercícios que maximizem o objetivo: ${goals}
    - Inclua variações progressivas e regressivas
    - Especifique técnica de execução biomecânica detalhada
    - Adicione músculos primários e secundários trabalhados
    - Inclua tempo sob tensão e cadência quando relevante
 
-4. PRESCRIÇÃO DETALHADA:
+5. PRESCRIÇÃO DETALHADA:
    - Séries, repetições e descanso específicos por semana
    - Percentual de carga ou percepção de esforço
    - Progressões semanais concretas
    - Adaptações para limitações: ${limitations}
 
-5. PERIODIZAÇÃO POR SEMANAS:
+6. PERIODIZAÇÃO POR SEMANAS:
    - Semanas 1-3: Adaptação anatômica
    - Semanas 4-6: Desenvolvimento básico
    - Semanas 7-9: Intensificação
    - Semanas 10-12: Polimento/Pico
 
-6. AQUECIMENTO E RECUPERAÇÃO:
-   - Aquecimento específico para cada semana (8-12 minutos)
-   - Alongamento e mobilidade pós-treino
-   - Protocolos de recuperação entre sessões
-
 RETORNE APENAS um JSON válido no seguinte formato:
 
 {
   "title": "Plano Periodizado: [Objetivo] - Nível [Nível]",
-  "description": "Plano periodizado de 12 semanas específico para [objetivo principal], considerando [limitações], com [X] sessões semanais usando [equipamentos]. Desenvolvido considerando perfil individual completo.",
+  "description": "Plano periodizado de 12 semanas específico para [objetivo principal], considerando [limitações], com ${availableDays} sessões semanais usando [equipamentos]. Desenvolvido considerando perfil individual completo.",
   "difficulty_level": "iniciante|intermediario|avancado",
   "duration_weeks": 12,
   "exercises": [
     {
-      "name": "PRIMEIRA SEMANA - Aquecimento Específico",
+      "name": "PRIMEIRA SEMANA - Aquecimento (Treino A)",
       "sets": 1,
       "reps": "10-12 minutos",
       "rest": "Transição",
-      "instructions": "AQUECIMENTO DETALHADO: [5-6 exercícios específicos com descrição biomecânica completa, preparação articular, ativação neuromuscular, elevação da temperatura corporal]. Progressão específica para primeira semana com intensidade baixa."
+      "instructions": "AQUECIMENTO DETALHADO para Treino A: [5-6 exercícios específicos com descrição biomecânica completa]. PRIMEIRA SEMANA: Adaptação inicial com baixa intensidade."
     },
     {
-      "name": "PRIMEIRA SEMANA - Treino 1: [Nome do Exercício Principal Específico]",
+      "name": "PRIMEIRA SEMANA - Treino A: [Exercício Principal 1]",
       "sets": "3",
       "reps": "8-12",
       "rest": "90-120s",
-      "instructions": "EXECUÇÃO TÉCNICA: [Posição inicial detalhada, fase excêntrica, fase concêntrica, respiração, músculos primários e estabilizadores]. PRIMEIRA SEMANA: Foco total na adaptação anatômica e aprendizado motor. ADAPTAÇÕES: [considerações para limitações específicas]. VARIAÇÕES: [alternativas por nível]."
+      "instructions": "EXECUÇÃO TÉCNICA detalhada. PRIMEIRA SEMANA: Foco na adaptação anatômica. MÚSCULOS: [primários e secundários]. PROGRESSÃO: [detalhes específicos]."
     },
     {
-      "name": "SEGUNDA SEMANA - Treino 1: [Mesmo exercício com progressão]",
-      "sets": "3-4",
-      "reps": "10-15",
+      "name": "PRIMEIRA SEMANA - Treino B: [Exercício Principal 2]", 
+      "sets": "3",
+      "reps": "8-12",
       "rest": "90-120s",
-      "instructions": "EXECUÇÃO TÉCNICA: [mesma base técnica]. SEGUNDA SEMANA: Progressão gradual com 10-15% mais intensidade ou volume. Manter foco na técnica perfeita. ADAPTAÇÕES: [considerações específicas]. VARIAÇÕES: [progressões para segunda semana]."
+      "instructions": "EXECUÇÃO TÉCNICA detalhada. PRIMEIRA SEMANA: Movimento diferente do Treino A. MÚSCULOS: [primários e secundários]."
+    },
+    {
+      "name": "PRIMEIRA SEMANA - Treino C: [Exercício Principal 3]",
+      "sets": "3", 
+      "reps": "8-12",
+      "rest": "90-120s",
+      "instructions": "EXECUÇÃO TÉCNICA detalhada. PRIMEIRA SEMANA: Complementa Treinos A e B. MÚSCULOS: [primários e secundários]."
     }
   ],
   "nutrition_tips": [
@@ -187,15 +197,13 @@ RETORNE APENAS um JSON válido no seguinte formato:
 }
 
 REQUISITOS CRÍTICOS:
-- Crie NO MÍNIMO ${Math.max(userProfile.available_days || 3, 3) * 12} exercícios completos (incluindo progressões semanais)
+- Crie EXATAMENTE ${availableDays * 12} exercícios completos (${availableDays} treinos x 12 semanas)
+- CADA SEMANA deve ter EXATAMENTE ${availableDays} treinos (A, B, C...)
 - SEMPRE use a nomenclatura: "PRIMEIRA SEMANA", "SEGUNDA SEMANA", etc.
 - Cada exercício deve ter instruções de NO MÍNIMO 80 palavras
 - Considere TODAS as limitações: ${limitations}
 - Adapte 100% aos equipamentos: ${equipment}
-- Faça progressão semanal específica e realista
-- Use terminology técnica profissional
 - O campo difficulty_level deve ser exatamente: "iniciante", "intermediario", ou "avancado"
-- Seja específico em músculos trabalhados, biomecânica e progressões
 
 RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
 
@@ -217,7 +225,7 @@ RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
           { role: 'user', content: prompt }
         ],
         max_tokens: 8000,
-        temperature: 0.2, // Menor para mais consistência
+        temperature: 0.2,
       }),
     });
 
@@ -300,7 +308,7 @@ RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
         equipment: equipment,
         level: fitnessLevel,
         limitations: limitations,
-        days: userProfile.available_days || 3,
+        days: availableDays,
         duration: userProfile.session_duration || 60
       };
       
@@ -350,6 +358,7 @@ function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
   switch (fitnessLevel) {
     case 'sedentario':
     case 'pouco_ativo':
+    case 'iniciante':
       return 'iniciante';
     case 'moderado':
     case 'ativo':
@@ -364,8 +373,9 @@ function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
 }
 
 function createFallbackPlan(userProfile: any) {
-  const level = userProfile?.fitness_level || 'sedentario';
+  const level = userProfile?.fitness_level || 'iniciante';
   const goals = userProfile?.fitness_goals?.[0] || 'condicionamento geral';
+  const availableDays = userProfile?.available_days || 3;
   const difficultyLevel = mapFitnessLevelToDifficulty(level);
   
   // Mapear objetivos para descrição
@@ -376,68 +386,65 @@ function createFallbackPlan(userProfile: any) {
     'condicionamento': 'melhora do condicionamento físico',
     'forca': 'aumento da força',
     'flexibilidade': 'melhora da flexibilidade',
-    'geral': 'condicionamento geral'
+    'geral': 'condicionamento geral',
+    'hipertrofia': 'ganho de massa muscular e hipertrofia'
   };
 
   const goalDesc = goalsDescription[goals] || 'condicionamento geral';
   
-  return {
-    title: `Plano Periodizado ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
-    description: `Plano periodizado de 12 semanas específico para ${goalDesc} para nível ${difficultyLevel}. Este treino foi desenvolvido considerando seu perfil e objetivos específicos.`,
-    difficulty_level: difficultyLevel,
-    duration_weeks: 12,
-    source: 'fallback',
-    exercises: [
-      {
-        name: "PRIMEIRA SEMANA - Aquecimento Dinâmico",
+  // Criar exercícios garantindo exatamente availableDays treinos por semana
+  const exercises = [];
+  
+  // Aquecimento para cada treino
+  for (let week = 1; week <= 12; week++) {
+    const weekNames = [
+      '', 'PRIMEIRA', 'SEGUNDA', 'TERCEIRA', 'QUARTA', 'QUINTA', 'SEXTA',
+      'SÉTIMA', 'OITAVA', 'NONA', 'DÉCIMA', 'DÉCIMA PRIMEIRA', 'DÉCIMA SEGUNDA'
+    ];
+    
+    for (let day = 1; day <= availableDays; day++) {
+      const dayLetters = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
+      const dayLetter = dayLetters[day];
+      
+      // Aquecimento para cada treino
+      exercises.push({
+        name: `${weekNames[week]} SEMANA - Aquecimento (Treino ${dayLetter})`,
         sets: 1,
         reps: "8-10 minutos",
         rest: "N/A",
-        instructions: "Aquecimento articular completo: rotações de pescoço, ombros, quadris e tornozelos. Caminhada no local com elevação gradual dos joelhos. Polichinelos leves. PRIMEIRA SEMANA: Foco na adaptação e preparação do sistema cardiovascular."
-      },
-      {
-        name: "PRIMEIRA SEMANA - Treino 1: Agachamento Livre",
-        sets: level === 'sedentario' ? 2 : 3,
-        reps: level === 'sedentario' ? "8-10" : "10-12",
-        rest: "90s",
-        instructions: "Posição inicial: pés na largura dos ombros, pontas levemente para fora. Descida: flexione quadris e joelhos simultaneamente, mantendo o peso nos calcanhares. Desça até coxas paralelas ao chão. Subida: empurre o chão com os pés, ativando glúteos e quadríceps. PRIMEIRA SEMANA: Cargas muito leves, foco total na técnica e mobilidade articular."
-      },
-      {
-        name: "PRIMEIRA SEMANA - Treino 1: Flexão de Braço",
-        sets: 2,
-        reps: level === 'sedentario' ? "5-8" : "8-10",
-        rest: "60s",
-        instructions: "Posição: apoio nas mãos (na largura dos ombros) e pontas dos pés. Corpo alinhado da cabeça aos calcanhares. Descida controlada até peito quase tocar o solo. Subida explosiva estendendo completamente os braços. PRIMEIRA SEMANA: Adaptação dos músculos estabilizadores, pode usar apoio nos joelhos se necessário."
-      },
-      {
-        name: "SEGUNDA SEMANA - Treino 1: Agachamento Livre",
-        sets: level === 'sedentario' ? 3 : 4,
-        reps: level === 'sedentario' ? "10-12" : "12-15",
-        rest: "90s",
-        instructions: "Mesma técnica da primeira semana. SEGUNDA SEMANA: Progressão gradual com 15% mais repetições. Manter cadência controlada (2 segundos descida, 1 segundo subida). Foco na ativação dos glúteos e core."
-      },
-      {
-        name: "SEGUNDA SEMANA - Treino 1: Flexão de Braço",
-        sets: 3,
-        reps: level === 'sedentario' ? "8-10" : "10-12",
-        rest: "60s",
-        instructions: "Progressão da primeira semana. SEGUNDA SEMANA: Aumento do volume total, manter técnica perfeita. Se conseguir fazer todas as repetições facilmente, progredir para flexão completa (sair do apoio nos joelhos)."
-      },
-      {
-        name: "TERCEIRA SEMANA - Treino 1: Agachamento com Pausa",
-        sets: level === 'sedentario' ? 3 : 4,
-        reps: level === 'sedentario' ? "10-12" : "12-15",
-        rest: "90-120s",
-        instructions: "Mesmo movimento do agachamento livre, mas com pausa de 2 segundos na posição mais baixa. TERCEIRA SEMANA: Consolidação da força e melhora da estabilidade. Maior ativação muscular devido à pausa isométrica."
-      },
-      {
-        name: "TERCEIRA SEMANA - Treino 1: Flexão Diamante (Iniciantes: Normal)",
-        sets: 3,
-        reps: level === 'sedentario' ? "6-8" : "8-12",
-        rest: "90s",
-        instructions: "Para iniciantes: flexão normal com técnica aperfeiçoada. Para intermediários: flexão diamante (mãos formando diamante). TERCEIRA SEMANA: Variação para estimular diferentes padrões de movimento e evitar adaptação."
-      }
-    ],
+        instructions: `Aquecimento específico para Treino ${dayLetter}: rotações articulares, mobilidade dinâmica e ativação cardiovascular. ${weekNames[week]} SEMANA: Preparação progressiva adequada ao nível ${difficultyLevel}.`
+      });
+
+      // Exercícios principais para cada treino
+      const exercisesByDay = {
+        'A': ['Agachamento Livre', 'Flexão de Braço', 'Prancha Isométrica'],
+        'B': ['Afundo Alternado', 'Flexão Inclinada', 'Ponte Glútea'],
+        'C': ['Agachamento Sumo', 'Flexão Diamante', 'Mountain Climber'],
+        'D': ['Agachamento Búlgaro', 'Flexão Declinada', 'Prancha Lateral'],
+        'E': ['Agachamento Jump', 'Flexão Hindu', 'Burpee Modificado']
+      };
+
+      const dayExercises = exercisesByDay[dayLetter] || exercisesByDay['A'];
+      
+      dayExercises.forEach((exerciseName, index) => {
+        exercises.push({
+          name: `${weekNames[week]} SEMANA - Treino ${dayLetter}: ${exerciseName}`,
+          sets: week <= 4 ? 2 + index : 3 + index,
+          reps: week <= 4 ? "8-10" : "10-15",
+          rest: "60-90s",
+          instructions: `EXECUÇÃO TÉCNICA: Técnica biomecânica detalhada para ${exerciseName}. ${weekNames[week]} SEMANA: Progressão adequada considerando ${goalDesc}. MÚSCULOS: Grupos musculares específicos trabalhados. ADAPTAÇÕES: Considerações para nível ${difficultyLevel}.`
+        });
+      });
+    }
+  }
+  
+  return {
+    title: `Plano Periodizado ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
+    description: `Plano periodizado de 12 semanas específico para ${goalDesc} para nível ${difficultyLevel}, com ${availableDays} sessões semanais. Este treino foi desenvolvido considerando seu perfil e objetivos específicos.`,
+    difficulty_level: difficultyLevel,
+    duration_weeks: 12,
+    source: 'fallback',
+    exercises: exercises,
     nutrition_tips: [
       "PRIMEIRA E SEGUNDA SEMANA: Proteína pós-treino moderada (15-20g) para adaptação inicial",
       "TERCEIRA SEMANA: Aumento para 25-30g de proteína pós-treino para suporte à recuperação",

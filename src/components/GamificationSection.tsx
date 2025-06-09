@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -234,52 +233,95 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
         .eq('user_id', user.id)
         .eq('is_completed', true);
 
+      console.log('🎯 Progresso encontrado:', progressData?.length || 0, 'exercícios completados');
+
       const completedItems = progressData?.length || 0;
       const newXP = completedItems * 50; // 50 XP por exercício completado
-      const newWorkouts = Math.floor(completedItems / 3); // Simular treinos completos (3 exercícios = 1 treino)
       
-      // Simular streak baseado na atividade recente
+      // Calcular treinos completos de forma mais precisa
+      // Contar exercícios únicos por data como treinos diferentes
+      const completedDates = [...new Set(progressData?.map(item => 
+        new Date(item.created_at).toISOString().split('T')[0]
+      ) || [])];
+      
+      const newWorkouts = completedDates.length; // Um treino por data única
+      
+      console.log('🏋️ Treinos calculados:', newWorkouts, 'com base em', completedDates.length, 'datas únicas');
+      
+      // Calcular streak baseado na atividade recente
       const today = new Date().toISOString().split('T')[0];
-      const recentActivity = progressData?.filter(item => {
-        const itemDate = new Date(item.created_at).toISOString().split('T')[0];
-        const diffDays = Math.floor((new Date(today).getTime() - new Date(itemDate).getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays <= 7;
-      }) || [];
+      let currentStreak = 0;
       
-      const currentStreak = Math.min(recentActivity.length, 30);
+      // Ordenar datas e calcular streak consecutivo
+      const sortedDates = completedDates.sort().reverse();
+      let checkDate = new Date();
+      
+      for (let i = 0; i < 30; i++) { // Verificar até 30 dias atrás
+        const dateToCheck = new Date(checkDate.getTime() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        if (sortedDates.includes(dateToCheck)) {
+          currentStreak++;
+        } else if (i > 0) { // Se não é o primeiro dia e não tem atividade, parar o streak
+          break;
+        }
+      }
+      
       const bestStreak = Math.max(gamificationData.best_streak, currentStreak);
+
+      console.log('🔥 Streak atual:', currentStreak, 'Melhor streak:', bestStreak);
 
       // Verificar conquistas
       const newAchievements = [...gamificationData.achievements_unlocked];
       let totalXPBonus = 0;
+      let newAchievementUnlocked = false;
 
+      // Verificar conquistas de treino
       if (newWorkouts >= 1 && !newAchievements.includes('first-workout')) {
         newAchievements.push('first-workout');
         totalXPBonus += 100;
+        newAchievementUnlocked = true;
+        console.log('🏆 Conquista desbloqueada: Primeiro Passo');
       }
-      if (currentStreak >= 3 && !newAchievements.includes('streak-3')) {
-        newAchievements.push('streak-3');
-        totalXPBonus += 200;
-      }
+      
       if (newWorkouts >= 10 && !newAchievements.includes('workout-10')) {
         newAchievements.push('workout-10');
         totalXPBonus += 300;
+        newAchievementUnlocked = true;
+        console.log('🏆 Conquista desbloqueada: Dedicação');
       }
-      if (currentStreak >= 7 && !newAchievements.includes('streak-7')) {
-        newAchievements.push('streak-7');
-        totalXPBonus += 500;
-      }
+      
       if (newWorkouts >= 25 && !newAchievements.includes('workout-25')) {
         newAchievements.push('workout-25');
         totalXPBonus += 750;
+        newAchievementUnlocked = true;
+        console.log('🏆 Conquista desbloqueada: Guerreiro');
       }
+
+      // Verificar conquistas de streak
+      if (currentStreak >= 3 && !newAchievements.includes('streak-3')) {
+        newAchievements.push('streak-3');
+        totalXPBonus += 200;
+        newAchievementUnlocked = true;
+        console.log('🏆 Conquista desbloqueada: Consistência');
+      }
+      
+      if (currentStreak >= 7 && !newAchievements.includes('streak-7')) {
+        newAchievements.push('streak-7');
+        totalXPBonus += 500;
+        newAchievementUnlocked = true;
+        console.log('🏆 Conquista desbloqueada: Força de Vontade');
+      }
+      
       if (currentStreak >= 30 && !newAchievements.includes('streak-30')) {
         newAchievements.push('streak-30');
         totalXPBonus += 1000;
+        newAchievementUnlocked = true;
+        console.log('🏆 Conquista desbloqueada: Imparável');
       }
 
       const finalXP = newXP + totalXPBonus;
       const newLevel = getCurrentLevel(finalXP).level;
+
+      console.log('📊 XP Final:', finalXP, 'Nível:', newLevel, 'Bônus de conquistas:', totalXPBonus);
 
       // Atualizar dados no banco apenas se houve mudanças
       const hasChanges = 
@@ -291,12 +333,14 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
         newAchievements.length !== gamificationData.achievements_unlocked.length;
 
       if (hasChanges) {
+        console.log('💾 Atualizando dados de gamificação no banco...');
+        
         // Cancelar timeout anterior se existir
         if (updateTimeoutRef.current) {
           clearTimeout(updateTimeoutRef.current);
         }
 
-        // Debounce de 2 segundos para evitar múltiplas atualizações
+        // Debounce de 1 segundo para evitar múltiplas atualizações
         updateTimeoutRef.current = setTimeout(async () => {
           const { error: updateError } = await supabase
             .from('user_gamification')
@@ -313,8 +357,10 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
             .eq('user_id', user.id);
 
           if (updateError) {
-            console.error('Erro ao atualizar gamificação:', updateError);
+            console.error('❌ Erro ao atualizar gamificação:', updateError);
           } else {
+            console.log('✅ Dados de gamificação atualizados com sucesso!');
+            
             // Atualizar estado local
             setGamificationData({
               total_xp: finalXP,
@@ -326,27 +372,30 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
               last_activity_date: today
             });
 
-            // Mostrar notificação apenas para novas conquistas (máximo 1 por vez)
-            const newAchievementsDiff = newAchievements.filter(a => !gamificationData.achievements_unlocked.includes(a));
-            if (newAchievementsDiff.length > 0 && !loading) {
-              const latestAchievement = achievements.find(a => a.id === newAchievementsDiff[0]);
-              if (latestAchievement) {
-                toast({
-                  title: "🏆 Nova Conquista!",
-                  description: `Você desbloqueou: ${latestAchievement.title}`,
-                  duration: 3000,
-                });
+            // Mostrar notificação apenas para novas conquistas
+            if (newAchievementUnlocked && !loading) {
+              const newAchievementsDiff = newAchievements.filter(a => !gamificationData.achievements_unlocked.includes(a));
+              if (newAchievementsDiff.length > 0) {
+                const latestAchievement = achievements.find(a => a.id === newAchievementsDiff[0]);
+                if (latestAchievement) {
+                  toast({
+                    title: "🏆 Nova Conquista!",
+                    description: `Você desbloqueou: ${latestAchievement.title}`,
+                    duration: 4000,
+                  });
+                }
               }
             }
           }
           setIsUpdating(false);
-        }, 2000);
+        }, 1000);
       } else {
+        console.log('📝 Nenhuma mudança detectada nos dados de gamificação');
         setIsUpdating(false);
       }
 
     } catch (error) {
-      console.error('Erro ao atualizar progresso:', error);
+      console.error('💥 Erro ao atualizar progresso:', error);
       setIsUpdating(false);
     }
   };
