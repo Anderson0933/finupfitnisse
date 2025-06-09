@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, Save, Dumbbell, MessageCircle, RefreshCw, Trash2, CheckCircle2, ArrowRight, Clock, Target, TrendingUp, Apple, Zap, User, Calendar, Activity, Heart, Dumbbell as DumbbellIcon, Timer, Trophy, Star, Info, Flame } from 'lucide-react';
+import { Copy, Save, Dumbbell, MessageCircle, RefreshCw, Trash2, CheckCircle2, ArrowRight, Clock, Target, TrendingUp, Apple, Zap, User, Calendar, Activity, Heart, Dumbbell as DumbbellIcon, Timer, Trophy, Star, Info, Flame, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
@@ -277,6 +278,64 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
 
         <TabsContent value="form">
           <div className="space-y-4">
+            {/* Aviso quando já existe um plano ativo */}
+            {workoutPlan && (
+              <Card className="bg-yellow-50 border-yellow-200 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-yellow-800 mb-1">
+                        Você já tem um plano ativo
+                      </h3>
+                      <p className="text-sm text-yellow-700 mb-3">
+                        Para gerar um novo plano de treino, você precisa primeiro excluir o plano atual. Isso garantirá que você foque em um plano por vez.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setActiveTab('plan')}
+                          className="border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Ver Plano Atual
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Excluir Plano Atual
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir seu plano de treino atual? Esta ação não pode ser desfeita e você perderá todo o progresso registrado.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeletePlan} className="bg-red-600 hover:bg-red-700">
+                                Sim, Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="bg-white border-gray-200 shadow-sm">
               <CardHeader>
                 <CardTitle>Informações Pessoais</CardTitle>
@@ -292,6 +351,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                       value={formData.age}
                       onChange={(e) => handleInputChange('age', e.target.value)}
                       placeholder="Ex: 25"
+                      disabled={!!workoutPlan}
                     />
                   </div>
                   <div>
@@ -302,6 +362,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                       value={formData.weight}
                       onChange={(e) => handleInputChange('weight', e.target.value)}
                       placeholder="Ex: 70"
+                      disabled={!!workoutPlan}
                     />
                   </div>
                   <div>
@@ -312,6 +373,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                       value={formData.height}
                       onChange={(e) => handleInputChange('height', e.target.value)}
                       placeholder="Ex: 175"
+                      disabled={!!workoutPlan}
                     />
                   </div>
                 </div>
@@ -327,7 +389,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="fitnessLevel">Nível de Condicionamento *</Label>
-                    <Select value={formData.fitnessLevel} onValueChange={(value) => handleInputChange('fitnessLevel', value)}>
+                    <Select value={formData.fitnessLevel} onValueChange={(value) => handleInputChange('fitnessLevel', value)} disabled={!!workoutPlan}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione seu nível" />
                       </SelectTrigger>
@@ -341,7 +403,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                   </div>
                   <div>
                     <Label htmlFor="goal">Objetivo Principal *</Label>
-                    <Select value={formData.goal} onValueChange={(value) => handleInputChange('goal', value)}>
+                    <Select value={formData.goal} onValueChange={(value) => handleInputChange('goal', value)} disabled={!!workoutPlan}>
                       <SelectTrigger>
                         <SelectValue placeholder="Qual seu objetivo?" />
                       </SelectTrigger>
@@ -360,7 +422,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="timeAvailable">Tempo Disponível por Treino</Label>
-                    <Select value={formData.timeAvailable} onValueChange={(value) => handleInputChange('timeAvailable', value)}>
+                    <Select value={formData.timeAvailable} onValueChange={(value) => handleInputChange('timeAvailable', value)} disabled={!!workoutPlan}>
                       <SelectTrigger>
                         <SelectValue placeholder="Quanto tempo você tem?" />
                       </SelectTrigger>
@@ -374,7 +436,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                   </div>
                   <div>
                     <Label htmlFor="workoutFrequency">Frequência Semanal</Label>
-                    <Select value={formData.workoutFrequency} onValueChange={(value) => handleInputChange('workoutFrequency', value)}>
+                    <Select value={formData.workoutFrequency} onValueChange={(value) => handleInputChange('workoutFrequency', value)} disabled={!!workoutPlan}>
                       <SelectTrigger>
                         <SelectValue placeholder="Quantas vezes por semana?" />
                       </SelectTrigger>
@@ -391,7 +453,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
 
                 <div>
                   <Label htmlFor="equipmentAccess">Equipamentos Disponíveis</Label>
-                  <Select value={formData.equipmentAccess} onValueChange={(value) => handleInputChange('equipmentAccess', value)}>
+                  <Select value={formData.equipmentAccess} onValueChange={(value) => handleInputChange('equipmentAccess', value)} disabled={!!workoutPlan}>
                     <SelectTrigger>
                       <SelectValue placeholder="Que equipamentos você tem acesso?" />
                     </SelectTrigger>
@@ -411,6 +473,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                     value={formData.healthConditions}
                     onChange={(e) => handleInputChange('healthConditions', e.target.value)}
                     placeholder="Descreva qualquer condição médica, lesão ou limitação que devemos considerar..."
+                    disabled={!!workoutPlan}
                   />
                 </div>
 
@@ -421,6 +484,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                     value={formData.preferences}
                     onChange={(e) => handleInputChange('preferences', e.target.value)}
                     placeholder="Alguma preferência específica de exercícios, horários ou outras observações..."
+                    disabled={!!workoutPlan}
                   />
                 </div>
               </CardContent>
@@ -429,12 +493,17 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
             <Button 
               className="w-full bg-blue-600 text-white hover:bg-blue-700" 
               onClick={generateWorkoutPlan}
-              disabled={isGenerating}
+              disabled={isGenerating || !!workoutPlan}
             >
               {isGenerating ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   Gerando Plano Personalizado...
+                </>
+              ) : workoutPlan ? (
+                <>
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Exclua o plano atual para gerar um novo
                 </>
               ) : (
                 <>
