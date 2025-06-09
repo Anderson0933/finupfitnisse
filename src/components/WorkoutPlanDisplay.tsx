@@ -328,27 +328,9 @@ const WorkoutPlanDisplay = ({
                         <div className="flex flex-col items-center gap-2">
                           <Checkbox
                             checked={isCompleted}
-                            onCheckedChange={(checked) => {
-                              console.log('🔄 Checkbox onCheckedChange:', { itemIdentifier, checked, currentStatus: isCompleted });
-                              // Usar o valor do checkbox diretamente em vez de inverter
-                              const newStatus = checked === true;
-                              
-                              // Atualizar estado local primeiro
-                              onProgressChange(itemIdentifier, newStatus);
-                              
-                              // Se foi marcado como concluído, dar XP
-                              if (newStatus && !isCompleted) {
-                                let xpGained = 10;
-                                if (plan.difficulty_level === 'intermediario') {
-                                  xpGained = 15;
-                                } else if (plan.difficulty_level === 'avancado') {
-                                  xpGained = 20;
-                                }
-                                
-                                handleWorkoutCompletion(xpGained).catch(error => {
-                                  console.error('❌ Erro ao registrar conclusão:', error);
-                                });
-                              }
+                            onCheckedChange={() => {
+                              console.log('🔄 Checkbox clicked:', { itemIdentifier, currentStatus: isCompleted });
+                              handleExerciseCompletion(itemIdentifier, isCompleted);
                             }}
                             className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 w-5 h-5"
                           />
