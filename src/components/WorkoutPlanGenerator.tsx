@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Copy, Save, Dumbbell, MessageCircle, RefreshCw, Trash2, CheckCircle2, ArrowRight, Clock, Target, TrendingUp, Apple, Zap, User, Calendar, Activity, Heart, Dumbbell as DumbbellIcon, Timer, Trophy, Star, Info, Flame } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { v4 as uuidv4 } from 'uuid';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -55,76 +54,78 @@ interface WorkoutPlanGeneratorProps {
 }
 
 const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActiveTab = 'form', onSwitchToAssistant }: WorkoutPlanGeneratorProps) => {
-  const [title, setTitle] = useState(workoutPlan?.title || '');
-  const [description, setDescription] = useState(workoutPlan?.description || '');
-  const [difficultyLevel, setDifficultyLevel] = useState(workoutPlan?.difficulty_level || 'iniciante');
-  const [durationWeeks, setDurationWeeks] = useState(workoutPlan?.duration_weeks || 4);
-  const [exercises, setExercises] = useState<Exercise[]>(workoutPlan?.exercises || []);
-  const [nutritionTips, setNutritionTips] = useState<string[]>(workoutPlan?.nutrition_tips || []);
+  // Form state for questionnaire
+  const [formData, setFormData] = useState({
+    age: '',
+    weight: '',
+    height: '',
+    fitnessLevel: '',
+    goal: '',
+    timeAvailable: '',
+    equipmentAccess: '',
+    healthConditions: '',
+    preferences: '',
+    workoutFrequency: '',
+    experience: ''
+  });
+  
   const [activeTab, setActiveTab] = useState<string>(initialActiveTab);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const [progressMap, setProgressMap] = useState(new Map<string, boolean>());
 
-  const handleAddExercise = () => {
-    const newExercise: Exercise = {
-      id: uuidv4(),
-      name: '',
-      sets: 3,
-      reps: 10,
-      rest: '60 segundos',
-      instructions: '',
-    };
-    setExercises([...exercises, newExercise]);
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleExerciseChange = (id: string, field: string, value: any) => {
-    const updatedExercises = exercises.map(exercise =>
-      exercise.id === id ? { ...exercise, [field]: value } : exercise
-    );
-    setExercises(updatedExercises);
-  };
-
-  const handleDeleteExercise = (id: string) => {
-    const updatedExercises = exercises.filter(exercise => exercise.id !== id);
-    setExercises(updatedExercises);
-  };
-
-  const handleAddNutritionTip = () => {
-    setNutritionTips([...nutritionTips, '']);
-  };
-
-  const handleNutritionTipChange = (index: number, value: string) => {
-    const updatedTips = [...nutritionTips];
-    updatedTips[index] = value;
-    setNutritionTips(updatedTips);
-  };
-
-  const handleDeleteNutritionTip = (index: number) => {
-    const updatedTips = nutritionTips.filter((_, i) => i !== index);
-    setNutritionTips(updatedTips);
-  };
-
-  const handleGeneratePlan = () => {
-    if (!title || !description) {
+  const generateWorkoutPlan = async () => {
+    if (!formData.age || !formData.weight || !formData.height || !formData.fitnessLevel || !formData.goal) {
       toast({
-        title: "Preencha os campos!",
-        description: "Título e descrição são obrigatórios.",
+        title: "Preencha os campos obrigatórios!",
+        description: "Por favor, preencha pelo menos: idade, peso, altura, nível fitness e objetivo.",
         variant: "destructive",
       });
       return;
     }
 
-    const newPlan: WorkoutPlan = {
-      id: uuidv4(),
-      title,
-      description,
-      difficulty_level: difficultyLevel,
-      duration_weeks: durationWeeks,
-      exercises,
-      nutrition_tips: nutritionTips,
-    };
-    setWorkoutPlan(newPlan);
-    setActiveTab('plan');
+    setIsGenerating(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
+        body: { 
+          userProfile: formData,
+          userId: user?.id 
+        }
+      });
+
+      if (error) {
+        console.error('Erro ao gerar plano:', error);
+        toast({
+          title: "Erro ao gerar plano!",
+          description: "Houve um problema ao gerar seu plano. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.workoutPlan) {
+        setWorkoutPlan(data.workoutPlan);
+        setActiveTab('plan');
+        toast({
+          title: "Plano Gerado!",
+          description: "Seu plano de treino personalizado foi criado com sucesso!",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao gerar plano:', error);
+      toast({
+        title: "Erro ao gerar plano!",
+        description: "Houve um problema ao gerar seu plano. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCopyPlan = () => {
@@ -134,47 +135,6 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
       toast({
         title: "Plano Copiado!",
         description: "O plano de treino foi copiado para a área de transferência.",
-      });
-    }
-  };
-
-  const handleSavePlan = async () => {
-    if (!user || !workoutPlan) {
-      toast({
-        title: "Erro ao salvar!",
-        description: "Usuário não autenticado ou plano não gerado.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('user_workout_plans')
-        .insert({
-          user_id: user.id,
-          plan_data: workoutPlan as any
-        });
-
-      if (error) {
-        console.error("Erro ao salvar o plano:", error);
-        toast({
-          title: "Erro ao salvar!",
-          description: "Houve um problema ao salvar o plano. Tente novamente.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Plano Salvo!",
-          description: "Seu plano de treino foi salvo com sucesso!",
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao salvar o plano:", error);
-      toast({
-        title: "Erro ao salvar!",
-        description: "Houve um problema ao salvar o plano. Tente novamente.",
-        variant: "destructive",
       });
     }
   };
@@ -211,7 +171,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
                 Crie seu plano de treino personalizado!
               </h2>
               <p className="text-blue-600 text-sm md:text-base">
-                Preencha os campos abaixo para gerar um plano de treino sob medida para você.
+                Responda algumas perguntas para gerar um plano de treino personalizado com IA.
               </p>
             </div>
             <div className="hidden md:block">
@@ -226,8 +186,8 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-white border border-blue-200 shadow-sm h-auto">
           <TabsTrigger value="form" className="flex items-center justify-center data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3">
-            <Dumbbell className="h-4 w-4 mr-2" />
-            <span className="text-xs md:text-sm">Formulário</span>
+            <User className="h-4 w-4 mr-2" />
+            <span className="text-xs md:text-sm">Questionário</span>
           </TabsTrigger>
           <TabsTrigger value="plan" className="flex items-center justify-center data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!workoutPlan}>
             <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -239,50 +199,39 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
           <div className="space-y-4">
             <Card className="bg-white border-gray-200 shadow-sm">
               <CardHeader>
-                <CardTitle>Informações do Plano</CardTitle>
-                <CardDescription>Preencha os detalhes do seu plano de treino.</CardDescription>
+                <CardTitle>Informações Pessoais</CardTitle>
+                <CardDescription>Conte-nos sobre você para personalizar seu treino.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="title">Título</Label>
-                      <Input
-                        type="text"
-                        id="title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="difficulty">Nível de Dificuldade</Label>
-                      <Select value={difficultyLevel} onValueChange={setDifficultyLevel}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione a dificuldade" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="iniciante">Iniciante</SelectItem>
-                          <SelectItem value="intermediario">Intermediário</SelectItem>
-                          <SelectItem value="avancado">Avançado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="description">Descrição</Label>
-                    <Textarea
-                      id="description"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
+                    <Label htmlFor="age">Idade *</Label>
+                    <Input
+                      type="number"
+                      id="age"
+                      value={formData.age}
+                      onChange={(e) => handleInputChange('age', e.target.value)}
+                      placeholder="Ex: 25"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="duration">Duração (semanas)</Label>
+                    <Label htmlFor="weight">Peso (kg) *</Label>
                     <Input
                       type="number"
-                      id="duration"
-                      value={durationWeeks}
-                      onChange={(e) => setDurationWeeks(Number(e.target.value))}
+                      id="weight"
+                      value={formData.weight}
+                      onChange={(e) => handleInputChange('weight', e.target.value)}
+                      placeholder="Ex: 70"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="height">Altura (cm) *</Label>
+                    <Input
+                      type="number"
+                      id="height"
+                      value={formData.height}
+                      onChange={(e) => handleInputChange('height', e.target.value)}
+                      placeholder="Ex: 175"
                     />
                   </div>
                 </div>
@@ -291,96 +240,128 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
 
             <Card className="bg-white border-gray-200 shadow-sm">
               <CardHeader>
-                <CardTitle>Exercícios</CardTitle>
-                <CardDescription>Adicione os exercícios ao seu plano.</CardDescription>
+                <CardTitle>Perfil de Fitness</CardTitle>
+                <CardDescription>Ajude-nos a entender seu nível atual e objetivos.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {exercises.map((exercise) => (
-                  <div key={exercise.id} className="space-y-2 border p-4 rounded-md">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor={`exercise-name-${exercise.id}`}>Nome</Label>
-                        <Input
-                          type="text"
-                          id={`exercise-name-${exercise.id}`}
-                          value={exercise.name}
-                          onChange={(e) => handleExerciseChange(exercise.id, 'name', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`exercise-sets-${exercise.id}`}>Séries</Label>
-                        <Input
-                          type="number"
-                          id={`exercise-sets-${exercise.id}`}
-                          value={exercise.sets}
-                          onChange={(e) => handleExerciseChange(exercise.id, 'sets', Number(e.target.value))}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`exercise-reps-${exercise.id}`}>Repetições</Label>
-                        <Input
-                          type="number"
-                          id={`exercise-reps-${exercise.id}`}
-                          value={exercise.reps}
-                          onChange={(e) => handleExerciseChange(exercise.id, 'reps', Number(e.target.value))}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`exercise-rest-${exercise.id}`}>Descanso</Label>
-                        <Input
-                          type="text"
-                          id={`exercise-rest-${exercise.id}`}
-                          value={exercise.rest}
-                          onChange={(e) => handleExerciseChange(exercise.id, 'rest', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor={`exercise-instructions-${exercise.id}`}>Instruções</Label>
-                      <Textarea
-                        id={`exercise-instructions-${exercise.id}`}
-                        value={exercise.instructions}
-                        onChange={(e) => handleExerciseChange(exercise.id, 'instructions', e.target.value)}
-                      />
-                    </div>
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteExercise(exercise.id)}>
-                      Remover Exercício
-                    </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="fitnessLevel">Nível de Condicionamento *</Label>
+                    <Select value={formData.fitnessLevel} onValueChange={(value) => handleInputChange('fitnessLevel', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione seu nível" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sedentario">Sedentário</SelectItem>
+                        <SelectItem value="iniciante">Iniciante</SelectItem>
+                        <SelectItem value="intermediario">Intermediário</SelectItem>
+                        <SelectItem value="avancado">Avançado</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                ))}
-                <Button variant="secondary" onClick={handleAddExercise}>
-                  Adicionar Exercício
-                </Button>
+                  <div>
+                    <Label htmlFor="goal">Objetivo Principal *</Label>
+                    <Select value={formData.goal} onValueChange={(value) => handleInputChange('goal', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Qual seu objetivo?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="perder_peso">Perder Peso</SelectItem>
+                        <SelectItem value="ganhar_massa">Ganhar Massa Muscular</SelectItem>
+                        <SelectItem value="tonificar">Tonificar</SelectItem>
+                        <SelectItem value="resistencia">Melhorar Resistência</SelectItem>
+                        <SelectItem value="forca">Aumentar Força</SelectItem>
+                        <SelectItem value="saude_geral">Saúde Geral</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="timeAvailable">Tempo Disponível por Treino</Label>
+                    <Select value={formData.timeAvailable} onValueChange={(value) => handleInputChange('timeAvailable', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Quanto tempo você tem?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="20-30min">20-30 minutos</SelectItem>
+                        <SelectItem value="30-45min">30-45 minutos</SelectItem>
+                        <SelectItem value="45-60min">45-60 minutos</SelectItem>
+                        <SelectItem value="60+min">Mais de 60 minutos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="workoutFrequency">Frequência Semanal</Label>
+                    <Select value={formData.workoutFrequency} onValueChange={(value) => handleInputChange('workoutFrequency', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Quantas vezes por semana?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2x">2x por semana</SelectItem>
+                        <SelectItem value="3x">3x por semana</SelectItem>
+                        <SelectItem value="4x">4x por semana</SelectItem>
+                        <SelectItem value="5x">5x por semana</SelectItem>
+                        <SelectItem value="6x">6x por semana</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="equipmentAccess">Equipamentos Disponíveis</Label>
+                  <Select value={formData.equipmentAccess} onValueChange={(value) => handleInputChange('equipmentAccess', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Que equipamentos você tem acesso?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="casa_sem_equipamento">Casa - Sem Equipamentos</SelectItem>
+                      <SelectItem value="casa_basico">Casa - Equipamentos Básicos</SelectItem>
+                      <SelectItem value="academia_completa">Academia Completa</SelectItem>
+                      <SelectItem value="ao_ar_livre">Exercícios ao Ar Livre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="healthConditions">Condições de Saúde ou Limitações</Label>
+                  <Textarea
+                    id="healthConditions"
+                    value={formData.healthConditions}
+                    onChange={(e) => handleInputChange('healthConditions', e.target.value)}
+                    placeholder="Descreva qualquer condição médica, lesão ou limitação que devemos considerar..."
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="preferences">Preferências e Observações</Label>
+                  <Textarea
+                    id="preferences"
+                    value={formData.preferences}
+                    onChange={(e) => handleInputChange('preferences', e.target.value)}
+                    placeholder="Alguma preferência específica de exercícios, horários ou outras observações..."
+                  />
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white border-gray-200 shadow-sm">
-              <CardHeader>
-                <CardTitle>Dicas Nutricionais</CardTitle>
-                <CardDescription>Adicione dicas de nutrição ao seu plano.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {nutritionTips.map((tip, index) => (
-                  <div key={index} className="space-y-2 border p-4 rounded-md">
-                    <Label htmlFor={`nutrition-tip-${index}`}>Dica {index + 1}</Label>
-                    <Textarea
-                      id={`nutrition-tip-${index}`}
-                      value={tip}
-                      onChange={(e) => handleNutritionTipChange(index, e.target.value)}
-                    />
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteNutritionTip(index)}>
-                      Remover Dica
-                    </Button>
-                  </div>
-                ))}
-                <Button variant="secondary" onClick={handleAddNutritionTip}>
-                  Adicionar Dica
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Button className="w-full bg-blue-600 text-white hover:bg-blue-700" onClick={handleGeneratePlan}>
-              Gerar Plano de Treino
+            <Button 
+              className="w-full bg-blue-600 text-white hover:bg-blue-700" 
+              onClick={generateWorkoutPlan}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Gerando Plano Personalizado...
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4 mr-2" />
+                  Gerar Plano de Treino com IA
+                </>
+              )}
             </Button>
           </div>
         </TabsContent>
@@ -401,7 +382,7 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
             <Card className="bg-white border-gray-200 shadow-sm">
               <CardContent className="py-8 text-center">
                 <h2 className="text-xl font-semibold mb-4">Nenhum plano de treino gerado ainda!</h2>
-                <p className="text-gray-600">Preencha o formulário e clique em "Gerar Plano de Treino" para ver seu plano personalizado.</p>
+                <p className="text-gray-600">Preencha o questionário e clique em "Gerar Plano de Treino com IA" para ver seu plano personalizado.</p>
               </CardContent>
             </Card>
           )}
