@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -36,7 +35,8 @@ serve(async (req) => {
 
     console.log('✅ Chave Groq configurada, gerando prompt personalizado...');
 
-    // Mapear valores para português mais amigável
+    // ... keep existing code (mapping objects for goals, equipment, limitations, fitness level)
+
     const goalsMap = {
       'perder_peso': 'perder peso e queimar gordura corporal',
       'ganhar_massa': 'ganhar massa muscular e hipertrofia',
@@ -94,6 +94,9 @@ serve(async (req) => {
       else imcInfo += 'Obesidade - exercícios de baixo impacto e queima calórica';
     }
 
+    // Definir estrutura clara dos dias da semana baseada nos dias disponíveis
+    const dayStructure = getDayStructure(availableDays);
+
     // Criar prompt super detalhado e personalizado
     const prompt = `Você é um renomado personal trainer certificado com 15 anos de experiência em treinamento personalizado. Crie um plano de treino EXTREMAMENTE DETALHADO, ESPECÍFICO e PERSONALIZADO em português baseado no perfil completo abaixo:
 
@@ -110,42 +113,41 @@ PERFIL COMPLETO DO ALUNO:
 - Equipamentos disponíveis: ${equipment}
 - Limitações físicas: ${limitations}
 
+ESTRUTURA OBRIGATÓRIA DOS DIAS:
+${dayStructure.map((day, index) => `Treino ${index + 1}: ${day}`).join('\n')}
+
 INSTRUÇÕES CRÍTICAS PARA ESTRUTURA DO TREINO:
 
-1. ESTRUTURA OBRIGATÓRIA POR SEMANA:
+1. NOMENCLATURA OBRIGATÓRIA DOS EXERCÍCIOS (USE EXATAMENTE ESTA ESTRUTURA):
+   - "Semana 1 - ${dayStructure[0]}: [Nome do Exercício]"
+   - "Semana 1 - ${dayStructure[1]}: [Nome do Exercício]"
+   ${availableDays >= 3 ? `- "Semana 1 - ${dayStructure[2]}: [Nome do Exercício]"` : ''}
+   ${availableDays >= 4 ? `- "Semana 1 - ${dayStructure[3]}: [Nome do Exercício]"` : ''}
+   ${availableDays >= 5 ? `- "Semana 1 - ${dayStructure[4]}: [Nome do Exercício]"` : ''}
+   
+   Continue para todas as 12 semanas:
+   - "Semana 2 - ${dayStructure[0]}: [Nome do Exercício]"
+   - "Semana 3 - ${dayStructure[0]}: [Nome do Exercício]"
+   - Até "Semana 12 - ${dayStructure[availableDays-1]}: [Nome do Exercício]"
+
+2. DISTRIBUIÇÃO DOS TREINOS:
    - CADA SEMANA DEVE TER EXATAMENTE ${availableDays} TREINOS
-   - Exemplo: Se são 3 dias por semana, cada semana deve ter "Treino A", "Treino B" e "Treino C"
+   - Total: ${availableDays * 12} exercícios (${availableDays} treinos x 12 semanas)
    - JAMAIS deixe uma semana com menos treinos que o solicitado
 
-2. NOMENCLATURA OBRIGATÓRIA DOS EXERCÍCIOS:
-   - Use SEMPRE: "PRIMEIRA SEMANA - Treino A: [Nome do Exercício]"
-   - Use SEMPRE: "PRIMEIRA SEMANA - Treino B: [Nome do Exercício]"  
-   - Use SEMPRE: "PRIMEIRA SEMANA - Treino C: [Nome do Exercício]"
-   - Continue: "SEGUNDA SEMANA - Treino A: [Nome do Exercício]"
-   - E assim por diante até "DÉCIMA SEGUNDA SEMANA"
-   - Para aquecimentos: "PRIMEIRA SEMANA - Aquecimento (Treino A)"
-
-3. DISTRIBUIÇÃO DOS TREINOS:
-   - ${availableDays} dias por semana = ${availableDays * 12} treinos totais em 12 semanas
-   - Cada semana OBRIGATORIAMENTE deve ter ${availableDays} treinos diferentes
-   - Se 3 dias: Treino A (Segunda), Treino B (Quarta), Treino C (Sexta)
-   - Se 4 dias: Treino A, B, C, D por semana
-   - Se 5 dias: Treino A, B, C, D, E por semana
-
-4. EXERCÍCIOS ESPECÍFICOS:
+3. EXERCÍCIOS ESPECÍFICOS:
    - Escolha exercícios que maximizem o objetivo: ${goals}
    - Inclua variações progressivas e regressivas
    - Especifique técnica de execução biomecânica detalhada
    - Adicione músculos primários e secundários trabalhados
-   - Inclua tempo sob tensão e cadência quando relevante
 
-5. PRESCRIÇÃO DETALHADA:
+4. PRESCRIÇÃO DETALHADA:
    - Séries, repetições e descanso específicos por semana
    - Percentual de carga ou percepção de esforço
    - Progressões semanais concretas
    - Adaptações para limitações: ${limitations}
 
-6. PERIODIZAÇÃO POR SEMANAS:
+5. PERIODIZAÇÃO POR SEMANAS:
    - Semanas 1-3: Adaptação anatômica
    - Semanas 4-6: Desenvolvimento básico
    - Semanas 7-9: Intensificação
@@ -160,32 +162,11 @@ RETORNE APENAS um JSON válido no seguinte formato:
   "duration_weeks": 12,
   "exercises": [
     {
-      "name": "PRIMEIRA SEMANA - Aquecimento (Treino A)",
-      "sets": 1,
-      "reps": "10-12 minutos",
-      "rest": "Transição",
-      "instructions": "AQUECIMENTO DETALHADO para Treino A: [5-6 exercícios específicos com descrição biomecânica completa]. PRIMEIRA SEMANA: Adaptação inicial com baixa intensidade."
-    },
-    {
-      "name": "PRIMEIRA SEMANA - Treino A: [Exercício Principal 1]",
+      "name": "Semana 1 - ${dayStructure[0]}: [Exercício Principal 1]",
       "sets": "3",
       "reps": "8-12",
       "rest": "90-120s",
-      "instructions": "EXECUÇÃO TÉCNICA detalhada. PRIMEIRA SEMANA: Foco na adaptação anatômica. MÚSCULOS: [primários e secundários]. PROGRESSÃO: [detalhes específicos]."
-    },
-    {
-      "name": "PRIMEIRA SEMANA - Treino B: [Exercício Principal 2]", 
-      "sets": "3",
-      "reps": "8-12",
-      "rest": "90-120s",
-      "instructions": "EXECUÇÃO TÉCNICA detalhada. PRIMEIRA SEMANA: Movimento diferente do Treino A. MÚSCULOS: [primários e secundários]."
-    },
-    {
-      "name": "PRIMEIRA SEMANA - Treino C: [Exercício Principal 3]",
-      "sets": "3", 
-      "reps": "8-12",
-      "rest": "90-120s",
-      "instructions": "EXECUÇÃO TÉCNICA detalhada. PRIMEIRA SEMANA: Complementa Treinos A e B. MÚSCULOS: [primários e secundários]."
+      "instructions": "EXECUÇÃO TÉCNICA detalhada. Semana 1: Foco na adaptação anatômica. MÚSCULOS: [primários e secundários]. PROGRESSÃO: [detalhes específicos]."
     }
   ],
   "nutrition_tips": [
@@ -198,8 +179,8 @@ RETORNE APENAS um JSON válido no seguinte formato:
 
 REQUISITOS CRÍTICOS:
 - Crie EXATAMENTE ${availableDays * 12} exercícios completos (${availableDays} treinos x 12 semanas)
-- CADA SEMANA deve ter EXATAMENTE ${availableDays} treinos (A, B, C...)
-- SEMPRE use a nomenclatura: "PRIMEIRA SEMANA", "SEGUNDA SEMANA", etc.
+- CADA SEMANA deve ter EXATAMENTE ${availableDays} treinos
+- SEMPRE use a nomenclatura: "Semana X - [Dia da Semana]: [Exercício]"
 - Cada exercício deve ter instruções de NO MÍNIMO 80 palavras
 - Considere TODAS as limitações: ${limitations}
 - Adapte 100% aos equipamentos: ${equipment}
@@ -354,6 +335,19 @@ RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
   }
 });
 
+function getDayStructure(availableDays: number): string[] {
+  const dayOptions = [
+    ['Segunda-feira', 'Quarta-feira'],
+    ['Segunda-feira', 'Quarta-feira', 'Sexta-feira'],
+    ['Segunda-feira', 'Terça-feira', 'Quinta-feira', 'Sexta-feira'],
+    ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'],
+    ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'],
+    ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
+  ];
+  
+  return dayOptions[Math.min(availableDays - 1, dayOptions.length - 1)] || dayOptions[2];
+}
+
 function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
   switch (fitnessLevel) {
     case 'sedentario':
@@ -391,48 +385,34 @@ function createFallbackPlan(userProfile: any) {
   };
 
   const goalDesc = goalsDescription[goals] || 'condicionamento geral';
+  const dayStructure = getDayStructure(availableDays);
   
   // Criar exercícios garantindo exatamente availableDays treinos por semana
   const exercises = [];
   
-  // Aquecimento para cada treino
+  // Exercícios base por dia
+  const exercisesByDay = {
+    'Segunda-feira': ['Agachamento Livre', 'Flexão de Braço', 'Prancha Isométrica'],
+    'Terça-feira': ['Afundo Alternado', 'Flexão Inclinada', 'Ponte Glútea'],
+    'Quarta-feira': ['Agachamento Sumo', 'Flexão Diamante', 'Mountain Climber'],
+    'Quinta-feira': ['Agachamento Búlgaro', 'Flexão Declinada', 'Prancha Lateral'],
+    'Sexta-feira': ['Agachamento Jump', 'Flexão Hindu', 'Burpee Modificado'],
+    'Sábado': ['Circuito Funcional', 'Core Training', 'Mobilidade'],
+    'Domingo': ['Yoga Flow', 'Alongamento', 'Relaxamento']
+  };
+  
   for (let week = 1; week <= 12; week++) {
-    const weekNames = [
-      '', 'PRIMEIRA', 'SEGUNDA', 'TERCEIRA', 'QUARTA', 'QUINTA', 'SEXTA',
-      'SÉTIMA', 'OITAVA', 'NONA', 'DÉCIMA', 'DÉCIMA PRIMEIRA', 'DÉCIMA SEGUNDA'
-    ];
-    
-    for (let day = 1; day <= availableDays; day++) {
-      const dayLetters = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
-      const dayLetter = dayLetters[day];
+    for (let dayIndex = 0; dayIndex < availableDays; dayIndex++) {
+      const dayName = dayStructure[dayIndex];
+      const dayExercises = exercisesByDay[dayName] || exercisesByDay['Segunda-feira'];
       
-      // Aquecimento para cada treino
-      exercises.push({
-        name: `${weekNames[week]} SEMANA - Aquecimento (Treino ${dayLetter})`,
-        sets: 1,
-        reps: "8-10 minutos",
-        rest: "N/A",
-        instructions: `Aquecimento específico para Treino ${dayLetter}: rotações articulares, mobilidade dinâmica e ativação cardiovascular. ${weekNames[week]} SEMANA: Preparação progressiva adequada ao nível ${difficultyLevel}.`
-      });
-
-      // Exercícios principais para cada treino
-      const exercisesByDay = {
-        'A': ['Agachamento Livre', 'Flexão de Braço', 'Prancha Isométrica'],
-        'B': ['Afundo Alternado', 'Flexão Inclinada', 'Ponte Glútea'],
-        'C': ['Agachamento Sumo', 'Flexão Diamante', 'Mountain Climber'],
-        'D': ['Agachamento Búlgaro', 'Flexão Declinada', 'Prancha Lateral'],
-        'E': ['Agachamento Jump', 'Flexão Hindu', 'Burpee Modificado']
-      };
-
-      const dayExercises = exercisesByDay[dayLetter] || exercisesByDay['A'];
-      
-      dayExercises.forEach((exerciseName, index) => {
+      dayExercises.forEach((exerciseName) => {
         exercises.push({
-          name: `${weekNames[week]} SEMANA - Treino ${dayLetter}: ${exerciseName}`,
-          sets: week <= 4 ? 2 + index : 3 + index,
+          name: `Semana ${week} - ${dayName}: ${exerciseName}`,
+          sets: week <= 4 ? 2 : 3,
           reps: week <= 4 ? "8-10" : "10-15",
           rest: "60-90s",
-          instructions: `EXECUÇÃO TÉCNICA: Técnica biomecânica detalhada para ${exerciseName}. ${weekNames[week]} SEMANA: Progressão adequada considerando ${goalDesc}. MÚSCULOS: Grupos musculares específicos trabalhados. ADAPTAÇÕES: Considerações para nível ${difficultyLevel}.`
+          instructions: `EXECUÇÃO TÉCNICA: Técnica biomecânica detalhada para ${exerciseName}. Semana ${week}: Progressão adequada considerando ${goalDesc}. MÚSCULOS: Grupos musculares específicos trabalhados. ADAPTAÇÕES: Considerações para nível ${difficultyLevel}.`
         });
       });
     }
@@ -446,13 +426,13 @@ function createFallbackPlan(userProfile: any) {
     source: 'fallback',
     exercises: exercises,
     nutrition_tips: [
-      "PRIMEIRA E SEGUNDA SEMANA: Proteína pós-treino moderada (15-20g) para adaptação inicial",
-      "TERCEIRA SEMANA: Aumento para 25-30g de proteína pós-treino para suporte à recuperação",
-      "Hidratação progressiva: 35ml por kg de peso + 300ml extra na primeira semana, 500ml extra da segunda semana em diante",
-      "Carboidratos pré-treino: começar com 20-30g na primeira semana, progredir para 30-50g",
-      "Timing nutricional: manter consistência nos horários das refeições para regular o metabolismo",
-      "Sono reparador: 7-9h por noite, especialmente importante nas primeiras semanas de adaptação",
-      "Suplementação básica: considere apenas após a terceira semana, quando o corpo estiver adaptado"
+      "Semana 1-2: Proteína pós-treino moderada (15-20g) para adaptação inicial",
+      "Semana 3-4: Aumento para 25-30g de proteína pós-treino para suporte à recuperação",
+      "Hidratação progressiva: 35ml por kg de peso + 300ml extra nas primeiras semanas",
+      "Carboidratos pré-treino: começar com 20-30g, progredir para 30-50g",
+      "Timing nutricional: manter consistência nos horários das refeições",
+      "Sono reparador: 7-9h por noite, especialmente importante nas primeiras semanas",
+      "Suplementação básica: considere apenas após a terceira semana de adaptação"
     ]
   };
 }

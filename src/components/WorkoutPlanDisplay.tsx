@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,63 +78,68 @@ const WorkoutPlanDisplay = ({
     }
   };
 
-  // Função para organizar exercícios por semanas e dias
+  // Função para organizar exercícios por semanas e dias com melhor parsing
   const organizeExercisesByWeeksAndDays = (exercises: any[]) => {
     const weeklyPlan: { [key: string]: { [key: string]: any[] } } = {};
     
     exercises.forEach((exercise, index) => {
-      const exerciseName = exercise.name.toLowerCase();
+      const exerciseName = exercise.name;
       
-      // Detectar semana
+      // Regex para capturar semana e dia do formato: "Semana X - Dia: Exercício"
+      const weekDayMatch = exerciseName.match(/Semana\s+(\d+)\s*-\s*([^:]+):\s*(.+)/i);
+      
       let weekKey = 'Primeira Semana';
-      if (exerciseName.includes('semana 2') || exerciseName.includes('segunda semana')) {
-        weekKey = 'Segunda Semana';
-      } else if (exerciseName.includes('semana 3') || exerciseName.includes('terceira semana')) {
-        weekKey = 'Terceira Semana';
-      } else if (exerciseName.includes('semana 4') || exerciseName.includes('quarta semana')) {
-        weekKey = 'Quarta Semana';
-      } else if (exerciseName.includes('semana 5') || exerciseName.includes('quinta semana')) {
-        weekKey = 'Quinta Semana';
-      } else if (exerciseName.includes('semana 6') || exerciseName.includes('sexta semana')) {
-        weekKey = 'Sexta Semana';
-      } else if (exerciseName.includes('semana 7') || exerciseName.includes('sétima semana')) {
-        weekKey = 'Sétima Semana';
-      } else if (exerciseName.includes('semana 8') || exerciseName.includes('oitava semana')) {
-        weekKey = 'Oitava Semana';
-      } else if (exerciseName.includes('semana 9') || exerciseName.includes('nona semana')) {
-        weekKey = 'Nona Semana';
-      } else if (exerciseName.includes('semana 10') || exerciseName.includes('décima semana')) {
-        weekKey = 'Décima Semana';
-      } else if (exerciseName.includes('semana 11') || exerciseName.includes('décima primeira semana')) {
-        weekKey = 'Décima Primeira Semana';
-      } else if (exerciseName.includes('semana 12') || exerciseName.includes('décima segunda semana')) {
-        weekKey = 'Décima Segunda Semana';
-      }
+      let dayKey = 'Segunda-feira';
+      let cleanExerciseName = exercise.name;
       
-      // Detectar dia da semana
-      let dayKey = 'Treino 1';
-      if (exerciseName.includes('dia 1') || exerciseName.includes('segunda') || exerciseName.includes('treino a')) {
-        dayKey = 'Treino 1 - Segunda-feira';
-      } else if (exerciseName.includes('dia 2') || exerciseName.includes('terça') || exerciseName.includes('treino b')) {
-        dayKey = 'Treino 2 - Terça-feira';
-      } else if (exerciseName.includes('dia 3') || exerciseName.includes('quarta') || exerciseName.includes('treino c')) {
-        dayKey = 'Treino 3 - Quarta-feira';
-      } else if (exerciseName.includes('dia 4') || exerciseName.includes('quinta') || exerciseName.includes('treino d')) {
-        dayKey = 'Treino 4 - Quinta-feira';
-      } else if (exerciseName.includes('dia 5') || exerciseName.includes('sexta') || exerciseName.includes('treino e')) {
-        dayKey = 'Treino 5 - Sexta-feira';
-      } else if (exerciseName.includes('sábado') || exerciseName.includes('sabado')) {
-        dayKey = 'Treino 6 - Sábado';
-      } else if (exerciseName.includes('domingo')) {
-        dayKey = 'Treino 7 - Domingo';
-      } else {
-        // Fallback: distribuir por índice
-        const dayIndex = index % 7;
-        const dayNames = [
-          'Treino 1 - Segunda-feira', 'Treino 2 - Terça-feira', 'Treino 3 - Quarta-feira',
-          'Treino 4 - Quinta-feira', 'Treino 5 - Sexta-feira', 'Treino 6 - Sábado', 'Treino 7 - Domingo'
+      if (weekDayMatch) {
+        const weekNumber = parseInt(weekDayMatch[1]);
+        const dayName = weekDayMatch[2].trim();
+        cleanExerciseName = weekDayMatch[3].trim();
+        
+        // Mapear número da semana para texto
+        const weekNames = [
+          '', 'Primeira', 'Segunda', 'Terceira', 'Quarta', 'Quinta', 'Sexta',
+          'Sétima', 'Oitava', 'Nona', 'Décima', 'Décima Primeira', 'Décima Segunda'
         ];
-        dayKey = dayNames[dayIndex];
+        
+        if (weekNumber <= 12) {
+          weekKey = `${weekNames[weekNumber]} Semana`;
+        }
+        
+        dayKey = dayName;
+      } else {
+        // Fallback para o método anterior se o novo formato não for detectado
+        const lowerName = exerciseName.toLowerCase();
+        
+        // Detectar semana pelo método antigo
+        if (lowerName.includes('primeira semana')) weekKey = 'Primeira Semana';
+        else if (lowerName.includes('segunda semana')) weekKey = 'Segunda Semana';
+        else if (lowerName.includes('terceira semana')) weekKey = 'Terceira Semana';
+        else if (lowerName.includes('quarta semana')) weekKey = 'Quarta Semana';
+        else if (lowerName.includes('quinta semana')) weekKey = 'Quinta Semana';
+        else if (lowerName.includes('sexta semana')) weekKey = 'Sexta Semana';
+        else if (lowerName.includes('sétima semana')) weekKey = 'Sétima Semana';
+        else if (lowerName.includes('oitava semana')) weekKey = 'Oitava Semana';
+        else if (lowerName.includes('nona semana')) weekKey = 'Nona Semana';
+        else if (lowerName.includes('décima semana')) weekKey = 'Décima Semana';
+        else if (lowerName.includes('décima primeira semana')) weekKey = 'Décima Primeira Semana';
+        else if (lowerName.includes('décima segunda semana')) weekKey = 'Décima Segunda Semana';
+        
+        // Detectar dia da semana
+        if (lowerName.includes('segunda')) dayKey = 'Segunda-feira';
+        else if (lowerName.includes('terça')) dayKey = 'Terça-feira';
+        else if (lowerName.includes('quarta')) dayKey = 'Quarta-feira';
+        else if (lowerName.includes('quinta')) dayKey = 'Quinta-feira';
+        else if (lowerName.includes('sexta')) dayKey = 'Sexta-feira';
+        else if (lowerName.includes('sábado') || lowerName.includes('sabado')) dayKey = 'Sábado';
+        else if (lowerName.includes('domingo')) dayKey = 'Domingo';
+        
+        // Limpar o nome do exercício
+        cleanExerciseName = exercise.name
+          .replace(/^(PRIMEIRA|SEGUNDA|TERCEIRA|QUARTA|QUINTA|SEXTA|SÉTIMA|OITAVA|NONA|DÉCIMA(\s+PRIMEIRA|\s+SEGUNDA)?)\s+SEMANA\s*-\s*/i, '')
+          .replace(/^(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)(-feira)?\s*:\s*/i, '')
+          .trim();
       }
       
       if (!weeklyPlan[weekKey]) {
@@ -146,16 +150,9 @@ const WorkoutPlanDisplay = ({
         weeklyPlan[weekKey][dayKey] = [];
       }
       
-      // Limpar o nome do exercício removendo prefixos
-      const cleanName = exercise.name
-        .replace(/DIA \d+\s*[-:]?\s*/i, '')
-        .replace(/SEMANA \d+\s*[-:]?\s*/i, '')
-        .replace(/TREINO [A-Z]\s*[-:]?\s*/i, '')
-        .trim();
-      
       weeklyPlan[weekKey][dayKey].push({ 
         ...exercise, 
-        name: cleanName,
+        name: cleanExerciseName,
         originalIndex: index 
       });
     });
