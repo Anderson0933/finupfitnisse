@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { useToast } from '@/hooks/use-toast';
 
 interface GamificationSectionProps {
   user: SupabaseUser | null;
@@ -54,8 +55,11 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
   const [userXP, setUserXP] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
+  const [currentLevel, setCurrentLevel] = useState(1);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   const levels: UserLevel[] = [
     { level: 1, title: 'Iniciante', xpRequired: 0, color: 'bg-gray-100 text-gray-800', icon: <User className="h-4 w-4" /> },
@@ -66,8 +70,8 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
     { level: 6, title: 'Lenda', xpRequired: 1500, color: 'bg-yellow-100 text-yellow-800', icon: <Crown className="h-4 w-4" /> },
   ];
 
-  const getCurrentLevel = (xp: number): UserLevel => {
-    return levels.reverse().find(level => xp >= level.xpRequired) || levels[0];
+  const getCurrentLevelData = (xp: number): UserLevel => {
+    return [...levels].reverse().find(level => xp >= level.xpRequired) || levels[0];
   };
 
   const getNextLevel = (xp: number): UserLevel | null => {
@@ -81,7 +85,7 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
       description: 'Complete seu primeiro treino',
       icon: <Dumbbell className="h-6 w-6 text-blue-600" />,
       xpReward: 50,
-      unlocked: totalWorkouts >= 1,
+      unlocked: false,
       category: 'workout'
     },
     {
@@ -90,7 +94,7 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
       description: 'Mantenha uma sequência de 3 dias',
       icon: <Flame className="h-6 w-6 text-orange-600" />,
       xpReward: 75,
-      unlocked: currentStreak >= 3,
+      unlocked: false,
       category: 'consistency'
     },
     {
@@ -99,7 +103,7 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
       description: 'Complete 10 treinos',
       icon: <Trophy className="h-6 w-6 text-yellow-600" />,
       xpReward: 100,
-      unlocked: totalWorkouts >= 10,
+      unlocked: false,
       category: 'workout'
     },
     {
@@ -108,7 +112,7 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
       description: 'Sequência de 7 dias consecutivos',
       icon: <Star className="h-6 w-6 text-purple-600" />,
       xpReward: 150,
-      unlocked: currentStreak >= 7,
+      unlocked: false,
       category: 'consistency'
     },
     {
@@ -117,7 +121,7 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
       description: 'Complete 25 treinos',
       icon: <Medal className="h-6 w-6 text-green-600" />,
       xpReward: 200,
-      unlocked: totalWorkouts >= 25,
+      unlocked: false,
       category: 'workout'
     },
     {
@@ -126,10 +130,68 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
       description: 'Mantenha 30 dias de atividade',
       icon: <Crown className="h-6 w-6 text-gold-600" />,
       xpReward: 300,
-      unlocked: currentStreak >= 30,
+      unlocked: false,
       category: 'consistency'
     }
   ];
+
+  const updateGamificationData = async (newWorkouts: number, newStreak: number, newXP: number) => {
+    if (!user) return;
+
+    try {
+      // Verificar conquistas desbloqueadas
+      const newUnlockedAchievements = [...unlockedAchievements];
+      let xpToAdd = 0;
+
+      defaultAchievements.forEach(achievement => {
+        if (!newUnlockedAchievements.includes(achievement.id)) {
+          const shouldUnlock = 
+            (achievement.id === 'first-workout' && newWorkouts >= 1) ||
+            (achievement.id === 'streak-3' && newStreak >= 3) ||
+            (achievement.id === 'workout-10' && newWorkouts >= 10) ||
+            (achievement.id === 'streak-7' && newStreak >= 7) ||
+            (achievement.id === 'workout-25' && newWorkouts >= 25) ||
+            (achievement.id === 'streak-30' && newStreak >= 30);
+
+          if (shouldUnlock) {
+            newUnlockedAchievements.push(achievement.id);
+            xpToAdd += achievement.xpReward;
+            toast({
+              title: "🏆 Nova Conquista Desbloqueada!",
+              description: `${achievement.title} (+${achievement.xpReward} XP)`,
+            });
+          }
+        }
+      });
+
+      const finalXP = newXP + xpToAdd;
+      const newLevel = getCurrentLevelData(finalXP).level;
+
+      // Atualizar no banco de dados
+      const { error } = await supabase
+        .from('user_gamification')
+        .upsert({
+          user_id: user.id,
+          total_xp: finalXP,
+          current_level: newLevel,
+          current_streak: newStreak,
+          total_workouts_completed: newWorkouts,
+          achievements_unlocked: newUnlockedAchievements,
+          last_activity_date: new Date().toISOString().split('T')[0],
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Erro ao atualizar gamificação:', error);
+      } else {
+        setUserXP(finalXP);
+        setCurrentLevel(newLevel);
+        setUnlockedAchievements(newUnlockedAchievements);
+      }
+    } catch (error) {
+      console.error('Erro ao processar gamificação:', error);
+    }
+  };
 
   useEffect(() => {
     const loadGamificationData = async () => {
@@ -138,7 +200,14 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
       try {
         setLoading(true);
 
-        // Simular dados de XP e streak baseados no progresso do usuário
+        // Buscar dados de gamificação salvos
+        const { data: gamificationData } = await supabase
+          .from('user_gamification')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        // Buscar progresso atual dos exercícios
         const { data: progressData } = await supabase
           .from('plan_progress')
           .select('*')
@@ -146,26 +215,60 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
           .eq('is_completed', true);
 
         const completedItems = progressData?.length || 0;
-        const calculatedXP = completedItems * 25; // 25 XP por exercício completado
-        const simulatedStreak = Math.min(completedItems, 7); // Simular streak
-        const simulatedWorkouts = Math.floor(completedItems / 3); // Simular treinos completos
+        const newWorkouts = Math.floor(completedItems / 3); // Simular treinos completos
+        
+        // Calcular streak baseado na última atividade
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        let streak = 0;
+        if (gamificationData?.last_activity_date) {
+          const lastActivity = new Date(gamificationData.last_activity_date);
+          const diffTime = Math.abs(today.getTime() - lastActivity.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays <= 1) {
+            streak = gamificationData.current_streak || 0;
+            if (completedItems > 0) streak = Math.min(streak + 1, 30);
+          }
+        } else if (completedItems > 0) {
+          streak = 1;
+        }
 
-        setUserXP(calculatedXP);
-        setCurrentStreak(simulatedStreak);
-        setTotalWorkouts(simulatedWorkouts);
+        if (gamificationData) {
+          // Usar dados salvos e atualizar se necessário
+          setUserXP(gamificationData.total_xp || 0);
+          setCurrentStreak(gamificationData.current_streak || streak);
+          setTotalWorkouts(Math.max(gamificationData.total_workouts_completed || 0, newWorkouts));
+          setCurrentLevel(gamificationData.current_level || 1);
+          setUnlockedAchievements(gamificationData.achievements_unlocked || []);
 
-        // Atualizar achievements baseado nos dados
+          // Verificar se há progresso novo para atualizar
+          if (newWorkouts > (gamificationData.total_workouts_completed || 0) || 
+              streak > (gamificationData.current_streak || 0)) {
+            await updateGamificationData(
+              Math.max(gamificationData.total_workouts_completed || 0, newWorkouts),
+              Math.max(gamificationData.current_streak || 0, streak),
+              gamificationData.total_xp || 0
+            );
+          }
+        } else {
+          // Primeira vez - criar dados iniciais
+          setCurrentStreak(streak);
+          setTotalWorkouts(newWorkouts);
+          setUnlockedAchievements([]);
+          
+          if (newWorkouts > 0 || streak > 0) {
+            await updateGamificationData(newWorkouts, streak, 0);
+          }
+        }
+
+        // Atualizar achievements com status atual
         const updatedAchievements = defaultAchievements.map(achievement => ({
           ...achievement,
-          unlocked: achievement.id === 'first-workout' ? simulatedWorkouts >= 1 :
-                   achievement.id === 'streak-3' ? simulatedStreak >= 3 :
-                   achievement.id === 'workout-10' ? simulatedWorkouts >= 10 :
-                   achievement.id === 'streak-7' ? simulatedStreak >= 7 :
-                   achievement.id === 'workout-25' ? simulatedWorkouts >= 25 :
-                   achievement.id === 'streak-30' ? simulatedStreak >= 30 :
-                   false
+          unlocked: (gamificationData?.achievements_unlocked || []).includes(achievement.id)
         }));
-
         setAchievements(updatedAchievements);
 
       } catch (error) {
@@ -178,11 +281,11 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
     loadGamificationData();
   }, [user]);
 
-  const currentLevel = getCurrentLevel(userXP);
+  const currentLevelData = getCurrentLevelData(userXP);
   const nextLevel = getNextLevel(userXP);
-  const progressToNext = nextLevel ? ((userXP - currentLevel.xpRequired) / (nextLevel.xpRequired - currentLevel.xpRequired)) * 100 : 100;
+  const progressToNext = nextLevel ? ((userXP - currentLevelData.xpRequired) / (nextLevel.xpRequired - currentLevelData.xpRequired)) * 100 : 100;
 
-  const unlockedAchievements = achievements.filter(a => a.unlocked);
+  const unlockedAchievementsList = achievements.filter(a => a.unlocked);
   const lockedAchievements = achievements.filter(a => !a.unlocked);
 
   if (loading) {
@@ -263,9 +366,9 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
       <Card className="bg-white border-gray-200 shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
-            <Badge className={`${currentLevel.color} text-sm font-semibold px-3 py-1 flex items-center gap-1`}>
-              {currentLevel.icon}
-              Nível {currentLevel.level} - {currentLevel.title}
+            <Badge className={`${currentLevelData.color} text-sm font-semibold px-3 py-1 flex items-center gap-1`}>
+              {currentLevelData.icon}
+              Nível {currentLevelData.level} - {currentLevelData.title}
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -296,20 +399,20 @@ const GamificationSection = ({ user }: GamificationSectionProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <Award className="h-6 w-6 text-purple-600" />
-            Conquistas ({unlockedAchievements.length}/{achievements.length})
+            Conquistas ({unlockedAchievementsList.length}/{achievements.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
             {/* Unlocked Achievements */}
-            {unlockedAchievements.length > 0 && (
+            {unlockedAchievementsList.length > 0 && (
               <div>
                 <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5" />
                   Desbloqueadas
                 </h4>
                 <div className="grid gap-3">
-                  {unlockedAchievements.map((achievement) => (
+                  {unlockedAchievementsList.map((achievement) => (
                     <div key={achievement.id} className="flex items-center gap-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex-shrink-0">
                         {achievement.icon}
