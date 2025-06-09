@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -5,12 +6,14 @@ import { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText } from 'lucide-react';
+import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, HelpCircle, Trophy } from 'lucide-react';
 import WorkoutPlanGenerator, { WorkoutPlan } from '@/components/WorkoutPlanGenerator';
 import AIAssistant from '@/components/AIAssistant';
 import ProgressTracker from '@/components/ProgressTracker';
 import NutritionAssistant from '@/components/NutritionAssistant';
 import PaymentManager from '@/components/PaymentManager';
+import FAQSection from '@/components/FAQSection';
+import GamificationSection from '@/components/GamificationSection';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
