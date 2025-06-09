@@ -79,43 +79,66 @@ const WorkoutPlanDisplay = ({
   const handleMainTabSwitch = (tabValue: string) => {
     console.log('🎯 Tentando mudar para a tab:', tabValue);
     
-    // Buscar o container das tabs principais
-    const mainTabsContainer = document.querySelector('[data-state="active"][role="tablist"]')?.closest('.main-dashboard-tabs') ||
-                             document.querySelector('.main-dashboard-tabs');
-    
-    console.log('📋 Container das tabs encontrado:', !!mainTabsContainer);
-    
-    if (mainTabsContainer) {
-      // Buscar o trigger específico da tab desejada
-      const targetTrigger = mainTabsContainer.querySelector(`[role="tab"][value="${tabValue}"]`) as HTMLElement;
-      console.log('🎯 Trigger encontrado:', !!targetTrigger);
+    // Múltiplas estratégias para encontrar e clicar na tab
+    const strategies = [
+      // Estratégia 1: Buscar por data-value específico
+      () => document.querySelector(`[data-value="${tabValue}"]`) as HTMLElement,
       
+      // Estratégia 2: Buscar por value em tabs com role="tab"
+      () => document.querySelector(`[role="tab"][value="${tabValue}"]`) as HTMLElement,
+      
+      // Estratégia 3: Buscar dentro do container main-dashboard-tabs
+      () => {
+        const container = document.querySelector('.main-dashboard-tabs');
+        return container?.querySelector(`[value="${tabValue}"]`) as HTMLElement;
+      },
+      
+      // Estratégia 4: Buscar por texto contendo "Assistente"
+      () => {
+        const triggers = document.querySelectorAll('[role="tab"]');
+        for (const trigger of triggers) {
+          if (trigger.textContent?.toLowerCase().includes('assistente')) {
+            return trigger as HTMLElement;
+          }
+        }
+        return null;
+      }
+    ];
+
+    let targetTrigger: HTMLElement | null = null;
+    
+    // Tentar cada estratégia até encontrar o trigger
+    for (let i = 0; i < strategies.length; i++) {
+      targetTrigger = strategies[i]();
       if (targetTrigger) {
-        console.log('✅ Clicando no trigger do assistente');
-        targetTrigger.click();
-        
-        // Verificar se funcionou após um pequeno delay
-        setTimeout(() => {
-          const activeTab = mainTabsContainer.querySelector('[data-state="active"][role="tab"]');
-          console.log('📊 Tab ativa após click:', activeTab?.getAttribute('value'));
-        }, 100);
-      } else {
-        console.warn(`❌ Tab com value "${tabValue}" não encontrada`);
-        // Debug: mostrar todas as tabs disponíveis
-        const allTriggers = mainTabsContainer.querySelectorAll('[role="tab"]');
-        console.log('🔍 Todos os triggers encontrados:', allTriggers.length);
-        allTriggers.forEach((trigger, index) => {
-          console.log(`Tab ${index}:`, trigger.getAttribute('value'), trigger.textContent?.trim());
-        });
+        console.log(`✅ Trigger encontrado com estratégia ${i + 1}`);
+        break;
       }
+    }
+    
+    if (targetTrigger) {
+      console.log('🎯 Clicando no trigger do assistente');
+      targetTrigger.click();
+      
+      // Verificar se funcionou após um pequeno delay
+      setTimeout(() => {
+        const activeTab = document.querySelector('[data-state="active"][role="tab"]');
+        console.log('📊 Tab ativa após click:', activeTab?.getAttribute('value') || activeTab?.textContent);
+      }, 100);
     } else {
-      console.warn('❌ Container das tabs principais não encontrado');
-      // Fallback: tentar encontrar qualquer tab com o valor desejado
-      const fallbackTrigger = document.querySelector(`[role="tab"][value="${tabValue}"]`) as HTMLElement;
-      if (fallbackTrigger) {
-        console.log('🔄 Usando fallback trigger');
-        fallbackTrigger.click();
-      }
+      console.warn('❌ Nenhuma estratégia conseguiu encontrar a tab');
+      
+      // Debug: mostrar todas as tabs disponíveis
+      const allTriggers = document.querySelectorAll('[role="tab"]');
+      console.log('🔍 Debug - Todas as tabs encontradas:');
+      allTriggers.forEach((trigger, index) => {
+        console.log(`Tab ${index}:`, {
+          value: trigger.getAttribute('value'),
+          dataValue: trigger.getAttribute('data-value'),
+          text: trigger.textContent?.trim(),
+          element: trigger
+        });
+      });
     }
   };
 
