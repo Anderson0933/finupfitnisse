@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,11 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { QrCode, CreditCard, Check, RefreshCw, Sparkles, User as UserIcon, Copy, AlertCircle, CheckCircle } from 'lucide-react';
+import { QrCode, CreditCard, Check, RefreshCw, Sparkles, User as UserIcon, Copy, AlertCircle, CheckCircle, History, Calendar } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface PaymentManagerProps {
   user: User | null;
   hasActiveSubscription: boolean;
+}
+
+interface PaymentHistory {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  expires_at: string | null;
 }
 
 const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) => {
@@ -20,6 +28,8 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
   const [pixData, setPixData] = useState<any>(null);
   const [cpf, setCpf] = useState('');
   const [lastVerificationStatus, setLastVerificationStatus] = useState<string | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const { toast } = useToast();
 
   const formatCPF = (value: string) => {
@@ -30,6 +40,47 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
     }
     return cleaned;
   };
+
+  const loadPaymentHistory = async () => {
+    if (!user) return;
+
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('id, amount, status, created_at, expires_at')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao buscar histórico:', error);
+        toast({
+          title: "Erro ao carregar histórico",
+          description: "Não foi possível carregar o histórico de pagamentos.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setPaymentHistory(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar histórico:', error);
+      toast({
+        title: "Erro ao carregar histórico",
+        description: "Erro inesperado ao carregar histórico.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadPaymentHistory();
+    }
+  }, [user]);
 
   const createSubscription = async () => {
     if (!user || !cpf) {
@@ -167,9 +218,26 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(amount);
+  };
+
   if (hasActiveSubscription) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto space-y-6">
         <Card className="bg-white border-green-200 shadow-lg">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-4">
@@ -193,6 +261,88 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
             </div>
           </CardContent>
         </Card>
+
+        {/* Histórico de Pagamentos */}
+        <Card className="bg-white border-blue-200 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <History className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-blue-800">Histórico de Pagamentos</CardTitle>
+            </div>
+            <CardDescription className="text-blue-600">
+              Seus pagamentos confirmados e ativos
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingHistory ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-blue-600 mr-2" />
+                <span>Carregando histórico...</span>
+              </div>
+            ) : paymentHistory.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <History className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>Nenhum pagamento confirmado encontrado</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data do Pagamento</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Válido até</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paymentHistory.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-blue-500" />
+                          {formatDate(payment.created_at)}
+                        </TableCell>
+                        <TableCell className="font-medium text-green-600">
+                          {formatCurrency(payment.amount)}
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3" />
+                            Pago
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-blue-600">
+                          {payment.expires_at ? formatDate(payment.expires_at) : 'Indefinido'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <Button
+                onClick={loadPaymentHistory}
+                variant="outline"
+                className="w-full md:w-auto"
+                disabled={loadingHistory}
+              >
+                {loadingHistory ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Atualizando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Atualizar Histórico
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -201,6 +351,7 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
     <div className="max-w-2xl mx-auto space-y-6">
       {!pixData ? (
         <Card className="bg-white border-blue-200 shadow-lg">
+          
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
               <CreditCard className="h-8 w-8 text-white" />
@@ -274,6 +425,7 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
         </Card>
       ) : (
         <Card className="bg-white border-orange-200 shadow-lg">
+          
           <CardHeader className="text-center">
             <CardTitle className="text-orange-800 text-xl md:text-2xl">Pagamento via PIX</CardTitle>
             <CardDescription className="text-orange-600">
