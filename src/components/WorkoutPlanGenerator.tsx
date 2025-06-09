@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,7 +78,11 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
   };
 
   const generateWorkoutPlan = async () => {
+    console.log('🚀 Iniciando geração do plano de treino...');
+    console.log('📊 Dados do formulário:', formData);
+
     if (!formData.age || !formData.weight || !formData.height || !formData.fitnessLevel || !formData.goal) {
+      console.log('❌ Campos obrigatórios não preenchidos');
       toast({
         title: "Preencha os campos obrigatórios!",
         description: "Por favor, preencha pelo menos: idade, peso, altura, nível fitness e objetivo.",
@@ -88,43 +91,120 @@ const WorkoutPlanGenerator = ({ user, workoutPlan, setWorkoutPlan, initialActive
       return;
     }
 
+    if (!user) {
+      console.log('❌ Usuário não logado');
+      toast({
+        title: "Erro de autenticação!",
+        description: "Você precisa estar logado para gerar um plano.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
+    console.log('⏳ Enviando dados para a API...');
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
         body: { 
           userProfile: formData,
-          userId: user?.id 
+          userId: user.id 
         }
       });
 
+      console.log('📡 Resposta da API recebida');
+      console.log('✅ Data:', data);
+      console.log('❌ Error:', error);
+
       if (error) {
-        console.error('Erro ao gerar plano:', error);
+        console.error('❌ Erro ao gerar plano:', error);
         toast({
           title: "Erro ao gerar plano!",
-          description: "Houve um problema ao gerar seu plano. Tente novamente.",
+          description: `Houve um problema ao gerar seu plano: ${error.message || 'Erro desconhecido'}`,
           variant: "destructive",
         });
         return;
       }
 
-      if (data?.workoutPlan) {
+      if (data && data.workoutPlan) {
+        console.log('✅ Plano gerado com sucesso:', data.workoutPlan);
         setWorkoutPlan(data.workoutPlan);
+        
+        // Salvar no banco de dados
+        try {
+          console.log('💾 Salvando plano no banco de dados...');
+          const { error: saveError } = await supabase
+            .from('user_workout_plans')
+            .insert({
+              user_id: user.id,
+              plan_data: data.workoutPlan as any
+            });
+
+          if (saveError) {
+            console.error('❌ Erro ao salvar plano:', saveError);
+            toast({
+              title: "Plano gerado, mas não salvo!",
+              description: "O plano foi gerado mas houve erro ao salvar. Você pode copiá-lo para não perder.",
+              variant: "destructive",
+            });
+          } else {
+            console.log('✅ Plano salvo com sucesso no banco');
+          }
+        } catch (saveError) {
+          console.error('❌ Erro ao salvar plano:', saveError);
+        }
+
         setActiveTab('plan');
         toast({
           title: "Plano Gerado!",
           description: "Seu plano de treino personalizado foi criado com sucesso!",
         });
+      } else if (data) {
+        console.log('🎯 Plano encontrado diretamente na resposta:', data);
+        setWorkoutPlan(data);
+        
+        // Salvar no banco de dados
+        try {
+          console.log('💾 Salvando plano direto no banco de dados...');
+          const { error: saveError } = await supabase
+            .from('user_workout_plans')
+            .insert({
+              user_id: user.id,
+              plan_data: data as any
+            });
+
+          if (saveError) {
+            console.error('❌ Erro ao salvar plano direto:', saveError);
+          } else {
+            console.log('✅ Plano direto salvo com sucesso no banco');
+          }
+        } catch (saveError) {
+          console.error('❌ Erro ao salvar plano direto:', saveError);
+        }
+
+        setActiveTab('plan');
+        toast({
+          title: "Plano Gerado!",
+          description: "Seu plano de treino personalizado foi criado com sucesso!",
+        });
+      } else {
+        console.log('❌ Nenhum plano encontrado na resposta');
+        toast({
+          title: "Erro ao gerar plano!",
+          description: "A API não retornou um plano válido. Tente novamente.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Erro ao gerar plano:', error);
+      console.error('💥 Erro geral ao gerar plano:', error);
       toast({
         title: "Erro ao gerar plano!",
-        description: "Houve um problema ao gerar seu plano. Tente novamente.",
+        description: `Houve um problema ao gerar seu plano: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
+      console.log('🏁 Processo de geração finalizado');
     }
   };
 
