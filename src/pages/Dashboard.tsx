@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +13,7 @@ import ProgressTracker from '@/components/ProgressTracker';
 import NutritionAssistant from '@/components/NutritionAssistant';
 import PaymentManager from '@/components/PaymentManager';
 import DailyTip from '@/components/DailyTip';
+import UserAvatar from '@/components/UserAvatar';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
@@ -260,9 +262,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="hidden md:block">
-                  <div className="w-16 h-16 md:w-24 md:h-24 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                    <Dumbbell className="h-8 w-8 md:h-12 md:w-12 text-white" />
-                  </div>
+                  <UserAvatar user={user} hasAccess={hasAccess} />
                 </div>
               </div>
             </CardContent>
