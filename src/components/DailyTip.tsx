@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, RefreshCw, Apple, Dumbbell, Heart, Zap, Target, Brain, Clock, Utensils, Droplets, Moon, FlameKindling, Shield } from 'lucide-react';
+import { Lightbulb, RefreshCw, Apple, Dumbbell, Heart, Zap, Target, Brain, Clock, Utensils, Droplets, Moon, FlameKindling, Shield, Quote } from 'lucide-react';
 
 const DailyTip = () => {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
 
   const tips = [
     {
@@ -150,54 +150,135 @@ const DailyTip = () => {
     }
   ];
 
+  const motivationalQuotes = [
+    "A única coisa impossível é aquilo que você não tenta.",
+    "Seu corpo pode aguentar. É sua mente que você precisa convencer.",
+    "O progresso não é sobre perfeição, é sobre consistência.",
+    "Cada gota de suor é um passo mais próximo do seu objetivo.",
+    "Você é mais forte do que pensa e mais capaz do que imagina.",
+    "O melhor treino é aquele que você faz, mesmo quando não quer.",
+    "Transforme suas limitações em motivações.",
+    "Resultados acontecem fora da sua zona de conforto.",
+    "Seja paciente com o processo e orgulhoso do progresso.",
+    "Sua única competição é quem você foi ontem.",
+    "Disciplina é escolher entre o que você quer agora e o que mais quer.",
+    "Cada repetição te aproxima da versão que você quer ser.",
+    "Não conte os dias, faça os dias contarem.",
+    "Força não vem do que você consegue fazer, vem de superar coisas que pensou que não conseguia.",
+    "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+    "Você não precisa ser extremo, apenas consistente.",
+    "A dor que você sente hoje será a força que sentirá amanhã.",
+    "Acredite em você mesmo e todo o resto se encaixará.",
+    "Champions não são feitos em academias. São feitos de algo profundo - desejo, sonho e visão.",
+    "O primeiro passo não te leva onde você quer ir, mas te tira de onde você está.",
+    "Seja mais forte que suas desculpas.",
+    "O único mau treino é aquele que não acontece.",
+    "Foque no progresso, não na perfeição.",
+    "Seu futuro eu está torcendo por você hoje.",
+    "Desafie-se, porque ninguém mais fará isso por você.",
+    "A mudança começa no fim da sua zona de conforto.",
+    "Seja a energia que você quer atrair.",
+    "Pequenos passos ainda são passos.",
+    "Você já sobreviveu a 100% dos seus piores dias.",
+    "Seja orgulhoso de cada pequena vitória.",
+    "O que não te desafia, não te transforma."
+  ];
+
   const currentTip = tips[currentTipIndex];
+  const currentQuote = motivationalQuotes[currentQuoteIndex];
 
   const nextTip = () => {
     setCurrentTipIndex((prev) => (prev + 1) % tips.length);
+  };
+
+  const nextQuote = () => {
+    setCurrentQuoteIndex((prev) => (prev + 1) % motivationalQuotes.length);
   };
 
   // Rotacionar automaticamente a cada 24 horas baseado na data
   useEffect(() => {
     const today = new Date().getDate();
     setCurrentTipIndex(today % tips.length);
+    setCurrentQuoteIndex(today % motivationalQuotes.length);
   }, []);
 
   return (
-    <Card className="bg-white border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-      <CardHeader className={`bg-gradient-to-r ${currentTip.color} text-white relative`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-              <Lightbulb className="h-6 w-6 text-white" />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Dica do Dia */}
+      <Card className="bg-white border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+        <CardHeader className={`bg-gradient-to-r ${currentTip.color} text-white relative`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                <Lightbulb className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-white text-lg font-bold">Dica do Dia</CardTitle>
+                <p className="text-white/90 text-sm">{currentTip.category}</p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-white text-lg font-bold">Dica do Dia</CardTitle>
-              <p className="text-white/90 text-sm">{currentTip.category}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={nextTip}
+              className="text-white hover:bg-white/20 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className={`w-12 h-12 bg-gradient-to-r ${currentTip.color} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg`}>
+              {currentTip.icon}
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-gray-800 text-lg mb-2">{currentTip.title}</h3>
+              <p className="text-gray-600 leading-relaxed">{currentTip.content}</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={nextTip}
-            className="text-white hover:bg-white/20 transition-colors"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="p-6">
-        <div className="flex items-start gap-4">
-          <div className={`w-12 h-12 bg-gradient-to-r ${currentTip.color} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg`}>
-            {currentTip.icon}
+        </CardContent>
+      </Card>
+
+      {/* Frase Motivacional */}
+      <Card className="bg-white border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white relative">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                <Quote className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-white text-lg font-bold">Motivação Diária</CardTitle>
+                <p className="text-white/90 text-sm">Inspiração</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={nextQuote}
+              className="text-white hover:bg-white/20 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-gray-800 text-lg mb-2">{currentTip.title}</h3>
-            <p className="text-gray-600 leading-relaxed">{currentTip.content}</p>
+        </CardHeader>
+        
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+              <Heart className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <blockquote className="text-gray-800 text-lg font-medium leading-relaxed italic">
+                "{currentQuote}"
+              </blockquote>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
