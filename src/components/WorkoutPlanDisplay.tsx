@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,9 @@ import {
   Trophy,
   Star,
   Info,
-  Flame
+  Flame,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { WorkoutPlan } from './WorkoutPlanGenerator';
 import {
@@ -41,6 +42,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 interface WorkoutPlanDisplayProps {
   plan: WorkoutPlan;
@@ -49,7 +55,7 @@ interface WorkoutPlanDisplayProps {
   onGenerateNew: () => void;
   progressMap: Map<string, boolean>;
   onProgressChange: (itemIdentifier: string, currentStatus: boolean) => void;
-  onSwitchToAssistant?: () => void; // Nova prop para navegação
+  onSwitchToAssistant?: () => void;
 }
 
 const WorkoutPlanDisplay = ({
@@ -68,6 +74,42 @@ const WorkoutPlanDisplay = ({
       case 'avancado': return 'bg-red-100 text-red-800 border-red-300';
       default: return 'bg-gray-100 text-gray-800 border-gray-300';
     }
+  };
+
+  const parseInstructions = (instructions: string) => {
+    const sections = [];
+    
+    // Detectar seções baseadas em palavras-chave em maiúsculo seguidas de dois pontos
+    const sectionRegex = /([A-ZÁÊÔÇ\s]+):\s*([^A-ZÁÊÔÇ:]*(?:[a-zA-Záêôç][^A-ZÁÊÔÇ:]*)*)/g;
+    let match;
+    let lastIndex = 0;
+    
+    while ((match = sectionRegex.exec(instructions)) !== null) {
+      const title = match[1].trim();
+      const content = match[2].trim();
+      
+      // Verificar se é uma seção válida (não muito longa para o título)
+      if (title.length <= 50 && content.length > 10) {
+        sections.push({
+          title: title,
+          content: content
+        });
+        lastIndex = match.index + match[0].length;
+      }
+    }
+    
+    // Se não encontrou seções estruturadas, dividir em parágrafos
+    if (sections.length === 0) {
+      const paragraphs = instructions.split(/[.!?]\s+/).filter(p => p.trim().length > 20);
+      paragraphs.forEach((paragraph, index) => {
+        sections.push({
+          title: `Passo ${index + 1}`,
+          content: paragraph.trim() + (paragraph.endsWith('.') ? '' : '.')
+        });
+      });
+    }
+    
+    return sections;
   };
 
   const getDifficultyIcon = (level: string) => {
@@ -278,6 +320,7 @@ const WorkoutPlanDisplay = ({
               {plan.exercises?.map((exercise, index) => {
                 const itemIdentifier = `${exercise.name}_${index}`;
                 const isCompleted = progressMap.get(itemIdentifier) || false;
+                const instructionSections = parseInstructions(exercise.instructions);
                 
                 return (
                   <Card key={index} className={`border-2 transition-all duration-300 hover:shadow-lg ${
@@ -346,18 +389,57 @@ const WorkoutPlanDisplay = ({
                             </div>
                           </div>
                           
-                          {/* Instruções detalhadas */}
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Info className="h-4 w-4 text-gray-600" />
-                              <span className="font-semibold text-gray-800 text-sm">Instruções Detalhadas:</span>
+                          {/* Instruções detalhadas com seções organizadas */}
+                          <Collapsible>
+                            <div className="bg-gray-50 rounded-lg border border-gray-200">
+                              <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-100 transition-colors">
+                                <div className="flex items-center gap-2">
+                                  <Info className="h-4 w-4 text-gray-600" />
+                                  <span className="font-semibold text-gray-800 text-sm">Instruções Detalhadas Passo a Passo</span>
+                                </div>
+                                <ChevronDown className="h-4 w-4 text-gray-600" />
+                              </CollapsibleTrigger>
+                              
+                              <CollapsibleContent className="p-4 pt-0">
+                                <div className="space-y-4">
+                                  {instructionSections.map((section, sectionIndex) => (
+                                    <div key={sectionIndex} className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                                          {sectionIndex + 1}
+                                        </div>
+                                        <div className="flex-1">
+                                          <h5 className="font-bold text-blue-800 text-sm mb-2 uppercase tracking-wide">
+                                            {section.title}
+                                          </h5>
+                                          <p className={`text-sm leading-relaxed ${
+                                            isCompleted ? 'text-green-700' : 'text-gray-700'
+                                          }`}>
+                                            {section.content}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  
+                                  {/* Dica de consulta ao assistente */}
+                                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-200 mt-4">
+                                    <div className="flex items-center gap-2 text-blue-700 text-xs">
+                                      <MessageCircle className="h-4 w-4" />
+                                      <span className="font-medium">
+                                        💡 Dúvidas sobre a execução? Consulte o <button 
+                                          onClick={onSwitchToAssistant}
+                                          className="underline hover:text-blue-800 font-semibold"
+                                        >
+                                          Personal Trainer IA
+                                        </button> para esclarecimentos!
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CollapsibleContent>
                             </div>
-                            <p className={`text-sm leading-relaxed ${
-                              isCompleted ? 'text-green-700' : 'text-gray-700'
-                            }`}>
-                              {exercise.instructions}
-                            </p>
-                          </div>
+                          </Collapsible>
                         </div>
                       </div>
                     </CardContent>
