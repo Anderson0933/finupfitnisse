@@ -27,6 +27,8 @@ const UserAvatar = ({ user, hasAccess }: UserAvatarProps) => {
   const getProfile = async () => {
     try {
       if (!user) return;
+      
+      console.log('🔍 Buscando perfil do usuário:', user.id);
 
       const { data, error } = await supabase
         .from('profiles')
@@ -35,66 +37,128 @@ const UserAvatar = ({ user, hasAccess }: UserAvatarProps) => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user data:', error);
+        console.error('❌ Erro ao carregar dados do usuário:', error);
         return;
       }
 
+      console.log('✅ Dados do perfil:', data);
+
       if (data?.avatar_url) {
         setAvatarUrl(data.avatar_url);
+        console.log('📸 Avatar URL encontrada:', data.avatar_url);
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error('💥 Erro inesperado ao carregar dados do usuário:', error);
     }
   };
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
+      console.log('🚀 Iniciando upload do avatar...');
 
       if (!event.target.files || event.target.files.length === 0) {
+        console.log('❌ Nenhum arquivo selecionado');
         return;
       }
 
       const file = event.target.files[0];
+      console.log('📁 Arquivo selecionado:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+
+      if (!user) {
+        console.error('❌ Usuário não está logado');
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para fazer upload.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const filePath = fileName;
+
+      console.log('📂 Fazendo upload para:', filePath);
 
       // Upload file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
+        console.error('❌ Erro no upload para storage:', uploadError);
         throw uploadError;
       }
+
+      console.log('✅ Upload concluído:', uploadData);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // Update profile with avatar URL
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user?.id,
-          avatar_url: publicUrl,
-          full_name: user?.user_metadata?.full_name,
-          updated_at: new Date().toISOString(),
-        });
+      console.log('🔗 URL pública gerada:', publicUrl);
 
-      if (updateError) {
-        throw updateError;
+      // Check if profile exists first
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      console.log('🔍 Perfil existente:', existingProfile);
+
+      if (checkError) {
+        console.error('❌ Erro ao verificar perfil existente:', checkError);
+        throw checkError;
+      }
+
+      // Update or insert profile with avatar URL
+      if (existingProfile) {
+        console.log('🔄 Atualizando perfil existente...');
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            avatar_url: publicUrl,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error('❌ Erro ao atualizar perfil:', updateError);
+          throw updateError;
+        }
+      } else {
+        console.log('➕ Criando novo perfil...');
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            avatar_url: publicUrl,
+            full_name: user.user_metadata?.full_name || null,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.error('❌ Erro ao inserir perfil:', insertError);
+          throw insertError;
+        }
       }
 
       setAvatarUrl(publicUrl);
+      console.log('🎉 Avatar atualizado com sucesso!');
+      
       toast({
         title: "Foto atualizada!",
         description: "Sua foto de perfil foi salva com sucesso.",
       });
     } catch (error: any) {
-      console.error('Error uploading avatar:', error);
+      console.error('💥 Erro geral no upload do avatar:', error);
       toast({
         title: "Erro no upload",
         description: error.message || "Não foi possível fazer upload da foto.",
