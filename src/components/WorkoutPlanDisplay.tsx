@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,6 +68,15 @@ const WorkoutPlanDisplay = ({
   onProgressChange,
   onSwitchToAssistant
 }: WorkoutPlanDisplayProps) => {
+  const [openInstructions, setOpenInstructions] = useState<{ [key: string]: boolean }>({});
+
+  const toggleInstructions = (exerciseIndex: number) => {
+    setOpenInstructions(prev => ({
+      ...prev,
+      [exerciseIndex]: !prev[exerciseIndex]
+    }));
+  };
+
   const getDifficultyColor = (level: string) => {
     switch (level) {
       case 'iniciante': return 'bg-green-100 text-green-800 border-green-300';
@@ -77,6 +87,8 @@ const WorkoutPlanDisplay = ({
   };
 
   const parseInstructions = (instructions: string) => {
+    if (!instructions) return [];
+    
     const sections = [];
     
     // Detectar seções baseadas em palavras-chave em maiúsculo seguidas de dois pontos
@@ -169,12 +181,16 @@ const WorkoutPlanDisplay = ({
     return <Dumbbell className="h-5 w-5 text-gray-500" />;
   };
 
-  const completedExercises = plan.exercises?.filter((_, index) => {
-    const itemIdentifier = `${plan.exercises[index].name}_${index}`;
-    return progressMap.get(itemIdentifier) || false;
-  }).length || 0;
+  // Verificar e processar exercícios
+  const exercises = plan.exercises || [];
+  console.log('📊 Exercícios do plano:', exercises);
 
-  const totalExercises = plan.exercises?.length || 0;
+  const completedExercises = exercises.filter((_, index) => {
+    const itemIdentifier = `${exercises[index].name || 'exercicio'}_${index}`;
+    return progressMap.get(itemIdentifier) || false;
+  }).length;
+
+  const totalExercises = exercises.length;
   const progressPercentage = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
   return (
@@ -239,7 +255,7 @@ const WorkoutPlanDisplay = ({
                 
                 <Badge variant="outline" className="text-blue-700 border-blue-300 text-xs font-semibold px-3 py-1">
                   <Target className="h-3 w-3 mr-1" />
-                  {plan.exercises?.length || 0} exercícios
+                  {totalExercises} exercícios
                 </Badge>
 
                 <Badge variant="outline" className="text-purple-700 border-purple-300 text-xs font-semibold px-3 py-1">
@@ -316,137 +332,169 @@ const WorkoutPlanDisplay = ({
               </div>
             </div>
             
-            <div className="grid gap-4">
-              {plan.exercises?.map((exercise, index) => {
-                const itemIdentifier = `${exercise.name}_${index}`;
-                const isCompleted = progressMap.get(itemIdentifier) || false;
-                const instructionSections = parseInstructions(exercise.instructions);
-                
-                return (
-                  <Card key={index} className={`border-2 transition-all duration-300 hover:shadow-lg ${
-                    isCompleted 
-                      ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-300 shadow-md' 
-                      : 'border-gray-200 hover:border-green-300'
-                  }`}>
-                    <CardContent className="p-5">
-                      <div className="flex items-start gap-4">
-                        <div className="flex flex-col items-center gap-2">
-                          <Checkbox
-                            checked={isCompleted}
-                            onCheckedChange={() => onProgressChange(itemIdentifier, isCompleted)}
-                            className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 w-5 h-5"
-                          />
-                          {getExerciseTypeIcon(exercise.name)}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <h4 className={`font-bold text-lg ${
-                              isCompleted 
-                                ? 'text-green-800 line-through opacity-75' 
-                                : 'text-gray-800'
-                            }`}>
-                              {exercise.name}
-                            </h4>
-                            {isCompleted && (
-                              <Badge className="bg-green-100 text-green-800 border-green-300 text-xs px-2 py-1">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Concluído
-                              </Badge>
-                            )}
+            {totalExercises === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500 mb-2">
+                  <Dumbbell className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                </div>
+                <p className="text-gray-600">Nenhum exercício encontrado neste plano.</p>
+                <Button onClick={onGenerateNew} className="mt-4">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Gerar Novo Plano
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {exercises.map((exercise, index) => {
+                  const itemIdentifier = `${exercise.name || 'exercicio'}_${index}`;
+                  const isCompleted = progressMap.get(itemIdentifier) || false;
+                  const instructionSections = parseInstructions(exercise.instructions || '');
+                  
+                  return (
+                    <Card key={index} className={`border-2 transition-all duration-300 hover:shadow-lg ${
+                      isCompleted 
+                        ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-300 shadow-md' 
+                        : 'border-gray-200 hover:border-green-300'
+                    }`}>
+                      <CardContent className="p-5">
+                        <div className="flex items-start gap-4">
+                          <div className="flex flex-col items-center gap-2">
+                            <Checkbox
+                              checked={isCompleted}
+                              onCheckedChange={() => onProgressChange(itemIdentifier, isCompleted)}
+                              className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 w-5 h-5"
+                            />
+                            {getExerciseTypeIcon(exercise.name || '')}
                           </div>
                           
-                          {/* Métricas do exercício */}
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                            <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                              <Target className="h-4 w-4 text-blue-600" />
-                              <div>
-                                <span className="font-semibold text-blue-800 text-sm">Séries:</span>
-                                <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-blue-700'}`}>
-                                  {exercise.sets}
-                                </span>
-                              </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <h4 className={`font-bold text-lg ${
+                                isCompleted 
+                                  ? 'text-green-800 line-through opacity-75' 
+                                  : 'text-gray-800'
+                              }`}>
+                                {exercise.name || `Exercício ${index + 1}`}
+                              </h4>
+                              {isCompleted && (
+                                <Badge className="bg-green-100 text-green-800 border-green-300 text-xs px-2 py-1">
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  Concluído
+                                </Badge>
+                              )}
                             </div>
                             
-                            <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
-                              <Activity className="h-4 w-4 text-purple-600" />
-                              <div>
-                                <span className="font-semibold text-purple-800 text-sm">Reps:</span>
-                                <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-purple-700'}`}>
-                                  {exercise.reps}
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
-                              <Timer className="h-4 w-4 text-orange-600" />
-                              <div>
-                                <span className="font-semibold text-orange-800 text-sm">Descanso:</span>
-                                <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-orange-700'}`}>
-                                  {exercise.rest}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Instruções detalhadas com seções organizadas */}
-                          <Collapsible>
-                            <div className="bg-gray-50 rounded-lg border border-gray-200">
-                              <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-100 transition-colors">
-                                <div className="flex items-center gap-2">
-                                  <Info className="h-4 w-4 text-gray-600" />
-                                  <span className="font-semibold text-gray-800 text-sm">Instruções Detalhadas Passo a Passo</span>
+                            {/* Métricas do exercício */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                              <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                                <Target className="h-4 w-4 text-blue-600" />
+                                <div>
+                                  <span className="font-semibold text-blue-800 text-sm">Séries:</span>
+                                  <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-blue-700'}`}>
+                                    {exercise.sets || 'N/A'}
+                                  </span>
                                 </div>
-                                <ChevronDown className="h-4 w-4 text-gray-600" />
-                              </CollapsibleTrigger>
+                              </div>
                               
-                              <CollapsibleContent className="p-4 pt-0">
-                                <div className="space-y-4">
-                                  {instructionSections.map((section, sectionIndex) => (
-                                    <div key={sectionIndex} className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
-                                      <div className="flex items-start gap-3">
-                                        <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
-                                          {sectionIndex + 1}
-                                        </div>
-                                        <div className="flex-1">
-                                          <h5 className="font-bold text-blue-800 text-sm mb-2 uppercase tracking-wide">
-                                            {section.title}
-                                          </h5>
+                              <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
+                                <Activity className="h-4 w-4 text-purple-600" />
+                                <div>
+                                  <span className="font-semibold text-purple-800 text-sm">Reps:</span>
+                                  <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-purple-700'}`}>
+                                    {exercise.reps || 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
+                                <Timer className="h-4 w-4 text-orange-600" />
+                                <div>
+                                  <span className="font-semibold text-orange-800 text-sm">Descanso:</span>
+                                  <span className={`ml-1 text-sm ${isCompleted ? 'text-green-700' : 'text-orange-700'}`}>
+                                    {exercise.rest || 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Instruções detalhadas com seções organizadas */}
+                            {exercise.instructions && (
+                              <Collapsible 
+                                open={openInstructions[index]} 
+                                onOpenChange={() => toggleInstructions(index)}
+                              >
+                                <div className="bg-gray-50 rounded-lg border border-gray-200">
+                                  <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-100 transition-colors">
+                                    <div className="flex items-center gap-2">
+                                      <Info className="h-4 w-4 text-gray-600" />
+                                      <span className="font-semibold text-gray-800 text-sm">Instruções Detalhadas Passo a Passo</span>
+                                    </div>
+                                    {openInstructions[index] ? (
+                                      <ChevronUp className="h-4 w-4 text-gray-600" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4 text-gray-600" />
+                                    )}
+                                  </CollapsibleTrigger>
+                                  
+                                  <CollapsibleContent className="p-4 pt-0">
+                                    <div className="space-y-4">
+                                      {instructionSections.length > 0 ? (
+                                        instructionSections.map((section, sectionIndex) => (
+                                          <div key={sectionIndex} className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+                                            <div className="flex items-start gap-3">
+                                              <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                                                {sectionIndex + 1}
+                                              </div>
+                                              <div className="flex-1">
+                                                <h5 className="font-bold text-blue-800 text-sm mb-2 uppercase tracking-wide">
+                                                  {section.title}
+                                                </h5>
+                                                <p className={`text-sm leading-relaxed ${
+                                                  isCompleted ? 'text-green-700' : 'text-gray-700'
+                                                }`}>
+                                                  {section.content}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <div className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
                                           <p className={`text-sm leading-relaxed ${
                                             isCompleted ? 'text-green-700' : 'text-gray-700'
                                           }`}>
-                                            {section.content}
+                                            {exercise.instructions}
                                           </p>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Dica de consulta ao assistente */}
+                                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-200 mt-4">
+                                        <div className="flex items-center gap-2 text-blue-700 text-xs">
+                                          <MessageCircle className="h-4 w-4" />
+                                          <span className="font-medium">
+                                            💡 Dúvidas sobre a execução? Consulte o <button 
+                                              onClick={onSwitchToAssistant}
+                                              className="underline hover:text-blue-800 font-semibold"
+                                            >
+                                              Personal Trainer IA
+                                            </button> para esclarecimentos!
+                                          </span>
                                         </div>
                                       </div>
                                     </div>
-                                  ))}
-                                  
-                                  {/* Dica de consulta ao assistente */}
-                                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-200 mt-4">
-                                    <div className="flex items-center gap-2 text-blue-700 text-xs">
-                                      <MessageCircle className="h-4 w-4" />
-                                      <span className="font-medium">
-                                        💡 Dúvidas sobre a execução? Consulte o <button 
-                                          onClick={onSwitchToAssistant}
-                                          className="underline hover:text-blue-800 font-semibold"
-                                        >
-                                          Personal Trainer IA
-                                        </button> para esclarecimentos!
-                                      </span>
-                                    </div>
-                                  </div>
+                                  </CollapsibleContent>
                                 </div>
-                              </CollapsibleContent>
-                            </div>
-                          </Collapsible>
+                              </Collapsible>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Dicas Nutricionais */}
