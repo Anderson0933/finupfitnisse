@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, TrendingUp, Calendar, User as UserIcon, Trash2, RefreshCw, AlertTriangle, Camera, Target, Activity, Heart, Trophy, Medal, Award, Zap, CheckCircle, ArrowUp, ArrowDown, Minus, Settings, BarChart3 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine, BarChart, Bar } from 'recharts';
+import { Plus, TrendingUp, Calendar, User as UserIcon, Trash2, RefreshCw, AlertTriangle, Camera, Target, Activity, Heart, Trophy, Medal, Award, Zap, CheckCircle, ArrowUp, ArrowDown, Minus, Save, X, BarChart3 } from 'lucide-react';
+import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,10 +42,12 @@ interface ProgressEntry {
 }
 
 interface Goal {
+  id: string;
   metric: string;
   target: number;
   current: number;
   deadline: string;
+  created_at: string;
 }
 
 interface ProgressTrackerProps {
@@ -57,11 +58,13 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   const [progressData, setProgressData] = useState<ProgressEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
+  const [showNewGoalForm, setShowNewGoalForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [selectedMetrics, setSelectedMetrics] = useState(['peso']);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [viewMode, setViewMode] = useState<'chart' | 'insights' | 'compare'>('chart');
+  const [compareMode, setCompareMode] = useState<'week' | 'month' | 'custom'>('week');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -78,6 +81,12 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     stress_level: '',
     workout_intensity: '',
     notes: ''
+  });
+
+  const [newGoalForm, setNewGoalForm] = useState({
+    metric: '',
+    target: '',
+    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 dias a partir de hoje
   });
 
   useEffect(() => {
@@ -116,6 +125,66 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     localStorage.setItem(`progress_goals_${user?.id}`, JSON.stringify(newGoals));
     setGoals(newGoals);
   };
+
+  const addNewGoal = () => {
+    if (!newGoalForm.metric || !newGoalForm.target || !newGoalForm.deadline) {
+      toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da meta.", variant: "destructive" });
+      return;
+    }
+
+    const newGoal: Goal = {
+      id: Date.now().toString(),
+      metric: newGoalForm.metric,
+      target: parseFloat(newGoalForm.target),
+      current: getCurrentValueForMetric(newGoalForm.metric),
+      deadline: newGoalForm.deadline,
+      created_at: new Date().toISOString()
+    };
+
+    const updatedGoals = [...goals, newGoal];
+    saveGoals(updatedGoals);
+    setNewGoalForm({
+      metric: '',
+      target: '',
+      deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    });
+    setShowNewGoalForm(false);
+    toast({ title: "Meta criada!", description: "Sua nova meta foi adicionada com sucesso." });
+  };
+
+  const getCurrentValueForMetric = (metric: string): number => {
+    if (progressData.length === 0) return 0;
+    const latest = progressData[progressData.length - 1];
+    
+    switch (metric) {
+      case 'peso': return latest.weight || 0;
+      case 'gordura': return latest.body_fat_percentage || 0;
+      case 'musculo': return latest.muscle_mass || 0;
+      case 'cintura': return latest.waist_circumference || 0;
+      case 'peito': return latest.chest_circumference || 0;
+      case 'braço': return latest.arm_circumference || 0;
+      case 'coxa': return latest.thigh_circumference || 0;
+      case 'energia': return latest.energy_level || 0;
+      case 'sono': return latest.sleep_quality || 0;
+      case 'estresse': return latest.stress_level || 0;
+      case 'intensidade': return latest.workout_intensity || 0;
+      default: return 0;
+    }
+  };
+
+  const updateGoalProgress = () => {
+    const updatedGoals = goals.map(goal => ({
+      ...goal,
+      current: getCurrentValueForMetric(goal.metric)
+    }));
+    saveGoals(updatedGoals);
+  };
+
+  useEffect(() => {
+    if (progressData.length > 0 && goals.length > 0) {
+      updateGoalProgress();
+    }
+  }, [progressData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,7 +344,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     if (progressData.length >= 30) achievements.push({ icon: Medal, name: "Dedicação", description: "30+ registros" });
     if (progressData.length >= 90) achievements.push({ icon: Award, name: "Mestre", description: "90+ registros" });
     
-    // Verificar metas atingidas
     goals.forEach(goal => {
       if (goal.current >= goal.target) {
         achievements.push({ icon: CheckCircle, name: "Meta Atingida", description: goal.metric });
@@ -288,16 +356,47 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   const getInsights = () => {
     const insights = [];
     
+    if (progressData.length < 3) {
+      insights.push({
+        metric: "Dados Insuficientes",
+        trend: "stable" as const,
+        change: 0,
+        suggestion: "Registre pelo menos 3 medições para receber insights personalizados sobre suas tendências."
+      });
+      return insights;
+    }
+    
     selectedMetrics.forEach(metric => {
       const trend = calculateTrend(metric);
       const metricConfig = metricOptions.find(m => m.value === metric);
       
-      if (trend.trend !== 'stable') {
+      if (trend.trend !== 'stable' && trend.change > 1) {
         insights.push({
           metric: metricConfig?.label || metric,
           trend: trend.trend,
           change: trend.change,
           suggestion: getTrendSuggestion(metric, trend.trend)
+        });
+      }
+    });
+
+    goals.forEach(goal => {
+      const progress = (goal.current / goal.target) * 100;
+      const daysLeft = Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (progress >= 90) {
+        insights.push({
+          metric: `Meta: ${goal.metric}`,
+          trend: "up" as const,
+          change: progress,
+          suggestion: `Parabéns! Você está muito próximo de atingir sua meta (${progress.toFixed(1)}%).`
+        });
+      } else if (daysLeft <= 7 && progress < 50) {
+        insights.push({
+          metric: `Meta: ${goal.metric}`,
+          trend: "down" as const,
+          change: 100 - progress,
+          suggestion: `Atenção! Apenas ${daysLeft} dias restantes e você está em ${progress.toFixed(1)}% da meta.`
         });
       }
     });
@@ -322,10 +421,79 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
       energia: {
         up: "Níveis de energia melhorando! Ótimo sinal de saúde geral.",
         down: "Considere melhorar a qualidade do sono e revisar a nutrição."
+      },
+      sono: {
+        up: "Qualidade do sono melhorando! Isso impacta positivamente na recuperação.",
+        down: "Considere estabelecer uma rotina de sono mais consistente."
+      },
+      estresse: {
+        up: "Níveis de estresse aumentando. Considere técnicas de relaxamento.",
+        down: "Ótima redução nos níveis de estresse! Continue com as práticas atuais."
       }
     };
     
     return suggestions[metric]?.[trend] || "Continue monitorando esta métrica.";
+  };
+
+  const getComparisonData = () => {
+    if (progressData.length < 2) return null;
+
+    const now = new Date();
+    let periodDays = 7;
+    
+    if (compareMode === 'month') periodDays = 30;
+    else if (compareMode === 'week') periodDays = 7;
+
+    const cutoffDate = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
+    const previousCutoffDate = new Date(cutoffDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
+
+    const currentPeriod = progressData.filter(entry => new Date(entry.date) >= cutoffDate);
+    const previousPeriod = progressData.filter(entry => 
+      new Date(entry.date) >= previousCutoffDate && new Date(entry.date) < cutoffDate
+    );
+
+    if (currentPeriod.length === 0 || previousPeriod.length === 0) return null;
+
+    const getAverage = (data: ProgressEntry[], field: keyof ProgressEntry) => {
+      const values = data.map(d => d[field]).filter(v => v !== null && v !== undefined) as number[];
+      return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    };
+
+    const comparison = selectedMetrics.map(metric => {
+      const fieldMap: { [key: string]: keyof ProgressEntry } = {
+        peso: 'weight',
+        gordura: 'body_fat_percentage',
+        musculo: 'muscle_mass',
+        cintura: 'waist_circumference',
+        peito: 'chest_circumference',
+        braço: 'arm_circumference',
+        coxa: 'thigh_circumference',
+        energia: 'energy_level',
+        sono: 'sleep_quality',
+        estresse: 'stress_level',
+        intensidade: 'workout_intensity'
+      };
+
+      const field = fieldMap[metric];
+      const currentAvg = getAverage(currentPeriod, field);
+      const previousAvg = getAverage(previousPeriod, field);
+      const change = previousAvg !== 0 ? ((currentAvg - previousAvg) / previousAvg) * 100 : 0;
+      const metricConfig = metricOptions.find(m => m.value === metric);
+
+      return {
+        metric: metricConfig?.label || metric,
+        current: currentAvg,
+        previous: previousAvg,
+        change,
+        unit: metricConfig?.unit || ''
+      };
+    });
+
+    return {
+      periodName: compareMode === 'week' ? 'Última Semana' : 'Último Mês',
+      previousPeriodName: compareMode === 'week' ? 'Semana Anterior' : 'Mês Anterior',
+      data: comparison
+    };
   };
 
   return (
@@ -437,7 +605,9 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
               {goals.map((goal, index) => (
                 <div key={index} className="p-4 border border-green-200 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium text-green-800">{goal.metric}</span>
+                    <span className="font-medium text-green-800">
+                      {metricOptions.find(m => m.value === goal.metric)?.label || goal.metric}
+                    </span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -448,16 +618,81 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>Progresso: {goal.current}</span>
+                      <span>Atual: {goal.current.toFixed(1)}</span>
                       <span>Meta: {goal.target}</span>
                     </div>
-                    <Progress value={(goal.current / goal.target) * 100} className="h-2" />
-                    <div className="text-xs text-gray-600">
-                      Prazo: {new Date(goal.deadline).toLocaleDateString('pt-BR')}
+                    <Progress value={Math.min((goal.current / goal.target) * 100, 100)} className="h-2" />
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>Progresso: {Math.min((goal.current / goal.target) * 100, 100).toFixed(1)}%</span>
+                      <span>Prazo: {new Date(goal.deadline).toLocaleDateString('pt-BR')}</span>
                     </div>
                   </div>
                 </div>
               ))}
+              
+              {!showNewGoalForm && (
+                <Button 
+                  onClick={() => setShowNewGoalForm(true)}
+                  variant="outline"
+                  className="w-full border-green-300 text-green-700 hover:bg-green-50"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Nova Meta
+                </Button>
+              )}
+
+              {showNewGoalForm && (
+                <div className="p-4 border border-green-300 rounded-lg bg-green-50">
+                  <h4 className="font-medium text-green-800 mb-3">Nova Meta</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="goal-metric">Métrica</Label>
+                      <Select value={newGoalForm.metric} onValueChange={(value) => setNewGoalForm({...newGoalForm, metric: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma métrica" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {metricOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="goal-target">Valor Alvo</Label>
+                      <Input
+                        id="goal-target"
+                        type="number"
+                        step="0.1"
+                        value={newGoalForm.target}
+                        onChange={(e) => setNewGoalForm({...newGoalForm, target: e.target.value})}
+                        placeholder="Ex: 70.5"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="goal-deadline">Prazo</Label>
+                      <Input
+                        id="goal-deadline"
+                        type="date"
+                        value={newGoalForm.deadline}
+                        onChange={(e) => setNewGoalForm({...newGoalForm, deadline: e.target.value})}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={addNewGoal} size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+                        <Save className="h-4 w-4 mr-2" />
+                        Salvar Meta
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setShowNewGoalForm(false)}>
+                        <X className="h-4 w-4 mr-2" />
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <Button 
                 onClick={() => setShowGoals(false)}
@@ -470,7 +705,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
         </Card>
       )}
 
-      {/* Enhanced Form */}
       {showForm && (
         <Card className="bg-white border-blue-200 shadow-lg">
           <CardHeader>
@@ -484,7 +718,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="date" className="text-blue-800 font-medium">Data *</Label>
@@ -512,7 +745,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                 </div>
               </div>
 
-              {/* Body Composition */}
               <div>
                 <h4 className="text-lg font-semibold text-blue-800 mb-3 flex items-center gap-2">
                   <Target className="h-5 w-5" />
@@ -546,7 +778,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                 </div>
               </div>
 
-              {/* Circumferences */}
               <div>
                 <h4 className="text-lg font-semibold text-blue-800 mb-3 flex items-center gap-2">
                   <Camera className="h-5 w-5" />
@@ -604,7 +835,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                 </div>
               </div>
 
-              {/* Wellbeing Metrics */}
               <div>
                 <h4 className="text-lg font-semibold text-blue-800 mb-3 flex items-center gap-2">
                   <Heart className="h-5 w-5" />
@@ -666,7 +896,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                 </div>
               </div>
 
-              {/* Notes */}
               <div>
                 <Label htmlFor="notes" className="text-blue-800 font-medium">Observações</Label>
                 <Textarea
@@ -746,7 +975,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Metric Selection */}
                 <div className="mb-6">
                   <div className="flex flex-wrap gap-2">
                     {metricOptions.map(metric => (
@@ -767,7 +995,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                   </div>
                 </div>
 
-                {/* Chart */}
                 <div className="h-96">
                   <ResponsiveContainer width="100%" height="100%">
                     {chartData.length > 1 ? (
@@ -862,25 +1089,22 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                         <div className="flex items-center gap-2">
                           {insight.trend === 'up' ? (
                             <ArrowUp className="h-5 w-5 text-green-600" />
-                          ) : (
+                          ) : insight.trend === 'down' ? (
                             <ArrowDown className="h-5 w-5 text-red-600" />
+                          ) : (
+                            <Minus className="h-5 w-5 text-gray-600" />
                           )}
                           <span className="font-medium text-purple-800">{insight.metric}</span>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {insight.change.toFixed(1)}% {insight.trend === 'up' ? 'aumento' : 'redução'}
-                        </Badge>
+                        {insight.change > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            {insight.change.toFixed(1)}% {insight.trend === 'up' ? 'aumento' : 'redução'}
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-purple-700">{insight.suggestion}</p>
                     </div>
                   ))}
-                  {getInsights().length === 0 && (
-                    <div className="text-center py-8 text-purple-600">
-                      <Zap className="h-12 w-12 mx-auto mb-4 text-purple-400" />
-                      <p className="text-lg font-medium">Registre mais dados para receber insights personalizados</p>
-                      <p className="text-sm mt-2">Nosso algoritmo analisará suas tendências automaticamente</p>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -899,18 +1123,79 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-orange-600">
-                  <Activity className="h-12 w-12 mx-auto mb-4 text-orange-400" />
-                  <p className="text-lg font-medium">Funcionalidade em desenvolvimento</p>
-                  <p className="text-sm mt-2">Em breve você poderá comparar seus resultados entre semanas e meses</p>
+                <div className="mb-6">
+                  <div className="flex gap-2">
+                    <Button
+                      variant={compareMode === 'week' ? 'default' : 'outline'}
+                      onClick={() => setCompareMode('week')}
+                      size="sm"
+                    >
+                      Última Semana
+                    </Button>
+                    <Button
+                      variant={compareMode === 'month' ? 'default' : 'outline'}
+                      onClick={() => setCompareMode('month')}
+                      size="sm"
+                    >
+                      Último Mês
+                    </Button>
+                  </div>
                 </div>
+
+                {(() => {
+                  const comparisonData = getComparisonData();
+                  if (!comparisonData) {
+                    return (
+                      <div className="text-center py-8 text-orange-600">
+                        <Activity className="h-12 w-12 mx-auto mb-4 text-orange-400" />
+                        <p className="text-lg font-medium">Dados insuficientes para comparação</p>
+                        <p className="text-sm mt-2">Registre mais dados para comparar períodos</p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid gap-4">
+                        {comparisonData.data.map((item, index) => (
+                          <div key={index} className="p-4 border border-orange-200 rounded-lg bg-orange-50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-orange-800">{item.metric}</span>
+                              <div className="flex items-center gap-2">
+                                {item.change > 0 ? (
+                                  <ArrowUp className="h-4 w-4 text-green-600" />
+                                ) : item.change < 0 ? (
+                                  <ArrowDown className="h-4 w-4 text-red-600" />
+                                ) : (
+                                  <Minus className="h-4 w-4 text-gray-600" />
+                                )}
+                                <Badge variant="outline" className="text-xs">
+                                  {Math.abs(item.change).toFixed(1)}%
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-orange-600">{comparisonData.periodName}:</span>
+                                <span className="font-medium ml-2">{item.current.toFixed(1)} {item.unit}</span>
+                              </div>
+                              <div>
+                                <span className="text-orange-600">{comparisonData.previousPeriodName}:</span>
+                                <span className="font-medium ml-2">{item.previous.toFixed(1)} {item.unit}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           )}
         </div>
       )}
 
-      {/* Enhanced Recent entries list */}
       {progressData.length > 0 && (
         <div>
           <h3 className="text-xl font-semibold text-blue-800 mb-4 flex items-center gap-2">
@@ -937,7 +1222,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                     </div>
                   </div>
                   
-                  {/* Metrics Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
                     <div className="bg-white p-3 rounded-lg border border-blue-100">
                       <div className="text-xs text-blue-600 font-medium">PESO</div>
@@ -988,7 +1272,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
         </div>
       )}
 
-      {/* Enhanced Empty state */}
       {progressData.length === 0 && !showForm && (
         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg">
           <CardContent className="p-12 text-center">
