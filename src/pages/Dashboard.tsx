@@ -33,6 +33,12 @@ const Dashboard = () => {
     setActiveTab('assistant');
   };
 
+  // Função para mudar para a aba de nutrição
+  const switchToNutrition = () => {
+    console.log('🎯 Mudando para a aba de nutrição via callback');
+    setActiveTab('nutrition');
+  };
+
   useEffect(() => {
     // Definir a aba inicial baseada no plano de treino
     const initialTab = workoutPlan ? 'workout' : 'workout';
@@ -330,7 +336,11 @@ const Dashboard = () => {
 
           <TabsContent value="faq">
             <LockedFeature title="Dúvidas">
-              <FAQSection user={user} onSwitchToAssistant={switchToAssistant} />
+              <FAQSection 
+                user={user} 
+                onSwitchToAssistant={switchToAssistant}
+                onSwitchToNutrition={switchToNutrition}
+              />
             </LockedFeature>
           </TabsContent>
 

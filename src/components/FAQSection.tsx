@@ -4,14 +4,15 @@ import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, HelpCircle, MessageCircle, RefreshCw, Dumbbell, Calendar, Trophy } from 'lucide-react';
+import { ChevronDown, ChevronRight, HelpCircle, MessageCircle, RefreshCw, Dumbbell, Calendar, Trophy, Trash2 } from 'lucide-react';
 
 interface FAQSectionProps {
   user: User | null;
   onSwitchToAssistant?: () => void;
+  onSwitchToNutrition?: () => void;
 }
 
-const FAQSection = ({ user, onSwitchToAssistant }: FAQSectionProps) => {
+const FAQSection = ({ user, onSwitchToAssistant, onSwitchToNutrition }: FAQSectionProps) => {
   const [openItems, setOpenItems] = useState<string[]>([]);
 
   const toggleItem = (itemId: string) => {
@@ -27,14 +28,14 @@ const FAQSection = ({ user, onSwitchToAssistant }: FAQSectionProps) => {
       id: 'finished-plan',
       icon: Trophy,
       question: 'Finalizei meu plano de treino, o que fazer agora?',
-      answer: 'Parabéns por completar seu plano! Agora você tem algumas opções:\n\n• **Gerar um novo plano**: Vá para a aba "Treinos" e clique em "Gerar Novo Plano" para criar um programa atualizado baseado em sua evolução.\n\n• **Revisar seu progresso**: Acesse a aba "Evolução" para ver como você melhorou durante as 8 semanas.\n\n• **Conversar com o assistente**: Use nossa IA para receber orientações personalizadas sobre o próximo passo.',
+      answer: 'Parabéns por completar seu plano! Agora você tem algumas opções:\n\n• **Gerar um novo plano**: Primeiro exclua seu plano atual na aba "Treinos", depois clique em "Gerar Novo Plano" para criar um programa atualizado.\n\n• **Revisar seu progresso**: Acesse a aba "Evolução" para ver como você melhorou durante as 8 semanas.\n\n• **Conversar com o assistente**: Use nossa IA para receber orientações personalizadas sobre o próximo passo.',
       color: 'from-green-500 to-green-600'
     },
     {
       id: 'new-plan',
       icon: RefreshCw,
       question: 'Como gerar um novo plano de treino?',
-      answer: 'Para gerar um novo plano:\n\n1. Vá para a aba "Treinos"\n2. Se você já tem um plano ativo, clique em "Gerar Novo Plano"\n3. Preencha o formulário com seus objetivos atuais\n4. Nossa IA criará um novo programa de 8 semanas adaptado ao seu nível atual\n\n*Dica: Atualize suas informações (peso, experiência) para um plano mais preciso.*',
+      answer: 'Para gerar um novo plano:\n\n1. Vá para a aba "Treinos"\n2. **Exclua seu plano atual** clicando no botão "Excluir Plano"\n3. Após excluir, aparecerá o formulário para um novo plano\n4. Preencha o formulário com seus objetivos atuais\n5. Nossa IA criará um novo programa de 8 semanas adaptado ao seu nível atual\n\n*Importante: É necessário excluir o plano atual antes de gerar um novo.*',
       color: 'from-blue-500 to-blue-600'
     },
     {
@@ -48,7 +49,7 @@ const FAQSection = ({ user, onSwitchToAssistant }: FAQSectionProps) => {
       id: 'modify-plan',
       icon: Calendar,
       question: 'Posso modificar meu plano de treino?',
-      answer: 'Atualmente, para modificações:\n\n• **Use o Assistente IA**: Pergunte sobre adaptações específicas como "Como substituir exercícios que não posso fazer?"\n\n• **Gere um novo plano**: Se suas necessidades mudaram significativamente, é melhor criar um plano completamente novo.\n\n• **Consulte a IA**: Nossa assistente pode sugerir variações e adaptações personalizadas.',
+      answer: 'Atualmente, para modificações:\n\n• **Use o Assistente IA**: Pergunte sobre adaptações específicas como "Como substituir exercícios que não posso fazer?"\n\n• **Gere um novo plano**: Se suas necessidades mudaram significativamente, exclua o atual e crie um plano completamente novo.\n\n• **Consulte a IA**: Nossa assistente pode sugerir variações e adaptações personalizadas.',
       color: 'from-orange-500 to-orange-600'
     },
     {
@@ -127,8 +128,8 @@ const FAQSection = ({ user, onSwitchToAssistant }: FAQSectionProps) => {
                                   workoutTab?.click();
                                 }}
                               >
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Gerar Novo Plano
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Ir para Treinos
                               </Button>
                               <Button 
                                 size="sm" 
@@ -142,7 +143,7 @@ const FAQSection = ({ user, onSwitchToAssistant }: FAQSectionProps) => {
                             </div>
                           )}
                           
-                          {(faq.id === 'exercise-doubts' || faq.id === 'modify-plan' || faq.id === 'nutrition-help') && onSwitchToAssistant && (
+                          {(faq.id === 'exercise-doubts' || faq.id === 'modify-plan') && onSwitchToAssistant && (
                             <div className="mt-4">
                               <Button 
                                 size="sm" 
@@ -152,6 +153,20 @@ const FAQSection = ({ user, onSwitchToAssistant }: FAQSectionProps) => {
                               >
                                 <MessageCircle className="h-4 w-4 mr-2" />
                                 Conversar com Assistente
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {faq.id === 'nutrition-help' && onSwitchToNutrition && (
+                            <div className="mt-4">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-green-200 text-green-700 hover:bg-green-50"
+                                onClick={onSwitchToNutrition}
+                              >
+                                <MessageCircle className="h-4 w-4 mr-2" />
+                                Ir para Nutrição
                               </Button>
                             </div>
                           )}
