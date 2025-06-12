@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -87,15 +86,23 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   const [newGoalForm, setNewGoalForm] = useState({
     metric: '',
     target: '',
-    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 dias a partir de hoje
+    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
 
+  // Carregamento inicial
   useEffect(() => {
     if (user) {
       fetchProgressData();
       loadGoals();
     }
   }, [user]);
+
+  // Atualização das metas apenas quando há dados novos
+  useEffect(() => {
+    if (progressData.length > 0 && goals.length > 0) {
+      updateGoalProgress();
+    }
+  }, [progressData.length]); // Mudança: usar apenas length para evitar loops
 
   const fetchProgressData = async () => {
     if (!user) return;
@@ -116,14 +123,16 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   };
 
   const loadGoals = () => {
-    const savedGoals = localStorage.getItem(`progress_goals_${user?.id}`);
+    if (!user?.id) return;
+    const savedGoals = localStorage.getItem(`progress_goals_${user.id}`);
     if (savedGoals) {
       setGoals(JSON.parse(savedGoals));
     }
   };
 
   const saveGoals = (newGoals: Goal[]) => {
-    localStorage.setItem(`progress_goals_${user?.id}`, JSON.stringify(newGoals));
+    if (!user?.id) return;
+    localStorage.setItem(`progress_goals_${user.id}`, JSON.stringify(newGoals));
     setGoals(newGoals);
   };
 
@@ -180,12 +189,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     }));
     saveGoals(updatedGoals);
   };
-
-  useEffect(() => {
-    if (progressData.length > 0 && goals.length > 0) {
-      updateGoalProgress();
-    }
-  }, [progressData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,19 +335,18 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     const recentAvg = recent.reduce((sum, d) => sum + (d[metric as keyof typeof d] as number || 0), 0) / recent.length;
     
     if (previous.length === 0) {
-      // Se não tem dados anteriores, compara apenas os dois últimos pontos
       const firstValue = recent[0][metric as keyof typeof recent[0]] as number || 0;
       const lastValue = recent[recent.length - 1][metric as keyof typeof recent[0]] as number || 0;
       const change = firstValue !== 0 ? ((lastValue - firstValue) / firstValue) * 100 : 0;
       
-      if (Math.abs(change) < 1) return { trend: 'stable', change: 0 };
+      if (Math.abs(change) < 0.5) return { trend: 'stable', change: 0 };
       return { trend: change > 0 ? 'up' : 'down', change: Math.abs(change) };
     }
     
     const previousAvg = previous.reduce((sum, d) => sum + (d[metric as keyof typeof d] as number || 0), 0) / previous.length;
     const change = previousAvg !== 0 ? ((recentAvg - previousAvg) / previousAvg) * 100 : 0;
     
-    if (Math.abs(change) < 1) return { trend: 'stable', change: 0 };
+    if (Math.abs(change) < 0.5) return { trend: 'stable', change: 0 };
     return { trend: change > 0 ? 'up' : 'down', change: Math.abs(change) };
   };
 
@@ -377,7 +379,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
       return insights;
     }
     
-    // Analisa todas as métricas que têm dados, não apenas as selecionadas
     const metricsWithData = metricOptions.filter(metricOption => {
       return chartData.some(d => d[metricOption.value as keyof typeof d] !== null);
     });
@@ -395,7 +396,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
       }
     });
 
-    // Análise de metas
     goals.forEach(goal => {
       const progress = goal.target !== 0 ? (goal.current / goal.target) * 100 : 0;
       const daysLeft = Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
@@ -417,7 +417,6 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
       }
     });
 
-    // Se não há insights específicos, adiciona insights gerais
     if (insights.length === 0) {
       insights.push({
         metric: "Análise Geral",
@@ -462,7 +461,7 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   };
 
   const getComparisonData = () => {
-    if (progressData.length < 2) return null;
+    if (progressData.length < 4) return null; // Precisa de pelo menos 4 registros para comparar 2 períodos
 
     const now = new Date();
     let periodDays = 7;
