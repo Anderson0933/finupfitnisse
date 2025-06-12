@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, TrendingUp, Calendar, User as UserIcon, Trash2, RefreshCw, AlertTriangle, Camera, Target, Activity, Heart } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
+import { Plus, TrendingUp, Calendar, User as UserIcon, Trash2, RefreshCw, AlertTriangle, Camera, Target, Activity, Heart, Trophy, Medal, Award, Zap, CheckCircle, ArrowUp, ArrowDown, Minus, Settings, BarChart3 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine, BarChart, Bar } from 'recharts';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 
 interface ProgressEntry {
   id: string;
@@ -40,6 +42,13 @@ interface ProgressEntry {
   notes?: string;
 }
 
+interface Goal {
+  metric: string;
+  target: number;
+  current: number;
+  deadline: string;
+}
+
 interface ProgressTrackerProps {
   user: User | null;
 }
@@ -47,9 +56,12 @@ interface ProgressTrackerProps {
 const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   const [progressData, setProgressData] = useState<ProgressEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [showGoals, setShowGoals] = useState(false);
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [selectedMetrics, setSelectedMetrics] = useState(['peso']);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [viewMode, setViewMode] = useState<'chart' | 'insights' | 'compare'>('chart');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -71,6 +83,7 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   useEffect(() => {
     if (user) {
       fetchProgressData();
+      loadGoals();
     }
   }, [user]);
 
@@ -90,6 +103,18 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     }
     console.log(`✅ ${data?.length || 0} registros de progresso encontrados.`);
     setProgressData(data || []);
+  };
+
+  const loadGoals = () => {
+    const savedGoals = localStorage.getItem(`progress_goals_${user?.id}`);
+    if (savedGoals) {
+      setGoals(JSON.parse(savedGoals));
+    }
+  };
+
+  const saveGoals = (newGoals: Goal[]) => {
+    localStorage.setItem(`progress_goals_${user?.id}`, JSON.stringify(newGoals));
+    setGoals(newGoals);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -225,13 +250,94 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     );
   };
 
+  const calculateTrend = (metric: string) => {
+    const data = chartData.filter(d => d[metric as keyof typeof d] !== null);
+    if (data.length < 2) return { trend: 'stable', change: 0 };
+    
+    const recent = data.slice(-3);
+    const previous = data.slice(-6, -3);
+    
+    if (recent.length === 0 || previous.length === 0) return { trend: 'stable', change: 0 };
+    
+    const recentAvg = recent.reduce((sum, d) => sum + (d[metric as keyof typeof d] as number || 0), 0) / recent.length;
+    const previousAvg = previous.reduce((sum, d) => sum + (d[metric as keyof typeof d] as number || 0), 0) / previous.length;
+    
+    const change = ((recentAvg - previousAvg) / previousAvg) * 100;
+    
+    if (Math.abs(change) < 2) return { trend: 'stable', change: 0 };
+    return { trend: change > 0 ? 'up' : 'down', change: Math.abs(change) };
+  };
+
+  const getAchievements = () => {
+    const achievements = [];
+    
+    if (progressData.length >= 7) achievements.push({ icon: Trophy, name: "Consistência", description: "7+ registros" });
+    if (progressData.length >= 30) achievements.push({ icon: Medal, name: "Dedicação", description: "30+ registros" });
+    if (progressData.length >= 90) achievements.push({ icon: Award, name: "Mestre", description: "90+ registros" });
+    
+    // Verificar metas atingidas
+    goals.forEach(goal => {
+      if (goal.current >= goal.target) {
+        achievements.push({ icon: CheckCircle, name: "Meta Atingida", description: goal.metric });
+      }
+    });
+    
+    return achievements;
+  };
+
+  const getInsights = () => {
+    const insights = [];
+    
+    selectedMetrics.forEach(metric => {
+      const trend = calculateTrend(metric);
+      const metricConfig = metricOptions.find(m => m.value === metric);
+      
+      if (trend.trend !== 'stable') {
+        insights.push({
+          metric: metricConfig?.label || metric,
+          trend: trend.trend,
+          change: trend.change,
+          suggestion: getTrendSuggestion(metric, trend.trend)
+        });
+      }
+    });
+    
+    return insights;
+  };
+
+  const getTrendSuggestion = (metric: string, trend: string) => {
+    const suggestions: { [key: string]: { up: string; down: string } } = {
+      peso: {
+        up: "Considere ajustar sua dieta se o ganho de peso não for intencional.",
+        down: "Ótimo progresso na perda de peso! Mantenha a consistência."
+      },
+      gordura: {
+        up: "Considere aumentar exercícios cardiovasculares e revisar a dieta.",
+        down: "Excelente redução de gordura corporal! Continue assim."
+      },
+      musculo: {
+        up: "Ótimo ganho de massa muscular! Seu treino está funcionando.",
+        down: "Considere aumentar a ingestão de proteínas e intensidade do treino."
+      },
+      energia: {
+        up: "Níveis de energia melhorando! Ótimo sinal de saúde geral.",
+        down: "Considere melhorar a qualidade do sono e revisar a nutrição."
+      }
+    };
+    
+    return suggestions[metric]?.[trend] || "Continue monitorando esta métrica.";
+  };
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header with Add and Clear buttons */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Enhanced Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-blue-800">Acompanhamento de Evolução</h2>
-          <p className="text-blue-600 mt-1">Registre e visualize seu progresso detalhado ao longo do tempo</p>
+          <h2 className="text-3xl font-bold text-blue-800 flex items-center gap-3">
+            <BarChart3 className="h-8 w-8" />
+            Acompanhamento de Evolução
+          </h2>
+          <p className="text-blue-600 mt-2 text-lg">Registre, analise e conquiste seus objetivos com precisão</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button 
@@ -241,6 +347,15 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
           >
             <Plus className="h-4 w-4 mr-2" />
             Registrar Progresso
+          </Button>
+          <Button 
+            onClick={() => setShowGoals(true)} 
+            variant="outline"
+            size="sm"
+            className="border-green-300 text-green-700 hover:bg-green-50"
+          >
+            <Target className="h-4 w-4 mr-2" />
+            Metas
           </Button>
           {progressData.length > 0 && (
             <AlertDialog>
@@ -252,7 +367,7 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                   disabled={clearing}
                 >
                   {clearing ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                  Limpar Evolução
+                  Limpar Dados
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -262,7 +377,7 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                     Confirmar Limpeza
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Tem certeza que deseja limpar **todos** os seus registros de evolução? Esta ação não pode ser desfeita e seu gráfico será zerado.
+                    Tem certeza que deseja limpar **todos** os seus registros de evolução? Esta ação não pode ser desfeita.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -280,6 +395,80 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
           )}
         </div>
       </div>
+
+      {/* Achievements Section */}
+      {progressData.length > 0 && (
+        <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Trophy className="h-6 w-6 text-yellow-600" />
+              <h3 className="text-xl font-bold text-yellow-800">Suas Conquistas</h3>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {getAchievements().map((achievement, index) => (
+                <Badge key={index} className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 p-2 text-sm flex items-center gap-2">
+                  <achievement.icon className="h-4 w-4" />
+                  <span className="font-medium">{achievement.name}</span>
+                  <span className="text-xs opacity-75">{achievement.description}</span>
+                </Badge>
+              ))}
+              {getAchievements().length === 0 && (
+                <p className="text-yellow-700">Continue registrando para desbloquear conquistas!</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Goals Management Modal */}
+      {showGoals && (
+        <Card className="bg-white border-green-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-green-800 flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Gerenciar Metas
+            </CardTitle>
+            <CardDescription>
+              Defina e acompanhe suas metas de evolução
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {goals.map((goal, index) => (
+                <div key={index} className="p-4 border border-green-200 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium text-green-800">{goal.metric}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => saveGoals(goals.filter((_, i) => i !== index))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Progresso: {goal.current}</span>
+                      <span>Meta: {goal.target}</span>
+                    </div>
+                    <Progress value={(goal.current / goal.target) * 100} className="h-2" />
+                    <div className="text-xs text-gray-600">
+                      Prazo: {new Date(goal.deadline).toLocaleDateString('pt-BR')}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <Button 
+                onClick={() => setShowGoals(false)}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                Concluído
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Enhanced Form */}
       {showForm && (
@@ -513,113 +702,212 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
         </Card>
       )}
 
-      {/* Enhanced Chart */}
+      {/* Enhanced Analysis Section */}
       {progressData.length > 0 && (
-        <Card className="bg-white border-blue-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-blue-800 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Gráfico de Evolução Interativo
-            </CardTitle>
-            <CardDescription>
-              Selecione as métricas que deseja visualizar no gráfico
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Metric Selection */}
-            <div className="mb-6">
-              <div className="flex flex-wrap gap-2">
-                {metricOptions.map(metric => (
-                  <Button
-                    key={metric.value}
-                    variant={selectedMetrics.includes(metric.value) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleMetric(metric.value)}
-                    className={`text-xs ${selectedMetrics.includes(metric.value) ? 'text-white' : ''}`}
-                    style={{
-                      backgroundColor: selectedMetrics.includes(metric.value) ? metric.color : undefined,
-                      borderColor: metric.color
-                    }}
-                  >
-                    {metric.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
+        <div className="space-y-6">
+          {/* View Mode Selector */}
+          <div className="flex gap-2 justify-center">
+            <Button
+              variant={viewMode === 'chart' ? 'default' : 'outline'}
+              onClick={() => setViewMode('chart')}
+              size="sm"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Gráficos
+            </Button>
+            <Button
+              variant={viewMode === 'insights' ? 'default' : 'outline'}
+              onClick={() => setViewMode('insights')}
+              size="sm"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Insights
+            </Button>
+            <Button
+              variant={viewMode === 'compare' ? 'default' : 'outline'}
+              onClick={() => setViewMode('compare')}
+              size="sm"
+            >
+              <Activity className="h-4 w-4 mr-2" />
+              Comparar
+            </Button>
+          </div>
 
-            {/* Chart */}
-            <div className="h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                {chartData.length > 1 ? (
-                  <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                    <defs>
-                      {selectedMetrics.map(metric => {
-                        const metricConfig = metricOptions.find(m => m.value === metric);
-                        return (
-                          <linearGradient key={metric} id={`gradient-${metric}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={metricConfig?.color} stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor={metricConfig?.color} stopOpacity={0.1}/>
-                          </linearGradient>
-                        );
-                      })}
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#1e40af" 
-                      fontSize={12} 
-                      tick={{ fill: '#1e40af' }}
-                    />
-                    <YAxis 
-                      stroke="#1e40af" 
-                      fontSize={12} 
-                      domain={['auto', 'auto']}
-                      tick={{ fill: '#1e40af' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                        border: '1px solid #93c5fd',
-                        borderRadius: '12px',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                        backdropFilter: 'blur(8px)'
-                      }}
-                      itemStyle={{ color: '#1e40af', fontWeight: '500' }}
-                      labelStyle={{ color: '#1d4ed8', fontWeight: 'bold', marginBottom: '8px' }}
-                    />
-                    {selectedMetrics.map(metric => {
-                      const metricConfig = metricOptions.find(m => m.value === metric);
-                      if (!metricConfig || !chartData.some(d => d[metric as keyof typeof d] !== null)) return null;
-                      
-                      return (
-                        <Area
-                          key={metric}
-                          type="monotone"
-                          dataKey={metric}
-                          stroke={metricConfig.color}
-                          strokeWidth={3}
-                          fill={`url(#gradient-${metric})`}
-                          name={`${metricConfig.label} ${metricConfig.unit}`}
-                          connectNulls
-                          dot={{ fill: metricConfig.color, strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: metricConfig.color, strokeWidth: 2, fill: '#fff' }}
-                        />
-                      );
-                    })}
-                  </AreaChart>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-blue-600 text-center">
-                    <div>
-                      <Activity className="h-12 w-12 mx-auto mb-4 text-blue-400" />
-                      <p className="text-lg font-medium">Registre pelo menos dois pontos para visualizar o gráfico</p>
-                      <p className="text-sm text-blue-500 mt-2">Seus dados aparecerão aqui conforme você registra seu progresso</p>
-                    </div>
+          {/* Chart View */}
+          {viewMode === 'chart' && (
+            <Card className="bg-white border-blue-200 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-blue-800 flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Gráfico de Evolução Interativo
+                </CardTitle>
+                <CardDescription>
+                  Selecione as métricas que deseja visualizar no gráfico
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Metric Selection */}
+                <div className="mb-6">
+                  <div className="flex flex-wrap gap-2">
+                    {metricOptions.map(metric => (
+                      <Button
+                        key={metric.value}
+                        variant={selectedMetrics.includes(metric.value) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleMetric(metric.value)}
+                        className={`text-xs ${selectedMetrics.includes(metric.value) ? 'text-white' : ''}`}
+                        style={{
+                          backgroundColor: selectedMetrics.includes(metric.value) ? metric.color : undefined,
+                          borderColor: metric.color
+                        }}
+                      >
+                        {metric.label}
+                      </Button>
+                    ))}
                   </div>
-                )}
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+
+                {/* Chart */}
+                <div className="h-96">
+                  <ResponsiveContainer width="100%" height="100%">
+                    {chartData.length > 1 ? (
+                      <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                        <defs>
+                          {selectedMetrics.map(metric => {
+                            const metricConfig = metricOptions.find(m => m.value === metric);
+                            return (
+                              <linearGradient key={metric} id={`gradient-${metric}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={metricConfig?.color} stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor={metricConfig?.color} stopOpacity={0.1}/>
+                              </linearGradient>
+                            );
+                          })}
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="#1e40af" 
+                          fontSize={12} 
+                          tick={{ fill: '#1e40af' }}
+                        />
+                        <YAxis 
+                          stroke="#1e40af" 
+                          fontSize={12} 
+                          domain={['auto', 'auto']}
+                          tick={{ fill: '#1e40af' }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                            border: '1px solid #93c5fd',
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                            backdropFilter: 'blur(8px)'
+                          }}
+                          itemStyle={{ color: '#1e40af', fontWeight: '500' }}
+                          labelStyle={{ color: '#1d4ed8', fontWeight: 'bold', marginBottom: '8px' }}
+                        />
+                        {selectedMetrics.map(metric => {
+                          const metricConfig = metricOptions.find(m => m.value === metric);
+                          if (!metricConfig || !chartData.some(d => d[metric as keyof typeof d] !== null)) return null;
+                          
+                          return (
+                            <Area
+                              key={metric}
+                              type="monotone"
+                              dataKey={metric}
+                              stroke={metricConfig.color}
+                              strokeWidth={3}
+                              fill={`url(#gradient-${metric})`}
+                              name={`${metricConfig.label} ${metricConfig.unit}`}
+                              connectNulls
+                              dot={{ fill: metricConfig.color, strokeWidth: 2, r: 4 }}
+                              activeDot={{ r: 6, stroke: metricConfig.color, strokeWidth: 2, fill: '#fff' }}
+                            />
+                          );
+                        })}
+                      </AreaChart>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-blue-600 text-center">
+                        <div>
+                          <Activity className="h-12 w-12 mx-auto mb-4 text-blue-400" />
+                          <p className="text-lg font-medium">Registre pelo menos dois pontos para visualizar o gráfico</p>
+                          <p className="text-sm text-blue-500 mt-2">Seus dados aparecerão aqui conforme você registra seu progresso</p>
+                        </div>
+                      </div>
+                    )}
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Insights View */}
+          {viewMode === 'insights' && (
+            <Card className="bg-white border-purple-200 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-purple-800 flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  Análises e Insights Inteligentes
+                </CardTitle>
+                <CardDescription>
+                  Tendências automáticas e sugestões personalizadas baseadas nos seus dados
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  {getInsights().map((insight, index) => (
+                    <div key={index} className="p-4 border border-purple-200 rounded-lg bg-purple-50">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          {insight.trend === 'up' ? (
+                            <ArrowUp className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <ArrowDown className="h-5 w-5 text-red-600" />
+                          )}
+                          <span className="font-medium text-purple-800">{insight.metric}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {insight.change.toFixed(1)}% {insight.trend === 'up' ? 'aumento' : 'redução'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-purple-700">{insight.suggestion}</p>
+                    </div>
+                  ))}
+                  {getInsights().length === 0 && (
+                    <div className="text-center py-8 text-purple-600">
+                      <Zap className="h-12 w-12 mx-auto mb-4 text-purple-400" />
+                      <p className="text-lg font-medium">Registre mais dados para receber insights personalizados</p>
+                      <p className="text-sm mt-2">Nosso algoritmo analisará suas tendências automaticamente</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Compare View */}
+          {viewMode === 'compare' && (
+            <Card className="bg-white border-orange-200 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-orange-800 flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Comparação de Períodos
+                </CardTitle>
+                <CardDescription>
+                  Compare sua evolução entre diferentes períodos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-orange-600">
+                  <Activity className="h-12 w-12 mx-auto mb-4 text-orange-400" />
+                  <p className="text-lg font-medium">Funcionalidade em desenvolvimento</p>
+                  <p className="text-sm mt-2">Em breve você poderá comparar seus resultados entre semanas e meses</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Enhanced Recent entries list */}
