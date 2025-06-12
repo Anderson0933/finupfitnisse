@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -323,17 +324,27 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
     const data = chartData.filter(d => d[metric as keyof typeof d] !== null);
     if (data.length < 2) return { trend: 'stable', change: 0 };
     
-    const recent = data.slice(-3);
-    const previous = data.slice(-6, -3);
+    const recent = data.slice(-2);
+    const previous = data.slice(-4, -2);
     
-    if (recent.length === 0 || previous.length === 0) return { trend: 'stable', change: 0 };
+    if (recent.length === 0) return { trend: 'stable', change: 0 };
     
     const recentAvg = recent.reduce((sum, d) => sum + (d[metric as keyof typeof d] as number || 0), 0) / recent.length;
+    
+    if (previous.length === 0) {
+      // Se não tem dados anteriores, compara apenas os dois últimos pontos
+      const firstValue = recent[0][metric as keyof typeof recent[0]] as number || 0;
+      const lastValue = recent[recent.length - 1][metric as keyof typeof recent[0]] as number || 0;
+      const change = firstValue !== 0 ? ((lastValue - firstValue) / firstValue) * 100 : 0;
+      
+      if (Math.abs(change) < 1) return { trend: 'stable', change: 0 };
+      return { trend: change > 0 ? 'up' : 'down', change: Math.abs(change) };
+    }
+    
     const previousAvg = previous.reduce((sum, d) => sum + (d[metric as keyof typeof d] as number || 0), 0) / previous.length;
+    const change = previousAvg !== 0 ? ((recentAvg - previousAvg) / previousAvg) * 100 : 0;
     
-    const change = ((recentAvg - previousAvg) / previousAvg) * 100;
-    
-    if (Math.abs(change) < 2) return { trend: 'stable', change: 0 };
+    if (Math.abs(change) < 1) return { trend: 'stable', change: 0 };
     return { trend: change > 0 ? 'up' : 'down', change: Math.abs(change) };
   };
 
@@ -356,50 +367,65 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
   const getInsights = () => {
     const insights = [];
     
-    if (progressData.length < 3) {
+    if (progressData.length < 2) {
       insights.push({
         metric: "Dados Insuficientes",
         trend: "stable" as const,
         change: 0,
-        suggestion: "Registre pelo menos 3 medições para receber insights personalizados sobre suas tendências."
+        suggestion: "Registre pelo menos 2 medições para receber insights personalizados sobre suas tendências."
       });
       return insights;
     }
     
-    selectedMetrics.forEach(metric => {
-      const trend = calculateTrend(metric);
-      const metricConfig = metricOptions.find(m => m.value === metric);
+    // Analisa todas as métricas que têm dados, não apenas as selecionadas
+    const metricsWithData = metricOptions.filter(metricOption => {
+      return chartData.some(d => d[metricOption.value as keyof typeof d] !== null);
+    });
+    
+    metricsWithData.forEach(metricOption => {
+      const trend = calculateTrend(metricOption.value);
       
-      if (trend.trend !== 'stable' && trend.change > 1) {
+      if (trend.trend !== 'stable' && trend.change > 0.5) {
         insights.push({
-          metric: metricConfig?.label || metric,
+          metric: metricOption.label,
           trend: trend.trend,
           change: trend.change,
-          suggestion: getTrendSuggestion(metric, trend.trend)
+          suggestion: getTrendSuggestion(metricOption.value, trend.trend)
         });
       }
     });
 
+    // Análise de metas
     goals.forEach(goal => {
-      const progress = (goal.current / goal.target) * 100;
+      const progress = goal.target !== 0 ? (goal.current / goal.target) * 100 : 0;
       const daysLeft = Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       
       if (progress >= 90) {
         insights.push({
-          metric: `Meta: ${goal.metric}`,
+          metric: `Meta: ${metricOptions.find(m => m.value === goal.metric)?.label || goal.metric}`,
           trend: "up" as const,
           change: progress,
           suggestion: `Parabéns! Você está muito próximo de atingir sua meta (${progress.toFixed(1)}%).`
         });
       } else if (daysLeft <= 7 && progress < 50) {
         insights.push({
-          metric: `Meta: ${goal.metric}`,
+          metric: `Meta: ${metricOptions.find(m => m.value === goal.metric)?.label || goal.metric}`,
           trend: "down" as const,
           change: 100 - progress,
           suggestion: `Atenção! Apenas ${daysLeft} dias restantes e você está em ${progress.toFixed(1)}% da meta.`
         });
       }
     });
+
+    // Se não há insights específicos, adiciona insights gerais
+    if (insights.length === 0) {
+      insights.push({
+        metric: "Análise Geral",
+        trend: "stable" as const,
+        change: 0,
+        suggestion: "Suas métricas estão estáveis. Continue registrando dados regularmente para identificar tendências mais claras."
+      });
+    }
     
     return insights;
   };
@@ -1098,13 +1124,19 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                         </div>
                         {insight.change > 0 && (
                           <Badge variant="outline" className="text-xs">
-                            {insight.change.toFixed(1)}% {insight.trend === 'up' ? 'aumento' : 'redução'}
+                            {insight.change.toFixed(1)}% {insight.trend === 'up' ? 'aumento' : insight.trend === 'down' ? 'redução' : ''}
                           </Badge>
                         )}
                       </div>
                       <p className="text-sm text-purple-700">{insight.suggestion}</p>
                     </div>
                   ))}
+                </div>
+                
+                {/* Debug info for testing */}
+                <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
+                  <strong>Debug:</strong> {progressData.length} registros encontrados. 
+                  Métricas com dados: {metricOptions.filter(m => chartData.some(d => d[m.value as keyof typeof d] !== null)).map(m => m.label).join(', ') || 'Nenhuma'}
                 </div>
               </CardContent>
             </Card>
