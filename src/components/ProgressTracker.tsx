@@ -672,7 +672,7 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="goal-metric">Métrica</Label>
-                      <Select value={newGoalForm.metric} onValueChange={(value) => setNewGoalForm({...newGoalForm, metric: value})}>
+                      <Select value={newGoalForm.metric} onValueChange={(value) => setNewGoalForm({...newGoalForm, metric: value, target: ''})}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione uma métrica" />
                         </SelectTrigger>
@@ -685,17 +685,44 @@ const ProgressTracker = ({ user }: ProgressTrackerProps) => {
                         </SelectContent>
                       </Select>
                     </div>
+                    
                     <div>
                       <Label htmlFor="goal-target">Valor Alvo</Label>
-                      <Input
-                        id="goal-target"
-                        type="number"
-                        step="0.1"
-                        value={newGoalForm.target}
-                        onChange={(e) => setNewGoalForm({...newGoalForm, target: e.target.value})}
-                        placeholder="Ex: 70.5"
-                      />
+                      {['energia', 'sono', 'estresse', 'intensidade'].includes(newGoalForm.metric) ? (
+                        <Select value={newGoalForm.target} onValueChange={(value) => setNewGoalForm({...newGoalForm, target: value})}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione de 1 a 10" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1,2,3,4,5,6,7,8,9,10].map(num => (
+                              <SelectItem key={num} value={String(num)}>
+                                {num} - {
+                                  newGoalForm.metric === 'estresse' 
+                                    ? (num <= 3 ? 'Baixo' : num <= 6 ? 'Médio' : 'Alto')
+                                    : newGoalForm.metric === 'sono'
+                                    ? (num <= 3 ? 'Ruim' : num <= 6 ? 'Regular' : 'Ótimo')
+                                    : newGoalForm.metric === 'energia'
+                                    ? (num <= 3 ? 'Baixo' : num <= 6 ? 'Médio' : 'Alto')
+                                    : newGoalForm.metric === 'intensidade'
+                                    ? (num <= 3 ? 'Leve' : num <= 6 ? 'Moderado' : 'Intenso')
+                                    : ''
+                                }
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          id="goal-target"
+                          type="number"
+                          step="0.1"
+                          value={newGoalForm.target}
+                          onChange={(e) => setNewGoalForm({...newGoalForm, target: e.target.value})}
+                          placeholder="Ex: 70.5"
+                        />
+                      )}
                     </div>
+                    
                     <div>
                       <Label htmlFor="goal-deadline">Prazo</Label>
                       <Input
