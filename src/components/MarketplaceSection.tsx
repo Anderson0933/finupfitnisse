@@ -3,331 +3,345 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingBag, Star, ExternalLink, Award, TrendingUp, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Users, Star, TrendingUp, Award, Copy, CheckCircle, DollarSign, Target, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  rating: number;
-  reviews: number;
-  category: string;
-  imageUrl: string;
-  affiliateUrl: string;
-  commission: number;
-  brand: string;
-  inStock: boolean;
-}
-
-interface AffiliateProgram {
-  id: string;
-  name: string;
-  description: string;
-  commission: string;
-  requirements: string;
-  benefits: string[];
-  isActive: boolean;
+interface AffiliateStats {
+  totalReferrals: number;
+  activeSubscriptions: number;
+  totalEarnings: number;
+  pendingCommission: number;
+  conversionRate: number;
 }
 
 const MarketplaceSection = () => {
   const { toast } = useToast();
-  const [activeCategory, setActiveCategory] = useState('supplements');
+  const [affiliateCode, setAffiliateCode] = useState('FITPRO_USER123');
+  const [copied, setCopied] = useState(false);
 
-  const products: Product[] = [
-    {
-      id: '1',
-      name: 'Whey Protein Premium',
-      description: 'Proteína de alta qualidade para ganho de massa muscular',
-      price: 89.90,
-      originalPrice: 120.00,
-      rating: 4.8,
-      reviews: 1250,
-      category: 'supplements',
-      imageUrl: '/placeholder.svg',
-      affiliateUrl: 'https://example.com/whey-protein',
-      commission: 15,
-      brand: 'Growth',
-      inStock: true
-    },
-    {
-      id: '2',
-      name: 'Creatina Monohidratada',
-      description: 'Aumenta força e potência muscular',
-      price: 45.90,
-      originalPrice: 65.00,
-      rating: 4.9,
-      reviews: 890,
-      category: 'supplements',
-      imageUrl: '/placeholder.svg',
-      affiliateUrl: 'https://example.com/creatina',
-      commission: 12,
-      brand: 'Max Titanium',
-      inStock: true
-    },
-    {
-      id: '3',
-      name: 'Halter Ajustável 20kg',
-      description: 'Kit de halteres com pesos ajustáveis',
-      price: 299.90,
-      originalPrice: 399.00,
-      rating: 4.7,
-      reviews: 456,
-      category: 'equipment',
-      imageUrl: '/placeholder.svg',
-      affiliateUrl: 'https://example.com/halter',
-      commission: 8,
-      brand: 'Kikos',
-      inStock: true
-    },
-    {
-      id: '4',
-      name: 'Camiseta Dry Fit',
-      description: 'Camiseta esportiva com tecnologia dry fit',
-      price: 39.90,
-      originalPrice: 59.90,
-      rating: 4.6,
-      reviews: 234,
-      category: 'clothing',
-      imageUrl: '/placeholder.svg',
-      affiliateUrl: 'https://example.com/camiseta',
-      commission: 20,
-      brand: 'Nike',
-      inStock: true
-    }
-  ];
+  // Dados simulados do afiliado
+  const affiliateStats: AffiliateStats = {
+    totalReferrals: 12,
+    activeSubscriptions: 8,
+    totalEarnings: 480.00,
+    pendingCommission: 120.00,
+    conversionRate: 66.7
+  };
 
-  const affiliatePrograms: AffiliateProgram[] = [
-    {
-      id: '1',
-      name: 'Programa Suplementos Premium',
-      description: 'Ganhe comissões vendendo os melhores suplementos do mercado',
-      commission: '10-20%',
-      requirements: 'Mínimo 100 seguidores',
-      benefits: ['Comissões altas', 'Material promocional', 'Suporte dedicado'],
-      isActive: true
-    },
-    {
-      id: '2',
-      name: 'Equipamentos Fitness',
-      description: 'Equipamentos para treino em casa com ótimas comissões',
-      commission: '5-15%',
-      requirements: 'Cadastro aprovado',
-      benefits: ['Produtos testados', 'Desconto pessoal', 'Dashboard analítico'],
-      isActive: true
-    },
-    {
-      id: '3',
-      name: 'Roupas Esportivas',
-      description: 'Marcas reconhecidas de vestuário fitness',
-      commission: '15-25%',
-      requirements: 'Perfil ativo nas redes',
-      benefits: ['Produtos exclusivos', 'Campanhas sazonais', 'Bonificações'],
-      isActive: true
-    }
-  ];
-
-  const handleProductClick = (product: Product) => {
-    // Registrar clique para analytics de afiliado
-    console.log(`Produto clicado: ${product.name} - Comissão: ${product.commission}%`);
+  const handleCopyAffiliateLink = () => {
+    const affiliateLink = `https://fitpro.app/ref/${affiliateCode}`;
+    navigator.clipboard.writeText(affiliateLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
     
     toast({
-      title: "Redirecionando...",
-      description: `Você será direcionado para ${product.brand}`,
+      title: "Link copiado!",
+      description: "Seu link de afiliado foi copiado para a área de transferência.",
     });
-
-    // Abrir link de afiliado em nova aba
-    window.open(product.affiliateUrl, '_blank');
   };
 
-  const handleJoinAffiliate = (program: AffiliateProgram) => {
+  const handleRequestPayout = () => {
     toast({
-      title: "Programa de Afiliados",
-      description: `Solicitação para ${program.name} enviada!`,
+      title: "Saque solicitado",
+      description: "Sua solicitação de saque será processada em até 3 dias úteis.",
     });
   };
-
-  const filteredProducts = products.filter(product => product.category === activeCategory);
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-blue-800 mb-4 flex items-center justify-center gap-2">
-          <ShoppingBag className="h-8 w-8" />
-          Marketplace Fitness
+          <Users className="h-8 w-8" />
+          Programa de Afiliados FitPro
         </h2>
         <p className="text-blue-600 max-w-2xl mx-auto">
-          Produtos recomendados pelos nossos especialistas. Compre com confiança e ganhe comissões como afiliado!
+          Ganhe 30% de comissão para cada novo cliente que contratar nossos planos através do seu link!
         </p>
       </div>
 
-      <Tabs defaultValue="products" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="products" className="flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4" />
-            Produtos
-          </TabsTrigger>
-          <TabsTrigger value="affiliate" className="flex items-center gap-2">
-            <Award className="h-4 w-4" />
-            Seja Afiliado
-          </TabsTrigger>
-        </TabsList>
+      {/* Banner de Destaque */}
+      <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <Gift className="h-6 w-6" />
+            🎉 Promoção Especial: 40% de Comissão!
+          </CardTitle>
+          <CardDescription>
+            Por tempo limitado, ganhe 40% de comissão em todos os novos clientes até o final do mês!
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-        <TabsContent value="products">
-          <div className="mb-6">
-            <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-              <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto">
-                <TabsTrigger value="supplements">Suplementos</TabsTrigger>
-                <TabsTrigger value="equipment">Equipamentos</TabsTrigger>
-                <TabsTrigger value="clothing">Roupas</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+      {/* Estatísticas do Afiliado */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Total de Indicações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              <span className="text-2xl font-bold text-blue-800">{affiliateStats.totalReferrals}</span>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <Card key={product.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="aspect-square bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
-                    <ShoppingBag className="h-12 w-12 text-gray-400" />
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <Badge variant="secondary">{product.brand}</Badge>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm">{product.rating}</span>
-                      <span className="text-xs text-gray-500">({product.reviews})</span>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardTitle className="text-lg mb-2">{product.name}</CardTitle>
-                  <CardDescription className="mb-4">{product.description}</CardDescription>
-                  
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-2xl font-bold text-green-600">R$ {product.price.toFixed(2)}</span>
-                    {product.originalPrice && (
-                      <span className="text-sm text-gray-500 line-through">
-                        R$ {product.originalPrice.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Assinaturas Ativas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-2xl font-bold text-green-800">{affiliateStats.activeSubscriptions}</span>
+            </div>
+          </CardContent>
+        </Card>
 
-                  <div className="flex items-center justify-between mb-4">
-                    <Badge variant="outline" className="text-xs">
-                      Comissão: {product.commission}%
-                    </Badge>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      product.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {product.inStock ? 'Em estoque' : 'Indisponível'}
-                    </span>
-                  </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Ganho</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-purple-600" />
+              <span className="text-2xl font-bold text-purple-800">R$ {affiliateStats.totalEarnings.toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
 
-                  <Button 
-                    onClick={() => handleProductClick(product)}
-                    className="w-full" 
-                    disabled={!product.inStock}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Ver Produto
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Taxa de Conversão</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-orange-600" />
+              <span className="text-2xl font-bold text-orange-800">{affiliateStats.conversionRate}%</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <TabsContent value="affiliate">
-          <div className="space-y-6">
-            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-800">
-                  <TrendingUp className="h-6 w-6" />
-                  Ganhe Dinheiro como Afiliado!
-                </CardTitle>
-                <CardDescription>
-                  Monetize sua paixão pelo fitness. Recomende produtos que você usa e ganhe comissões em cada venda.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Users className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <h4 className="font-semibold">Cadastre-se</h4>
-                    <p className="text-sm text-gray-600">Inscreva-se nos programas</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Seu Link de Afiliado */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Seu Link de Afiliado
+            </CardTitle>
+            <CardDescription>
+              Compartilhe este link para ganhar comissões
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Código do Afiliado
+              </label>
+              <div className="flex gap-2">
+                <Input 
+                  value={affiliateCode} 
+                  onChange={(e) => setAffiliateCode(e.target.value)}
+                  className="font-mono"
+                />
+                <Button variant="outline" size="sm">
+                  Editar
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Link Completo
+              </label>
+              <div className="flex gap-2">
+                <Input 
+                  value={`https://fitpro.app/ref/${affiliateCode}`}
+                  readOnly
+                  className="font-mono text-sm bg-gray-50"
+                />
+                <Button 
+                  onClick={handleCopyAffiliateLink}
+                  variant={copied ? "default" : "outline"}
+                  size="sm"
+                  className="min-w-[80px]"
+                >
+                  {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Copiado!" : "Copiar"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-blue-800 mb-2">💡 Dica de Compartilhamento</h4>
+              <p className="text-blue-700 text-sm">
+                "Transforme sua paixão pelo fitness em renda! Conheça o FitPro - IA personalizada para seus treinos. Use meu link e ganhe desconto!"
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Comissões Pendentes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Seus Ganhos
+            </CardTitle>
+            <CardDescription>
+              Acompanhe suas comissões e solicite saques
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-green-700 font-medium">Disponível para Saque</span>
+                <span className="text-2xl font-bold text-green-800">
+                  R$ {affiliateStats.pendingCommission.toFixed(2)}
+                </span>
+              </div>
+              <Button 
+                onClick={handleRequestPayout}
+                className="w-full bg-green-600 hover:bg-green-700"
+                disabled={affiliateStats.pendingCommission < 50}
+              >
+                {affiliateStats.pendingCommission < 50 ? 
+                  "Mínimo R$ 50,00 para saque" : 
+                  "Solicitar Saque"
+                }
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="font-semibold text-gray-800">Histórico Recente</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <div>
+                    <p className="text-sm font-medium">João Silva - Plano Mensal</p>
+                    <p className="text-xs text-gray-500">Hoje, 14:30</p>
                   </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <ShoppingBag className="h-6 w-6 text-green-600" />
-                    </div>
-                    <h4 className="font-semibold">Promova</h4>
-                    <p className="text-sm text-gray-600">Compartilhe produtos</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Award className="h-6 w-6 text-purple-600" />
-                    </div>
-                    <h4 className="font-semibold">Ganhe</h4>
-                    <p className="text-sm text-gray-600">Receba comissões</p>
-                  </div>
+                  <span className="text-green-600 font-bold">+R$ 20,70</span>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <div>
+                    <p className="text-sm font-medium">Maria Costa - Plano Anual</p>
+                    <p className="text-xs text-gray-500">Ontem, 09:15</p>
+                  </div>
+                  <span className="text-green-600 font-bold">+R$ 99,30</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <div>
+                    <p className="text-sm font-medium">Pedro Santos - Plano Mensal</p>
+                    <p className="text-xs text-gray-500">2 dias atrás</p>
+                  </div>
+                  <span className="text-green-600 font-bold">+R$ 20,70</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {affiliatePrograms.map((program) => (
-                <Card key={program.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="text-lg">{program.name}</CardTitle>
-                    <CardDescription>{program.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div>
-                        <span className="font-semibold text-green-600 text-xl">
-                          {program.commission}
-                        </span>
-                        <span className="text-sm text-gray-600 ml-1">de comissão</span>
-                      </div>
-                      
-                      <div>
-                        <h5 className="font-semibold text-sm mb-1">Requisitos:</h5>
-                        <p className="text-sm text-gray-600">{program.requirements}</p>
-                      </div>
-
-                      <div>
-                        <h5 className="font-semibold text-sm mb-2">Benefícios:</h5>
-                        <ul className="space-y-1">
-                          {program.benefits.map((benefit, index) => (
-                            <li key={index} className="text-sm text-gray-600 flex items-center gap-2">
-                              <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
-                              {benefit}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <Button 
-                        onClick={() => handleJoinAffiliate(program)}
-                        className="w-full mt-4"
-                        variant={program.isActive ? "default" : "secondary"}
-                      >
-                        {program.isActive ? "Participar" : "Em Breve"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+      {/* Como Funciona */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Como Funciona o Programa de Afiliados
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+              <h4 className="font-semibold mb-2">1. Compartilhe</h4>
+              <p className="text-sm text-gray-600">
+                Use seu link único para indicar o FitPro para amigos e seguidores
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <h4 className="font-semibold mb-2">2. Eles Assinam</h4>
+              <p className="text-sm text-gray-600">
+                Quando alguém se cadastra pelo seu link e assina um plano
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <DollarSign className="h-6 w-6 text-purple-600" />
+              </div>
+              <h4 className="font-semibold mb-2">3. Você Ganha</h4>
+              <p className="text-sm text-gray-600">
+                Receba 30% do valor da assinatura mensalmente enquanto for cliente
+              </p>
             </div>
           </div>
-        </TabsContent>
-      </Tabs>
+
+          <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
+            <h4 className="font-bold text-lg mb-3 text-center">💰 Tabela de Comissões</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-lg border">
+                <h5 className="font-semibold text-blue-800">Plano Mensal - R$ 69,00</h5>
+                <p className="text-2xl font-bold text-green-600">R$ 20,70 / mês</p>
+                <p className="text-sm text-gray-600">por cada cliente ativo</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border">
+                <h5 className="font-semibold text-blue-800">Plano Anual - R$ 331,00</h5>
+                <p className="text-2xl font-bold text-green-600">R$ 99,30 / ano</p>
+                <p className="text-sm text-gray-600">pagamento único</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Materiais de Marketing */}
+      <Card>
+        <CardHeader>
+          <CardTitle>📱 Materiais de Marketing</CardTitle>
+          <CardDescription>
+            Baixe materiais prontos para suas redes sociais
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button variant="outline" className="h-auto p-4">
+              <div className="text-center">
+                <div className="w-8 h-8 bg-blue-100 rounded mx-auto mb-2 flex items-center justify-center">
+                  📱
+                </div>
+                <div className="font-medium">Stories Instagram</div>
+                <div className="text-xs text-gray-500">Templates prontos</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="h-auto p-4">
+              <div className="text-center">
+                <div className="w-8 h-8 bg-green-100 rounded mx-auto mb-2 flex items-center justify-center">
+                  🎥
+                </div>
+                <div className="font-medium">Vídeos de Apresentação</div>
+                <div className="text-xs text-gray-500">MP4 para WhatsApp</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="h-auto p-4">
+              <div className="text-center">
+                <div className="w-8 h-8 bg-purple-100 rounded mx-auto mb-2 flex items-center justify-center">
+                  📝
+                </div>
+                <div className="font-medium">Textos Prontos</div>
+                <div className="text-xs text-gray-500">Copy para posts</div>
+              </div>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
