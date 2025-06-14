@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -5,7 +6,7 @@ import { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText, HelpCircle, ShoppingBag, Video } from 'lucide-react';
+import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText, HelpCircle, Users } from 'lucide-react';
 import WorkoutPlanGenerator, { WorkoutPlan } from '@/components/WorkoutPlanGenerator';
 import AIAssistant from '@/components/AIAssistant';
 import ProgressTracker from '@/components/ProgressTracker';
@@ -15,7 +16,6 @@ import DailyTip from '@/components/DailyTip';
 import UserAvatar from '@/components/UserAvatar';
 import FAQSection from '@/components/FAQSection';
 import MarketplaceSection from '@/components/MarketplaceSection';
-import ExerciseVideos from '@/components/ExerciseVideos';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
@@ -285,7 +285,7 @@ const Dashboard = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full main-dashboard-tabs">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
             <TabsTrigger value="workout" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <Dumbbell className="h-4 w-4" /> <span className="text-xs md:text-sm">Treinos</span> {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
@@ -298,14 +298,8 @@ const Dashboard = () => {
             <TabsTrigger value="nutrition" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <Apple className="h-4 w-4" /> <span className="text-xs md:text-sm">Nutrição</span> {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
-            <TabsTrigger value="videos" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
-              <Video className="h-4 w-4" /> <span className="text-xs md:text-sm">Vídeos</span> {!hasAccess && <Lock className="h-3 w-3" />}
-            </TabsTrigger>
-            <TabsTrigger value="marketplace" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
-              <ShoppingBag className="h-4 w-4" /> <span className="text-xs md:text-sm">Loja</span> {!hasAccess && <Lock className="h-3 w-3" />}
-            </TabsTrigger>
-            <TabsTrigger value="faq" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
-              <HelpCircle className="h-4 w-4" /> <span className="text-xs md:text-sm">Dúvidas</span> {!hasAccess && <Lock className="h-3 w-3" />}
+            <TabsTrigger value="affiliates" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
+              <Users className="h-4 w-4" /> <span className="text-xs md:text-sm">Afiliados</span> {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
             <TabsTrigger value="payment" data-value="payment" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3">
               <CreditCard className="h-4 w-4" /> <span className="text-xs md:text-sm">Pagamento</span>
@@ -342,25 +336,9 @@ const Dashboard = () => {
             </LockedFeature>
           </TabsContent>
 
-          <TabsContent value="videos">
-            <LockedFeature title="Vídeos">
-              <ExerciseVideos />
-            </LockedFeature>
-          </TabsContent>
-
-          <TabsContent value="marketplace">
-            <LockedFeature title="Marketplace">
+          <TabsContent value="affiliates">
+            <LockedFeature title="Afiliados">
               <MarketplaceSection />
-            </LockedFeature>
-          </TabsContent>
-
-          <TabsContent value="faq">
-            <LockedFeature title="Dúvidas">
-              <FAQSection 
-                user={user} 
-                onSwitchToAssistant={switchToAssistant}
-                onSwitchToNutrition={switchToNutrition}
-              />
             </LockedFeature>
           </TabsContent>
 
