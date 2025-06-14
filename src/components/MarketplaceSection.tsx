@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Users, Star, TrendingUp, Award, Copy, CheckCircle, DollarSign, Target, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AffiliateStats {
   totalReferrals: number;
@@ -19,6 +20,7 @@ const MarketplaceSection = () => {
   const { toast } = useToast();
   const [affiliateCode, setAffiliateCode] = useState('FITPRO_USER123');
   const [copied, setCopied] = useState(false);
+  const [isRequestingPayout, setIsRequestingPayout] = useState(false);
 
   // Dados simulados do afiliado
   const affiliateStats: AffiliateStats = {
@@ -30,7 +32,10 @@ const MarketplaceSection = () => {
   };
 
   const handleCopyAffiliateLink = () => {
-    const affiliateLink = `https://fitpro.app/ref/${affiliateCode}`;
+    // Usar a URL atual da aplicação
+    const currentDomain = window.location.origin;
+    const affiliateLink = `${currentDomain}/?ref=${affiliateCode}`;
+    
     navigator.clipboard.writeText(affiliateLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -41,12 +46,51 @@ const MarketplaceSection = () => {
     });
   };
 
-  const handleRequestPayout = () => {
-    toast({
-      title: "Saque solicitado",
-      description: "Sua solicitação de saque será processada em até 3 dias úteis.",
-    });
+  const handleRequestPayout = async () => {
+    if (affiliateStats.pendingCommission < 50) {
+      toast({
+        title: "Valor insuficiente",
+        description: "O valor mínimo para saque é R$ 50,00.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsRequestingPayout(true);
+
+    try {
+      // Aqui você pode implementar a lógica real de saque
+      // Por exemplo, salvar a solicitação no banco de dados
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Simular uma requisição de saque (você pode implementar a lógica real aqui)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      toast({
+        title: "Saque solicitado com sucesso!",
+        description: `Solicitação de saque de R$ ${affiliateStats.pendingCommission.toFixed(2)} será processada em até 3 dias úteis.`,
+      });
+
+      // Aqui você resetaria o valor pendente após a solicitação
+      // affiliateStats.pendingCommission = 0; (isso seria feito via API real)
+
+    } catch (error) {
+      console.error('Erro ao solicitar saque:', error);
+      toast({
+        title: "Erro ao processar saque",
+        description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRequestingPayout(false);
+    }
   };
+
+  const currentDomain = window.location.origin;
 
   return (
     <div className="space-y-6">
@@ -159,7 +203,7 @@ const MarketplaceSection = () => {
               </label>
               <div className="flex gap-2">
                 <Input 
-                  value={`https://fitpro.app/ref/${affiliateCode}`}
+                  value={`${currentDomain}/?ref=${affiliateCode}`}
                   readOnly
                   className="font-mono text-sm bg-gray-50"
                 />
@@ -206,9 +250,14 @@ const MarketplaceSection = () => {
               <Button 
                 onClick={handleRequestPayout}
                 className="w-full bg-green-600 hover:bg-green-700"
-                disabled={affiliateStats.pendingCommission < 50}
+                disabled={affiliateStats.pendingCommission < 50 || isRequestingPayout}
               >
-                {affiliateStats.pendingCommission < 50 ? 
+                {isRequestingPayout ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processando...
+                  </>
+                ) : affiliateStats.pendingCommission < 50 ? 
                   "Mínimo R$ 50,00 para saque" : 
                   "Solicitar Saque"
                 }
