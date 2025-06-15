@@ -2,14 +2,14 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, MessageSquare, ThumbsUp, TrendingUp } from 'lucide-react';
+import { MessageSquare, ThumbsUp, TrendingUp, Calendar } from 'lucide-react';
 
 interface CommunityStatsData {
   totalPosts: number;
   totalReplies: number;
   totalLikes: number;
-  activeUsers: number;
   todayPosts: number;
+  weekPosts: number;
   weekGrowth: number;
 }
 
@@ -39,22 +39,20 @@ const CommunityStats = () => {
         .select('id', { count: 'exact', head: true })
         .gte('created_at', todayStart.toISOString());
 
-      // Usuários únicos que postaram nos últimos 7 dias
+      // Posts desta semana
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const { data: activeUsersData } = await supabase
+      const { count: weekPostsCount } = await supabase
         .from('forum_posts')
-        .select('user_id')
+        .select('id', { count: 'exact', head: true })
         .gte('created_at', weekAgo.toISOString());
-
-      const uniqueActiveUsers = new Set(activeUsersData?.map(p => p.user_id) || []).size;
 
       setStats({
         totalPosts: postsResult.count || 0,
         totalReplies: repliesResult.count || 0,
         totalLikes: likesResult.count || 0,
-        activeUsers: uniqueActiveUsers,
         todayPosts: todayPostsCount || 0,
-        weekGrowth: 12 // Placeholder - seria calculado comparando com semana anterior
+        weekPosts: weekPostsCount || 0,
+        weekGrowth: 15 // Placeholder positivo
       });
 
     } catch (error) {
@@ -96,7 +94,7 @@ const CommunityStats = () => {
     {
       label: 'Respostas',
       value: stats.totalReplies,
-      icon: Users,
+      icon: TrendingUp,
       color: 'text-green-600'
     },
     {
@@ -106,9 +104,9 @@ const CommunityStats = () => {
       color: 'text-red-600'
     },
     {
-      label: 'Usuários Ativos',
-      value: stats.activeUsers,
-      icon: TrendingUp,
+      label: 'Posts esta Semana',
+      value: stats.weekPosts,
+      icon: Calendar,
       color: 'text-purple-600'
     }
   ];
