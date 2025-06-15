@@ -71,170 +71,11 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
     }
   }, [user]);
 
-  const generateNewDailyChallenges = async () => {
-    if (!user) return;
-
-    const newChallenges = [
-      {
-        title: 'Treino do Dia',
-        description: 'Complete 1 treino hoje',
-        type: 'daily' as const,
-        category: 'workout' as const,
-        target_value: 1,
-        target_unit: 'treino',
-        xp_reward: 20,
-        difficulty: 'easy' as const,
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date().toISOString().split('T')[0],
-        is_active: true
-      },
-      {
-        title: 'Hidratação Diária',
-        description: 'Beba 8 copos de água hoje',
-        type: 'daily' as const,
-        category: 'nutrition' as const,
-        target_value: 8,
-        target_unit: 'copos',
-        xp_reward: 15,
-        difficulty: 'easy' as const,
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date().toISOString().split('T')[0],
-        is_active: true
-      },
-      {
-        title: 'Atividade Física',
-        description: 'Faça 30 minutos de atividade física',
-        type: 'daily' as const,
-        category: 'workout' as const,
-        target_value: 30,
-        target_unit: 'minutos',
-        xp_reward: 25,
-        difficulty: 'medium' as const,
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date().toISOString().split('T')[0],
-        is_active: true
-      }
-    ];
-
-    try {
-      const { error } = await supabase
-        .from('challenges')
-        .insert(newChallenges);
-
-      if (error) {
-        console.error('Erro ao criar novos desafios:', error);
-        return false;
-      }
-
-      console.log('Novos desafios diários criados com sucesso!');
-      return true;
-    } catch (error) {
-      console.error('Erro ao gerar novos desafios:', error);
-      return false;
-    }
-  };
-
-  const generateNewWeeklyChallenges = async () => {
-    if (!user) return;
-
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + 7);
-
-    const newChallenges = [
-      {
-        title: 'Guerreiro da Semana',
-        description: 'Complete 5 treinos esta semana',
-        type: 'weekly' as const,
-        category: 'workout' as const,
-        target_value: 5,
-        target_unit: 'treinos',
-        xp_reward: 100,
-        difficulty: 'medium' as const,
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
-        is_active: true
-      },
-      {
-        title: 'Consistência Semanal',
-        description: 'Faça login todos os dias da semana',
-        type: 'weekly' as const,
-        category: 'general' as const,
-        target_value: 7,
-        target_unit: 'dias',
-        xp_reward: 75,
-        difficulty: 'medium' as const,
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
-        is_active: true
-      }
-    ];
-
-    try {
-      const { error } = await supabase
-        .from('challenges')
-        .insert(newChallenges);
-
-      if (error) {
-        console.error('Erro ao criar novos desafios semanais:', error);
-        return false;
-      }
-
-      console.log('Novos desafios semanais criados com sucesso!');
-      return true;
-    } catch (error) {
-      console.error('Erro ao gerar novos desafios semanais:', error);
-      return false;
-    }
-  };
-
-  const checkAndGenerateNewChallenges = async () => {
-    if (!user) return;
-
-    try {
-      // Verificar se existem desafios diários ativos para hoje
-      const today = new Date().toISOString().split('T')[0];
-      
-      const { data: todaysChallenges } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('type', 'daily')
-        .eq('start_date', today)
-        .eq('is_active', true);
-
-      // Se não há desafios diários para hoje, criar novos
-      if (!todaysChallenges || todaysChallenges.length === 0) {
-        console.log('Nenhum desafio diário encontrado para hoje, gerando novos...');
-        await generateNewDailyChallenges();
-      }
-
-      // Verificar desafios semanais
-      const { data: weeklyChallenges } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('type', 'weekly')
-        .eq('is_active', true)
-        .gte('end_date', today);
-
-      // Se não há desafios semanais ativos, criar novos
-      if (!weeklyChallenges || weeklyChallenges.length === 0) {
-        console.log('Nenhum desafio semanal ativo encontrado, gerando novos...');
-        await generateNewWeeklyChallenges();
-      }
-
-    } catch (error) {
-      console.error('Erro ao verificar/gerar desafios:', error);
-    }
-  };
-
   const loadData = async () => {
     if (!user) return;
 
     try {
       setLoading(true);
-
-      // Primeiro, verificar e gerar novos desafios se necessário
-      await checkAndGenerateNewChallenges();
 
       // Carregar desafios ativos
       const { data: challengesData, error: challengesError } = await supabase
@@ -369,12 +210,6 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
           title: "🎉 Desafio Concluído!",
           description: `Você ganhou ${challenge.xp_reward} XP!`,
         });
-
-        // Verificar se todos os desafios diários foram completados
-        setTimeout(async () => {
-          await checkAndGenerateNewChallenges();
-          await loadData(); // Recarregar dados para mostrar novos desafios
-        }, 1000);
       } else {
         toast({
           title: "Progresso Atualizado!",
@@ -498,7 +333,7 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
                 <div className="text-center py-8 text-gray-500">
                   <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Todos os desafios foram concluídos! 🎉</p>
-                  <p className="text-sm mt-2">Novos desafios serão gerados automaticamente!</p>
+                  <p className="text-sm mt-2">Novos desafios serão gerados automaticamente à meia-noite!</p>
                 </div>
               )}
             </CardContent>

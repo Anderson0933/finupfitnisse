@@ -1,1 +1,5 @@
+
 project_id = "xdghmaeiqzhhdgsdvohk"
+
+[functions.generate-daily-challenges]
+verify_jwt = false
