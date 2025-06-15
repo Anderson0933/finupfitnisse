@@ -5,7 +5,7 @@ import { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText, HelpCircle } from 'lucide-react';
+import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText, HelpCircle, Users } from 'lucide-react';
 import WorkoutPlanGenerator, { WorkoutPlan } from '@/components/WorkoutPlanGenerator';
 import AIAssistant from '@/components/AIAssistant';
 import ProgressTracker from '@/components/ProgressTracker';
@@ -14,6 +14,7 @@ import PaymentManager from '@/components/PaymentManager';
 import DailyTip from '@/components/DailyTip';
 import UserAvatar from '@/components/UserAvatar';
 import FAQSection from '@/components/FAQSection';
+import ForumSection from '@/components/ForumSection';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
@@ -283,7 +284,7 @@ const Dashboard = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full main-dashboard-tabs">
-          <TabsList className="grid w-full grid-cols-6 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-7 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
             <TabsTrigger value="workout" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <Dumbbell className="h-4 w-4" /> <span className="text-xs md:text-sm">Treinos</span> {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
@@ -295,6 +296,10 @@ const Dashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="nutrition" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <Apple className="h-4 w-4" /> <span className="text-xs md:text-sm">Nutrição</span> {!hasAccess && <Lock className="h-3 w-3" />}
+            </TabsTrigger>
+            {/* Aba Fórum - apenas desktop */}
+            <TabsTrigger value="forum" className="hidden lg:flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
+              <Users className="h-4 w-4" /> <span className="text-xs md:text-sm">Fórum</span> {!hasAccess && <Lock className="h-3 w-3" />}
             </TabsTrigger>
             <TabsTrigger value="faq" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
               <HelpCircle className="h-4 w-4" /> <span className="text-xs md:text-sm">Dúvidas</span> {!hasAccess && <Lock className="h-3 w-3" />}
@@ -346,6 +351,12 @@ const Dashboard = () => {
 
           <TabsContent value="payment">
             <PaymentManager user={user} hasActiveSubscription={hasActiveSubscription} />
+          </TabsContent>
+          
+          <TabsContent value="forum">
+            <LockedFeature title="Fórum">
+              <ForumSection user={user} />
+            </LockedFeature>
           </TabsContent>
         </Tabs>
       </main>
