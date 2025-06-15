@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trophy, Target, Flame, Star, Award } from 'lucide-react';
+import { Trophy, Target, Flame, Star, Award, Clock } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -64,6 +64,7 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('challenges');
   const [updating, setUpdating] = useState(false);
+  const [lastRequestDate, setLastRequestDate] = useState<string | null>(null);
   const { toast } = useToast();
 
   const ensureUserGamification = async () => {
@@ -119,6 +120,17 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
 
       // Garantir que o usuário tenha entrada na tabela de gamificação
       const gamificationData = await ensureUserGamification();
+
+      // Buscar a última data de solicitação de desafios
+      const { data: lastRequest, error: lastRequestError } = await supabase
+        .from('user_gamification')
+        .select('last_challenge_request')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!lastRequestError && lastRequest) {
+        setLastRequestDate(lastRequest.last_challenge_request);
+      }
 
       // Carregar apenas desafios ativos e relevantes para o usuário
       // Buscar desafios gerais (sem created_for_user) ou específicos para este usuário
@@ -359,8 +371,46 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
     }
   };
 
+  const canRequestNewChallenges = () => {
+    if (!lastRequestDate) return true;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const lastRequest = new Date(lastRequestDate).toISOString().split('T')[0];
+    
+    return today !== lastRequest;
+  };
+
+  const getNextAvailableTime = () => {
+    if (!lastRequestDate) return null;
+    
+    const lastRequest = new Date(lastRequestDate);
+    const nextAvailable = new Date(lastRequest);
+    nextAvailable.setDate(nextAvailable.getDate() + 1);
+    nextAvailable.setHours(0, 0, 0, 0);
+    
+    return nextAvailable;
+  };
+
+  const formatTimeUntilNext = () => {
+    const nextTime = getNextAvailableTime();
+    if (!nextTime) return '';
+    
+    const now = new Date();
+    const diff = nextTime.getTime() - now.getTime();
+    
+    if (diff <= 0) return '';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
   const requestNewChallenges = async () => {
-    if (!user || updating) return;
+    if (!user || updating || !canRequestNewChallenges()) return;
 
     try {
       setUpdating(true);
@@ -375,6 +425,22 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
       }
       
       console.log('✅ Novos desafios solicitados:', data);
+      
+      // Atualizar a data da última solicitação
+      const today = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from('user_gamification')
+        .update({ 
+          last_challenge_request: today,
+          updated_at: today
+        })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('❌ Erro ao atualizar data da solicitação:', updateError);
+      } else {
+        setLastRequestDate(today);
+      }
       
       toast({
         title: "Novos Desafios Gerados!",
@@ -414,6 +480,9 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
   const currentLevelXP = userStats ? getXPForNextLevel(userStats.current_level - 1) : 0;
   const nextLevelXP = userStats ? getXPForNextLevel(userStats.current_level) : 100;
   const progressToNextLevel = userStats ? ((userStats.total_xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100 : 0;
+
+  const canRequest = canRequestNewChallenges();
+  const timeUntilNext = formatTimeUntilNext();
 
   return (
     <div className="space-y-6">
@@ -464,13 +533,21 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
                 Desafios Ativos
               </CardTitle>
               {activeChallenges.length === 0 && (
-                <Button 
-                  onClick={requestNewChallenges}
-                  disabled={updating}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {updating ? 'Gerando...' : 'Solicitar Novos Desafios'}
-                </Button>
+                <div className="flex flex-col items-end gap-2">
+                  <Button 
+                    onClick={requestNewChallenges}
+                    disabled={updating || !canRequest}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {updating ? 'Gerando...' : canRequest ? 'Solicitar Novos Desafios' : 'Aguarde...'}
+                  </Button>
+                  {!canRequest && timeUntilNext && (
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <Clock className="h-3 w-3" />
+                      Disponível em {timeUntilNext}
+                    </div>
+                  )}
+                </div>
               )}
             </CardHeader>
             <CardContent>
@@ -490,7 +567,11 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
                 <div className="text-center py-8 text-gray-500">
                   <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Parabéns! Você completou todos os desafios! 🎉</p>
-                  <p className="text-sm mt-2">Clique no botão acima para solicitar novos desafios personalizados!</p>
+                  {canRequest ? (
+                    <p className="text-sm mt-2">Clique no botão acima para solicitar novos desafios personalizados!</p>
+                  ) : (
+                    <p className="text-sm mt-2">Novos desafios estarão disponíveis em {timeUntilNext || 'breve'}!</p>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -523,6 +604,7 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
           )}
         </TabsContent>
 
+        {/* Conquistas */}
         <TabsContent value="achievements" className="space-y-6">
           {/* Conquistas Desbloqueadas */}
           <Card>
