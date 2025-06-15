@@ -25,6 +25,7 @@ interface ContextualTipsProps {
 const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTipsProps) => {
   const [currentTip, setCurrentTip] = useState<Tip | null>(null);
   const [dismissedTips, setDismissedTips] = useState<string[]>([]);
+  const [lastShownTime, setLastShownTime] = useState<{ [key: string]: number }>({});
 
   const tips: Tip[] = [
     {
@@ -67,21 +68,52 @@ const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTips
     const applicableTip = tips.find(tip => tip.triggerCondition(context));
     
     if (applicableTip && !dismissedTips.includes(applicableTip.id)) {
-      // Delay para não mostrar a dica imediatamente
-      const timer = setTimeout(() => {
-        setCurrentTip(applicableTip);
-      }, 3000);
+      const now = Date.now();
+      const lastShown = lastShownTime[applicableTip.id] || 0;
+      const timeSinceLastShown = now - lastShown;
       
-      return () => clearTimeout(timer);
+      // Só mostrar a dica se:
+      // 1. Nunca foi mostrada antes (primeira vez)
+      // 2. Ou se passou pelo menos 2 minutos desde a última vez
+      const shouldShow = lastShown === 0 || timeSinceLastShown > (2 * 60 * 1000); // 2 minutos
+      
+      if (shouldShow) {
+        // Delay maior para não mostrar a dica imediatamente
+        const timer = setTimeout(() => {
+          setCurrentTip(applicableTip);
+          setLastShownTime(prev => ({
+            ...prev,
+            [applicableTip.id]: now
+          }));
+        }, 8000); // 8 segundos de delay
+        
+        return () => clearTimeout(timer);
+      }
     } else {
       setCurrentTip(null);
     }
-  }, [currentTab, workoutPlan, dismissedTips]);
+  }, [currentTab, workoutPlan, dismissedTips, lastShownTime]);
 
   const dismissTip = (tipId: string) => {
     setDismissedTips(prev => [...prev, tipId]);
     setCurrentTip(null);
+    
+    // Salvar no localStorage para persistir entre sessões
+    const stored = localStorage.getItem('contextual_tips_dismissed') || '[]';
+    const dismissed = JSON.parse(stored);
+    if (!dismissed.includes(tipId)) {
+      dismissed.push(tipId);
+      localStorage.setItem('contextual_tips_dismissed', JSON.stringify(dismissed));
+    }
   };
+
+  // Carregar dicas dispensadas do localStorage na inicialização
+  useEffect(() => {
+    const stored = localStorage.getItem('contextual_tips_dismissed');
+    if (stored) {
+      setDismissedTips(JSON.parse(stored));
+    }
+  }, []);
 
   if (!currentTip) return null;
 
