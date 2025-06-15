@@ -20,9 +20,50 @@ Deno.serve(async (req) => {
 
     console.log('🎯 Iniciando geração automática de desafios diários...')
 
-    // Desativar desafios antigos que expiraram
     const today = new Date().toISOString().split('T')[0]
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const cleanupDate = sevenDaysAgo.toISOString().split('T')[0]
+
+    // 1. LIMPEZA: Remover desafios antigos (mais de 7 dias)
+    console.log('🧹 Iniciando limpeza de desafios antigos...')
     
+    const { data: oldChallenges, error: selectError } = await supabase
+      .from('challenges')
+      .select('id')
+      .lt('end_date', cleanupDate)
+
+    if (selectError) {
+      console.error('❌ Erro ao buscar desafios antigos:', selectError)
+    } else if (oldChallenges && oldChallenges.length > 0) {
+      // Primeiro, remover progresso dos usuários nos desafios antigos
+      const { error: progressDeleteError } = await supabase
+        .from('user_challenge_progress')
+        .delete()
+        .in('challenge_id', oldChallenges.map(c => c.id))
+
+      if (progressDeleteError) {
+        console.error('❌ Erro ao remover progresso antigo:', progressDeleteError)
+      } else {
+        console.log(`🗑️ Removido progresso de ${oldChallenges.length} desafios antigos`)
+      }
+
+      // Depois, remover os desafios antigos
+      const { error: challengesDeleteError } = await supabase
+        .from('challenges')
+        .delete()
+        .in('id', oldChallenges.map(c => c.id))
+
+      if (challengesDeleteError) {
+        console.error('❌ Erro ao remover desafios antigos:', challengesDeleteError)
+      } else {
+        console.log(`🗑️ Removidos ${oldChallenges.length} desafios antigos (anteriores a ${cleanupDate})`)
+      }
+    } else {
+      console.log('✨ Nenhum desafio antigo para limpar')
+    }
+
+    // 2. Desativar desafios que expiraram
     await supabase
       .from('challenges')
       .update({ is_active: false })
@@ -30,7 +71,7 @@ Deno.serve(async (req) => {
 
     console.log('🗑️ Desafios expirados desativados')
 
-    // Verificar se já existem desafios ativos para hoje
+    // 3. Verificar se já existem desafios ativos para hoje
     const { data: existingChallenges } = await supabase
       .from('challenges')
       .select('id')
@@ -41,12 +82,15 @@ Deno.serve(async (req) => {
     if (existingChallenges && existingChallenges.length > 0) {
       console.log('✅ Desafios diários já existem para hoje')
       return new Response(
-        JSON.stringify({ message: 'Desafios diários já existem para hoje' }), 
+        JSON.stringify({ 
+          message: 'Desafios diários já existem para hoje',
+          cleaned: oldChallenges?.length || 0
+        }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Gerar novos desafios diários
+    // 4. Gerar novos desafios diários
     const newDailyChallenges = [
       {
         title: 'Treino do Dia',
@@ -114,7 +158,7 @@ Deno.serve(async (req) => {
 
     console.log(`✅ ${insertedChallenges?.length || 0} novos desafios diários criados para ${today}`)
 
-    // Verificar e gerar desafios semanais se necessário
+    // 5. Verificar e gerar desafios semanais se necessário
     const { data: weeklyActiveChallenges } = await supabase
       .from('challenges')
       .select('id')
@@ -171,7 +215,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         message: 'Novos desafios gerados com sucesso!',
-        dailyChallenges: insertedChallenges?.length || 0
+        dailyChallenges: insertedChallenges?.length || 0,
+        cleanedOldChallenges: oldChallenges?.length || 0
       }), 
       { 
         status: 200,
