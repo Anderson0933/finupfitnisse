@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ThumbsUp, MessageSquare, Send, Pin, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, MessageSquare, Send, Pin, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface ForumCategory {
   id: string;
@@ -59,6 +60,7 @@ const PostDetail = ({ post, user, onBack, onPostUpdated }: PostDetailProps) => {
   const [userLikedReplies, setUserLikedReplies] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -271,6 +273,67 @@ const PostDetail = ({ post, user, onBack, onPostUpdated }: PostDetailProps) => {
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!user || user.id !== post.user_id) return;
+
+    setDeleting('post');
+    try {
+      const { error } = await supabase
+        .from('forum_posts')
+        .delete()
+        .eq('id', post.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Post excluído",
+        description: "Seu post foi excluído com sucesso."
+      });
+      
+      onBack(); // Voltar para a lista de posts
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir post",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleDeleteReply = async (replyId: string, replyUserId: string) => {
+    if (!user || user.id !== replyUserId) return;
+
+    setDeleting(replyId);
+    try {
+      const { error } = await supabase
+        .from('forum_replies')
+        .delete()
+        .eq('id', replyId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Resposta excluída",
+        description: "Sua resposta foi excluída com sucesso."
+      });
+      
+      loadReplies();
+      onPostUpdated();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir resposta",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
@@ -326,8 +389,36 @@ const PostDetail = ({ post, user, onBack, onPostUpdated }: PostDetailProps) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem>Editar</DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-600">Excluir</DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        <span className="text-red-600">Excluir</span>
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir Post</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita e todas as respostas também serão removidas.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDeletePost}
+                          disabled={deleting === 'post'}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          {deleting === 'post' ? 'Excluindo...' : 'Excluir'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -426,8 +517,36 @@ const PostDetail = ({ post, user, onBack, onPostUpdated }: PostDetailProps) => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">Excluir</DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              <span className="text-red-600">Excluir</span>
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Resposta</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir esta resposta? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteReply(reply.id, reply.user_id)}
+                                disabled={deleting === reply.id}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                {deleting === reply.id ? 'Excluindo...' : 'Excluir'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
