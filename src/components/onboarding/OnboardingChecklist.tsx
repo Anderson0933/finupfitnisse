@@ -65,10 +65,31 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
     }
   }, [user]);
 
+  // Recheck steps periodically to catch updates
+  useEffect(() => {
+    if (user && isVisible) {
+      const interval = setInterval(() => {
+        checkCompletedSteps();
+      }, 3000); // Check every 3 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [user, isVisible]);
+
   const checkCompletedSteps = async () => {
     if (!user) return;
 
     try {
+      console.log('🔍 Verificando passos do onboarding...');
+
+      // Verificar se tem perfil completo (user_profiles)
+      const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
       // Verificar se tem plano de treino
       const { data: workoutPlan } = await supabase
         .from('user_workout_plans')
@@ -85,16 +106,42 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
         .limit(1)
         .maybeSingle();
 
+      // Verificar se tem conversas de nutrição
+      const { data: nutritionConversations } = await supabase
+        .from('ai_conversations')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('conversation_type', 'nutrition')
+        .limit(1)
+        .maybeSingle();
+
+      console.log('📊 Dados encontrados:', {
+        profile: !!profileData,
+        workout: !!workoutPlan,
+        progress: !!progressData,
+        nutrition: !!nutritionConversations
+      });
+
       setSteps(prevSteps => 
         prevSteps.map(step => {
           let completed = step.completed;
           
           switch (step.id) {
             case 'complete-profile':
-              completed = !!(user.user_metadata?.full_name);
+              // Verificar se tem dados básicos no perfil ou user_metadata
+              completed = !!(
+                profileData?.full_name || 
+                profileData?.age || 
+                profileData?.weight || 
+                user.user_metadata?.full_name
+              );
               break;
             case 'first-workout':
               completed = !!workoutPlan;
+              break;
+            case 'nutrition-plan':
+              // Considerar concluído se visitou a aba de nutrição (tem conversa) ou se tem dados nutricionais
+              completed = !!nutritionConversations;
               break;
             case 'record-progress':
               completed = !!progressData;
@@ -112,7 +159,12 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
   };
 
   const handleStepAction = (step: OnboardingStep) => {
+    console.log(`🎯 Executando ação para: ${step.id}`);
+    
     switch (step.id) {
+      case 'complete-profile':
+        onSwitchTab('progress'); // Onde tem formulário de perfil
+        break;
       case 'first-workout':
         onSwitchTab('workout');
         break;
@@ -125,6 +177,11 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
       default:
         break;
     }
+
+    // Recheck steps after a short delay to catch immediate updates
+    setTimeout(() => {
+      checkCompletedSteps();
+    }, 1000);
   };
 
   const completedSteps = steps.filter(step => step.completed).length;
