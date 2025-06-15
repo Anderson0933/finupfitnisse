@@ -63,19 +63,13 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
   const [userStats, setUserStats] = useState<UserStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('challenges');
+  const [updating, setUpdating] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user]);
 
   const ensureUserGamification = async () => {
     if (!user) return null;
 
     try {
-      // Verificar se existe entrada para o usuário
       const { data: existing, error: selectError } = await supabase
         .from('user_gamification')
         .select('*')
@@ -118,10 +112,10 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
   };
 
   const loadData = async () => {
-    if (!user) return;
+    if (!user || updating) return;
 
     try {
-      setLoading(true);
+      console.log('🔄 Carregando dados do centro de desafios...');
 
       // Garantir que o usuário tenha entrada na tabela de gamificação
       const gamificationData = await ensureUserGamification();
@@ -206,6 +200,8 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
         }
       }
 
+      console.log('✅ Dados carregados com sucesso');
+
     } catch (error: any) {
       console.error('Erro ao carregar dados do centro de desafios:', error);
       toast({
@@ -213,15 +209,29 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
         description: "Não foi possível carregar os desafios.",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
   };
 
+  // Carregamento inicial apenas uma vez
+  useEffect(() => {
+    if (user && !loading) return;
+    
+    const initializeData = async () => {
+      await loadData();
+      setLoading(false);
+    };
+
+    if (user) {
+      initializeData();
+    }
+  }, [user]);
+
   const updateChallengeProgress = async (challengeId: string, increment: number = 1) => {
-    if (!user) return;
+    if (!user || updating) return;
 
     try {
+      setUpdating(true);
+      
       const challenge = challenges.find(c => c.id === challengeId);
       if (!challenge) return;
 
@@ -230,8 +240,9 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
       const isCompleted = newProgress >= challenge.target_value;
       const wasAlreadyCompleted = challenge.progress?.is_completed || false;
 
-      console.log('Atualizando progresso:', {
+      console.log('🎯 Atualizando progresso do desafio:', {
         challengeId,
+        challengeTitle: challenge.title,
         currentProgress,
         newProgress,
         isCompleted,
@@ -239,8 +250,8 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
         xpReward: challenge.xp_reward
       });
 
-      // Usar upsert para inserir ou atualizar o progresso
-      const { error } = await supabase
+      // Atualizar progresso do desafio
+      const { error: progressError } = await supabase
         .from('user_challenge_progress')
         .upsert({
           user_id: user.id,
@@ -253,27 +264,31 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
           onConflict: 'user_id,challenge_id'
         });
 
-      if (error) {
-        console.error('Erro ao atualizar progresso:', error);
-        throw error;
+      if (progressError) {
+        console.error('❌ Erro ao atualizar progresso:', progressError);
+        throw progressError;
       }
 
-      // Se o desafio foi completado agora (não estava completado antes)
+      console.log('✅ Progresso do desafio atualizado com sucesso');
+
+      // Se o desafio foi completado agora
       if (isCompleted && !wasAlreadyCompleted) {
-        console.log('Desafio completado! Atualizando XP manualmente...');
+        console.log('🎉 Desafio completado! Atualizando XP...');
         
-        // Atualizar XP manualmente se o trigger não funcionou
+        // Buscar XP atual e atualizar
         const { data: currentStats, error: statsError } = await supabase
           .from('user_gamification')
-          .select('total_xp')
+          .select('total_xp, current_level')
           .eq('user_id', user.id)
           .single();
 
         if (statsError) {
-          console.error('Erro ao buscar XP atual:', statsError);
+          console.error('❌ Erro ao buscar XP atual:', statsError);
         } else {
           const newTotalXP = currentStats.total_xp + challenge.xp_reward;
           const newLevel = calculateLevel(newTotalXP);
+
+          console.log(`💰 Atualizando XP: ${currentStats.total_xp} + ${challenge.xp_reward} = ${newTotalXP}`);
 
           const { error: updateXPError } = await supabase
             .from('user_gamification')
@@ -285,33 +300,42 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
             .eq('user_id', user.id);
 
           if (updateXPError) {
-            console.error('Erro ao atualizar XP:', updateXPError);
+            console.error('❌ Erro ao atualizar XP:', updateXPError);
+            toast({
+              title: "Aviso",
+              description: "Desafio completado, mas houve erro ao atualizar XP.",
+              variant: "destructive"
+            });
           } else {
-            console.log(`XP atualizado: ${currentStats.total_xp} -> ${newTotalXP}, Nível: ${newLevel}`);
+            console.log(`✅ XP atualizado com sucesso! Novo nível: ${newLevel}`);
+            
+            const levelUp = newLevel > currentStats.current_level;
+            
+            toast({
+              title: "🎉 Desafio Concluído!",
+              description: `+${challenge.xp_reward} XP conquistado!${levelUp ? ` Subiu para nível ${newLevel}!` : ''}`,
+            });
           }
         }
-
-        toast({
-          title: "🎉 Desafio Concluído!",
-          description: `Você ganhou ${challenge.xp_reward} XP e subiu para o nível!`,
-        });
-      } else {
+      } else if (!isCompleted) {
         toast({
           title: "Progresso Atualizado!",
           description: `${newProgress}/${challenge.target_value} ${challenge.target_unit}`,
         });
       }
 
-      // Recarregar dados para mostrar as atualizações
+      // Recarregar apenas os dados necessários
       await loadData();
 
     } catch (error: any) {
-      console.error('Erro ao atualizar progresso:', error);
+      console.error('❌ Erro ao atualizar progresso:', error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o progresso.",
         variant: "destructive"
       });
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -411,6 +435,7 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
                       challenge={challenge}
                       onUpdateProgress={updateChallengeProgress}
                       getDifficultyColor={getDifficultyColor}
+                      disabled={updating}
                     />
                   ))}
                 </div>
@@ -442,6 +467,7 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
                       onUpdateProgress={updateChallengeProgress}
                       getDifficultyColor={getDifficultyColor}
                       completed
+                      disabled={updating}
                     />
                   ))}
                 </div>
