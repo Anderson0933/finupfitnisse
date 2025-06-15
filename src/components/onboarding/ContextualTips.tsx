@@ -74,8 +74,8 @@ const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTips
       
       // Só mostrar a dica se:
       // 1. Nunca foi mostrada antes (primeira vez)
-      // 2. Ou se passou pelo menos 2 minutos desde a última vez
-      const shouldShow = lastShown === 0 || timeSinceLastShown > (2 * 60 * 1000); // 2 minutos
+      // 2. Ou se passou pelo menos 10 minutos desde a última vez
+      const shouldShow = lastShown === 0 || timeSinceLastShown > (10 * 60 * 1000); // 10 minutos
       
       if (shouldShow) {
         // Delay maior para não mostrar a dica imediatamente
