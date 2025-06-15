@@ -79,6 +79,7 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          created_for_user: string | null
           description: string
           difficulty: string
           end_date: string
@@ -95,6 +96,7 @@ export type Database = {
         Insert: {
           category?: string
           created_at?: string
+          created_for_user?: string | null
           description: string
           difficulty?: string
           end_date?: string
@@ -111,6 +113,7 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          created_for_user?: string | null
           description?: string
           difficulty?: string
           end_date?: string
@@ -552,6 +555,7 @@ export type Database = {
           current_streak: number
           fitness_category: string
           last_activity_date: string | null
+          last_challenge_request: string | null
           total_workouts_completed: number
           total_xp: number
           updated_at: string
@@ -565,6 +569,7 @@ export type Database = {
           current_streak?: number
           fitness_category?: string
           last_activity_date?: string | null
+          last_challenge_request?: string | null
           total_workouts_completed?: number
           total_xp?: number
           updated_at?: string
@@ -578,6 +583,7 @@ export type Database = {
           current_streak?: number
           fitness_category?: string
           last_activity_date?: string | null
+          last_challenge_request?: string | null
           total_workouts_completed?: number
           total_xp?: number
           updated_at?: string
