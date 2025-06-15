@@ -50,8 +50,14 @@ export const useNotifications = (user: User | null) => {
         return;
       }
 
-      setNotifications(data || []);
-      setUnreadCount((data || []).filter(n => !n.is_read).length);
+      // Type assertion para garantir compatibilidade
+      const typedNotifications = (data || []).map(notification => ({
+        ...notification,
+        type: notification.type as Notification['type']
+      })) as Notification[];
+
+      setNotifications(typedNotifications);
+      setUnreadCount(typedNotifications.filter(n => !n.is_read).length);
     } catch (error) {
       console.error('Erro inesperado ao buscar notificações:', error);
     } finally {
@@ -158,7 +164,10 @@ export const useNotifications = (user: User | null) => {
         },
         (payload) => {
           console.log('Nova notificação recebida:', payload);
-          const newNotification = payload.new as Notification;
+          const newNotification = {
+            ...payload.new,
+            type: payload.new.type as Notification['type']
+          } as Notification;
           
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
