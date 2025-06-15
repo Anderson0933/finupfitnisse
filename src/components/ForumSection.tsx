@@ -7,13 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, MessageSquare, ThumbsUp, Clock, Pin, Users, Filter } from 'lucide-react';
+import { Search, Plus, MessageSquare, ThumbsUp, Clock, Pin, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import CreatePostDialog from '@/components/CreatePostDialog';
 import PostDetail from '@/components/PostDetail';
-import UserBadge from '@/components/UserBadge';
-import TrendingTopics from '@/components/TrendingTopics';
-import CommunityStats from '@/components/CommunityStats';
 
 interface ForumCategory {
   id: string;
@@ -53,7 +50,6 @@ const ForumSection = ({ user }: ForumSectionProps) => {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('posts');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -86,6 +82,7 @@ const ForumSection = ({ user }: ForumSectionProps) => {
   const loadPosts = async () => {
     setLoading(true);
     try {
+      // Buscar posts com informações da categoria
       const { data: postsData, error: postsError } = await supabase
         .from('forum_posts')
         .select(`
@@ -103,12 +100,14 @@ const ForumSection = ({ user }: ForumSectionProps) => {
 
       if (postsError) throw postsError;
 
+      // Buscar emails dos usuários através da tabela profiles
       const userIds = [...new Set((postsData || []).map(post => post.user_id))];
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, full_name')
         .in('id', userIds);
 
+      // Combinar dados dos posts com informações dos usuários
       const postsWithUsers = (postsData || []).map(post => ({
         ...post,
         category: post.forum_categories,
@@ -130,19 +129,21 @@ const ForumSection = ({ user }: ForumSectionProps) => {
   const filterAndSortPosts = () => {
     let filtered = posts;
 
+    // Filtrar por categoria
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(post => post.category_id === selectedCategory);
     }
 
+    // Filtrar por termo de busca
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(post => 
         post.title.toLowerCase().includes(searchLower) ||
-        post.content.toLowerCase().includes(searchLower) ||
-        post.user_email?.toLowerCase().includes(searchLower)
+        post.content.toLowerCase().includes(searchLower)
       );
     }
 
+    // Ordenar
     switch (sortBy) {
       case 'popular':
         filtered.sort((a, b) => b.likes_count - a.likes_count);
@@ -150,8 +151,9 @@ const ForumSection = ({ user }: ForumSectionProps) => {
       case 'replies':
         filtered.sort((a, b) => b.replies_count - a.replies_count);
         break;
-      default:
+      default: // recent
         filtered.sort((a, b) => {
+          // Posts fixados primeiro
           if (a.is_pinned && !b.is_pinned) return -1;
           if (!a.is_pinned && b.is_pinned) return 1;
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -192,13 +194,6 @@ const ForumSection = ({ user }: ForumSectionProps) => {
     return date.toLocaleDateString('pt-BR');
   };
 
-  const getUserBadges = (post: ForumPost) => {
-    const badges = [];
-    if (post.likes_count >= 50) badges.push('expert');
-    if (post.replies_count >= 20) badges.push('popular');
-    return badges;
-  };
-
   if (selectedPost) {
     return (
       <PostDetail 
@@ -236,175 +231,145 @@ const ForumSection = ({ user }: ForumSectionProps) => {
         </CardHeader>
       </Card>
 
-      {/* Abas principais */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="trending">Trending</TabsTrigger>
-          <TabsTrigger value="stats">Estatísticas</TabsTrigger>
-        </TabsList>
+      {/* Filtros e Busca */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col lg:flex-row gap-4 items-center">
+            {/* Busca */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Buscar posts..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-        <TabsContent value="posts" className="space-y-6">
-          {/* Filtros e Busca */}
+            {/* Filtro por categoria */}
+            <div className="flex gap-2 flex-wrap">
+              <Badge 
+                variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                className="cursor-pointer"
+                onClick={() => setSelectedCategory('all')}
+              >
+                Todas
+              </Badge>
+              {categories.map((category) => (
+                <Badge
+                  key={category.id}
+                  variant={selectedCategory === category.id ? 'default' : 'outline'}
+                  className="cursor-pointer"
+                  style={{ 
+                    backgroundColor: selectedCategory === category.id ? category.color : 'transparent',
+                    borderColor: category.color 
+                  }}
+                  onClick={() => setSelectedCategory(category.id)}
+                >
+                  {category.name}
+                </Badge>
+              ))}
+            </div>
+
+            {/* Ordenação */}
+            <div className="flex gap-2">
+              <Button
+                variant={sortBy === 'recent' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortBy('recent')}
+              >
+                <Clock className="h-4 w-4 mr-1" />
+                Recentes
+              </Button>
+              <Button
+                variant={sortBy === 'popular' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortBy('popular')}
+              >
+                <ThumbsUp className="h-4 w-4 mr-1" />
+                Populares
+              </Button>
+              <Button
+                variant={sortBy === 'replies' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortBy('replies')}
+              >
+                <MessageSquare className="h-4 w-4 mr-1" />
+                Mais Comentados
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Lista de Posts */}
+      <div className="space-y-4">
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="text-gray-600 mt-2">Carregando posts...</p>
+          </div>
+        ) : filteredPosts.length === 0 ? (
           <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col lg:flex-row gap-4 items-center">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Buscar posts, usuários..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                <div className="flex gap-2 flex-wrap">
-                  <Badge 
-                    variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    onClick={() => setSelectedCategory('all')}
-                  >
-                    Todas
-                  </Badge>
-                  {categories.map((category) => (
-                    <Badge
-                      key={category.id}
-                      variant={selectedCategory === category.id ? 'default' : 'outline'}
-                      className="cursor-pointer"
-                      style={{ 
-                        backgroundColor: selectedCategory === category.id ? category.color : 'transparent',
-                        borderColor: category.color 
-                      }}
-                      onClick={() => setSelectedCategory(category.id)}
-                    >
-                      {category.name}
-                    </Badge>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant={sortBy === 'recent' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSortBy('recent')}
-                  >
-                    <Clock className="h-4 w-4 mr-1" />
-                    Recentes
-                  </Button>
-                  <Button
-                    variant={sortBy === 'popular' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSortBy('popular')}
-                  >
-                    <ThumbsUp className="h-4 w-4 mr-1" />
-                    Populares
-                  </Button>
-                  <Button
-                    variant={sortBy === 'replies' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSortBy('replies')}
-                  >
-                    <MessageSquare className="h-4 w-4 mr-1" />
-                    Mais Comentados
-                  </Button>
-                </div>
-              </div>
+            <CardContent className="text-center py-8">
+              <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhum post encontrado</h3>
+              <p className="text-gray-600">
+                {searchTerm || selectedCategory !== 'all' 
+                  ? 'Tente ajustar os filtros ou criar um novo post.'
+                  : 'Seja o primeiro a criar um post na comunidade!'
+                }
+              </p>
             </CardContent>
           </Card>
+        ) : (
+          filteredPosts.map((post) => (
+            <Card key={post.id} className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-6" onClick={() => setSelectedPost(post)}>
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {post.is_pinned && (
+                        <Pin className="h-4 w-4 text-orange-500" />
+                      )}
+                      <Badge 
+                        style={{ backgroundColor: post.category.color }}
+                        className="text-white"
+                      >
+                        {getCategoryIcon(post.category.icon)}
+                        <span className="ml-1">{post.category.name}</span>
+                      </Badge>
+                      <span className="text-sm text-gray-500">•</span>
+                      <span className="text-sm text-gray-600">{post.user_email}</span>
+                      <span className="text-sm text-gray-500">•</span>
+                      <span className="text-sm text-gray-500">{formatDate(post.created_at)}</span>
+                    </div>
+                    
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 hover:text-purple-600 transition-colors">
+                      {post.title}
+                    </h3>
+                    
+                    <p className="text-gray-600 line-clamp-2 mb-3">
+                      {post.content.substring(0, 200)}...
+                    </p>
 
-          {/* Lista de Posts */}
-          <div className="space-y-4">
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-                <p className="text-gray-600 mt-2">Carregando posts...</p>
-              </div>
-            ) : filteredPosts.length === 0 ? (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhum post encontrado</h3>
-                  <p className="text-gray-600">
-                    {searchTerm || selectedCategory !== 'all' 
-                      ? 'Tente ajustar os filtros ou criar um novo post.'
-                      : 'Seja o primeiro a criar um post na comunidade!'
-                    }
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              filteredPosts.map((post) => (
-                <Card key={post.id} className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-6" onClick={() => setSelectedPost(post)}>
-                    <div className="flex items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          {post.is_pinned && (
-                            <Pin className="h-4 w-4 text-orange-500" />
-                          )}
-                          <Badge 
-                            style={{ backgroundColor: post.category.color }}
-                            className="text-white"
-                          >
-                            {getCategoryIcon(post.category.icon)}
-                            <span className="ml-1">{post.category.name}</span>
-                          </Badge>
-                          <span className="text-sm text-gray-500">•</span>
-                          <span className="text-sm text-gray-600">{post.user_email}</span>
-                          
-                          {/* Badges do usuário */}
-                          {getUserBadges(post).map((badgeType, index) => (
-                            <UserBadge key={index} type={badgeType as any} size="sm" />
-                          ))}
-                          
-                          <span className="text-sm text-gray-500">•</span>
-                          <span className="text-sm text-gray-500">{formatDate(post.created_at)}</span>
-                        </div>
-                        
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2 hover:text-purple-600 transition-colors">
-                          {post.title}
-                        </h3>
-                        
-                        <p className="text-gray-600 line-clamp-2 mb-3">
-                          {post.content.substring(0, 200)}...
-                        </p>
-
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp className="h-4 w-4" />
-                            <span>{post.likes_count}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MessageSquare className="h-4 w-4" />
-                            <span>{post.replies_count}</span>
-                          </div>
-                          {post.is_closed && (
-                            <Badge variant="outline" className="text-xs">
-                              Fechado
-                            </Badge>
-                          )}
-                        </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <ThumbsUp className="h-4 w-4" />
+                        <span>{post.likes_count}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MessageSquare className="h-4 w-4" />
+                        <span>{post.replies_count}</span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="trending" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TrendingTopics />
-            <CommunityStats />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="stats" className="space-y-6">
-          <CommunityStats />
-        </TabsContent>
-      </Tabs>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
 
       {/* Dialog para criar post */}
       <CreatePostDialog
