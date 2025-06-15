@@ -71,11 +71,60 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
     }
   }, [user]);
 
+  const ensureUserGamification = async () => {
+    if (!user) return null;
+
+    try {
+      // Verificar se existe entrada para o usuário
+      const { data: existing, error: selectError } = await supabase
+        .from('user_gamification')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (selectError && selectError.code !== 'PGRST116') {
+        throw selectError;
+      }
+
+      if (!existing) {
+        console.log('Criando entrada de gamificação para o usuário');
+        const { data: newStats, error: insertError } = await supabase
+          .from('user_gamification')
+          .insert({ 
+            user_id: user.id,
+            total_xp: 0,
+            current_level: 1,
+            current_streak: 0,
+            best_streak: 0,
+            total_workouts_completed: 0,
+            achievements_unlocked: []
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        return newStats;
+      }
+
+      return existing;
+    } catch (error: any) {
+      console.error('Erro ao garantir entrada de gamificação:', error);
+      throw error;
+    }
+  };
+
+  const calculateLevel = (totalXP: number) => {
+    return Math.floor(totalXP / 100) + 1;
+  };
+
   const loadData = async () => {
     if (!user) return;
 
     try {
       setLoading(true);
+
+      // Garantir que o usuário tenha entrada na tabela de gamificação
+      const gamificationData = await ensureUserGamification();
 
       // Carregar desafios ativos
       const { data: challengesData, error: challengesError } = await supabase
@@ -133,27 +182,28 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
 
       setAchievements(achievementsWithStatus);
 
-      // Carregar estatísticas do usuário
-      const { data: statsData, error: statsError } = await supabase
-        .from('user_gamification')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // Carregar estatísticas do usuário (com nível calculado automaticamente)
+      if (gamificationData) {
+        const calculatedLevel = calculateLevel(gamificationData.total_xp);
+        
+        // Se o nível calculado for diferente do armazenado, atualizar
+        if (calculatedLevel !== gamificationData.current_level) {
+          const { data: updatedStats, error: updateError } = await supabase
+            .from('user_gamification')
+            .update({ current_level: calculatedLevel })
+            .eq('user_id', user.id)
+            .select()
+            .single();
 
-      if (statsError && statsError.code !== 'PGRST116') throw statsError;
-
-      if (!statsData) {
-        // Criar entrada inicial para gamificação
-        const { data: newStats, error: createError } = await supabase
-          .from('user_gamification')
-          .insert({ user_id: user.id })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        setUserStats(newStats);
-      } else {
-        setUserStats(statsData);
+          if (updateError) {
+            console.error('Erro ao atualizar nível:', updateError);
+            setUserStats({ ...gamificationData, current_level: calculatedLevel });
+          } else {
+            setUserStats(updatedStats);
+          }
+        } else {
+          setUserStats(gamificationData);
+        }
       }
 
     } catch (error: any) {
@@ -178,12 +228,15 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
       const currentProgress = challenge.progress?.current_progress || 0;
       const newProgress = Math.min(currentProgress + increment, challenge.target_value);
       const isCompleted = newProgress >= challenge.target_value;
+      const wasAlreadyCompleted = challenge.progress?.is_completed || false;
 
       console.log('Atualizando progresso:', {
         challengeId,
         currentProgress,
         newProgress,
-        isCompleted
+        isCompleted,
+        wasAlreadyCompleted,
+        xpReward: challenge.xp_reward
       });
 
       // Usar upsert para inserir ou atualizar o progresso
@@ -205,10 +258,42 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
         throw error;
       }
 
-      if (isCompleted) {
+      // Se o desafio foi completado agora (não estava completado antes)
+      if (isCompleted && !wasAlreadyCompleted) {
+        console.log('Desafio completado! Atualizando XP manualmente...');
+        
+        // Atualizar XP manualmente se o trigger não funcionou
+        const { data: currentStats, error: statsError } = await supabase
+          .from('user_gamification')
+          .select('total_xp')
+          .eq('user_id', user.id)
+          .single();
+
+        if (statsError) {
+          console.error('Erro ao buscar XP atual:', statsError);
+        } else {
+          const newTotalXP = currentStats.total_xp + challenge.xp_reward;
+          const newLevel = calculateLevel(newTotalXP);
+
+          const { error: updateXPError } = await supabase
+            .from('user_gamification')
+            .update({ 
+              total_xp: newTotalXP,
+              current_level: newLevel,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', user.id);
+
+          if (updateXPError) {
+            console.error('Erro ao atualizar XP:', updateXPError);
+          } else {
+            console.log(`XP atualizado: ${currentStats.total_xp} -> ${newTotalXP}, Nível: ${newLevel}`);
+          }
+        }
+
         toast({
           title: "🎉 Desafio Concluído!",
-          description: `Você ganhou ${challenge.xp_reward} XP!`,
+          description: `Você ganhou ${challenge.xp_reward} XP e subiu para o nível!`,
         });
       } else {
         toast({
@@ -217,7 +302,7 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
         });
       }
 
-      // Recarregar dados
+      // Recarregar dados para mostrar as atualizações
       await loadData();
 
     } catch (error: any) {
