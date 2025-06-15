@@ -17,6 +17,7 @@ import UserAvatar from '@/components/UserAvatar';
 import FAQSection from '@/components/FAQSection';
 import ForumSection from '@/components/ForumSection';
 import NotificationCenter from '@/components/NotificationCenter';
+import GamificationDisplay from '@/components/GamificationDisplay';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
@@ -281,6 +282,11 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Sistema de Gamificação */}
+        {hasAccess && (
+          <GamificationDisplay user={user} />
+        )}
 
         {/* Componente Dica do Dia */}
         {hasAccess && (
