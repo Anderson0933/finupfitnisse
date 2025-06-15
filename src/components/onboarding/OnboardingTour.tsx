@@ -56,32 +56,11 @@ const tourSteps: TourStep[] = [
     title: '📈 Acompanhe sua Evolução',
     description: 'Registre seus treinos, peso e medidas. Veja gráficos do seu progresso ao longo do tempo.',
     position: 'bottom'
-  },
-  {
-    id: 'notifications',
-    target: '.notification-bell',
-    title: '🔔 Notificações',
-    description: 'Receba lembretes de treino, dicas personalizadas e atualizações importantes.',
-    position: 'left'
   }
 ];
 
 const OnboardingTour = ({ isOpen, onClose, onComplete }: OnboardingTourProps) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [highlightElement, setHighlightElement] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (isOpen && currentStep < tourSteps.length) {
-      const targetElement = document.querySelector(tourSteps[currentStep].target) as HTMLElement;
-      setHighlightElement(targetElement);
-      
-      if (targetElement) {
-        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        targetElement.style.position = 'relative';
-        targetElement.style.zIndex = '1001';
-      }
-    }
-  }, [isOpen, currentStep]);
 
   const nextStep = () => {
     if (currentStep < tourSteps.length - 1) {
@@ -98,17 +77,11 @@ const OnboardingTour = ({ isOpen, onClose, onComplete }: OnboardingTourProps) =>
   };
 
   const completeTour = () => {
-    if (highlightElement) {
-      highlightElement.style.zIndex = '';
-    }
     onComplete();
     onClose();
   };
 
   const skipTour = () => {
-    if (highlightElement) {
-      highlightElement.style.zIndex = '';
-    }
     onClose();
   };
 
@@ -118,30 +91,30 @@ const OnboardingTour = ({ isOpen, onClose, onComplete }: OnboardingTourProps) =>
 
   return (
     <>
-      {/* Overlay escuro */}
-      <div className="fixed inset-0 bg-black/50 z-1000 pointer-events-auto" />
+      {/* Overlay escuro com z-index menor */}
+      <div className="fixed inset-0 bg-black/40 z-40 pointer-events-auto" onClick={skipTour} />
       
-      {/* Card do tour */}
+      {/* Card do tour com z-index adequado */}
       <AnimatePresence mode="wait">
         <motion.div
           key={step.id}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="fixed z-1002 max-w-sm"
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: -20 }}
+          className="fixed z-50 max-w-sm mx-4"
           style={{
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)'
           }}
         >
-          <Card className="shadow-2xl border-blue-200 bg-white">
+          <Card className="shadow-2xl border-blue-200 bg-white/95 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                   {currentStep + 1} de {tourSteps.length}
                 </Badge>
-                <Button variant="ghost" size="sm" onClick={skipTour}>
+                <Button variant="ghost" size="sm" onClick={skipTour} className="h-6 w-6 p-0">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -151,7 +124,7 @@ const OnboardingTour = ({ isOpen, onClose, onComplete }: OnboardingTourProps) =>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700 mb-6 leading-relaxed">
+              <p className="text-gray-700 mb-6 leading-relaxed text-sm">
                 {step.description}
               </p>
               
@@ -169,6 +142,7 @@ const OnboardingTour = ({ isOpen, onClose, onComplete }: OnboardingTourProps) =>
                 
                 <Button
                   onClick={nextStep}
+                  size="sm"
                   className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
                 >
                   {currentStep === tourSteps.length - 1 ? (

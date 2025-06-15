@@ -59,17 +59,6 @@ const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTips
       },
       triggerCondition: (context) => 
         (context.currentTab === 'workout' || context.currentTab === 'nutrition') && !dismissedTips.includes('assistant-help-tip')
-    },
-    {
-      id: 'progress-tracking-tip',
-      title: '📈 Dica: Registre seu Progresso',
-      description: 'Para acompanhar sua evolução, registre suas medidas e peso inicial. Isso nos ajuda a personalizar ainda mais seus treinos e nutrição.',
-      action: {
-        label: 'Registrar Progresso',
-        onClick: () => onSwitchTab('progress')
-      },
-      triggerCondition: (context) => 
-        context.currentTab === 'progress' && !dismissedTips.includes('progress-tracking-tip')
     }
   ];
 
@@ -81,7 +70,7 @@ const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTips
       // Delay para não mostrar a dica imediatamente
       const timer = setTimeout(() => {
         setCurrentTip(applicableTip);
-      }, 2000);
+      }, 3000);
       
       return () => clearTimeout(timer);
     } else {
@@ -99,17 +88,17 @@ const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTips
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className="fixed bottom-6 right-6 z-50 max-w-sm"
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+        className="fixed bottom-4 right-4 z-30 max-w-sm mx-4"
       >
-        <Card className="shadow-lg border-blue-200 bg-white">
+        <Card className="shadow-xl border-blue-200 bg-white/95 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-yellow-500" />
-                <span className="font-semibold text-blue-800 text-sm">
+                <Lightbulb className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                <span className="font-medium text-blue-800 text-sm">
                   {currentTip.title}
                 </span>
               </div>
@@ -117,24 +106,24 @@ const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTips
                 variant="ghost"
                 size="sm"
                 onClick={() => dismissTip(currentTip.id)}
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 flex-shrink-0"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
               </Button>
             </div>
             
-            <p className="text-gray-700 text-sm mb-4 leading-relaxed">
+            <p className="text-gray-700 text-xs mb-3 leading-relaxed">
               {currentTip.description}
             </p>
             
             {currentTip.action && (
               <Button
                 onClick={currentTip.action.onClick}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm flex items-center justify-center gap-2"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs flex items-center justify-center gap-2"
                 size="sm"
               >
                 {currentTip.action.label}
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-3 w-3" />
               </Button>
             )}
           </CardContent>
