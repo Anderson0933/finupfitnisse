@@ -591,6 +591,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_onboarding_status: {
+        Row: {
+          completed_checklist_steps: string[]
+          created_at: string
+          dismissed_contextual_tips: string[]
+          has_seen_tour: boolean
+          hide_checklist: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_checklist_steps?: string[]
+          created_at?: string
+          dismissed_contextual_tips?: string[]
+          has_seen_tour?: boolean
+          hide_checklist?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_checklist_steps?: string[]
+          created_at?: string
+          dismissed_contextual_tips?: string[]
+          has_seen_tour?: boolean
+          hide_checklist?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           age: number | null

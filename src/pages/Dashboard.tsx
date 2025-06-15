@@ -36,10 +36,13 @@ const Dashboard = () => {
 
   const {
     onboardingState,
+    isLoadingOnboarding,
     shouldShowTour,
+    shouldShowChecklist,
     markTourAsCompleted,
-    markOnboardingAsCompleted,
-    hideChecklist
+    markStepAsCompleted,
+    hideChecklist,
+    dismissContextualTip,
   } = useOnboarding(user);
 
   useEffect(() => {
@@ -211,7 +214,7 @@ const Dashboard = () => {
     setActiveTab('nutrition');
   };
 
-  if (loading) {
+  if (loading || isLoadingOnboarding) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
@@ -229,7 +232,7 @@ const Dashboard = () => {
       {/* Componentes de Onboarding */}
       <OnboardingTour 
         isOpen={shouldShowTour || false}
-        onClose={() => {}}
+        onClose={markTourAsCompleted}
         onComplete={markTourAsCompleted}
       />
 
@@ -237,6 +240,9 @@ const Dashboard = () => {
         currentTab={activeTab}
         workoutPlan={workoutPlan}
         onSwitchTab={setActiveTab}
+        dismissedTips={onboardingState?.dismissed_contextual_tips || []}
+        onDismissTip={dismissContextualTip}
+        isEnabled={hasAccess}
       />
 
       <header className="border-b border-blue-200 bg-white/90 backdrop-blur-xl shadow-sm sticky top-0 z-10">
@@ -308,13 +314,15 @@ const Dashboard = () => {
         </div>
 
         {/* Checklist de Onboarding */}
-        {hasAccess && onboardingState.shouldShowChecklist && (
+        {hasAccess && shouldShowChecklist && (
           <div className="mb-6 md:mb-8">
             <OnboardingChecklist
               user={user}
               isVisible={true}
               onClose={hideChecklist}
               onSwitchTab={setActiveTab}
+              completedStepsDB={onboardingState?.completed_checklist_steps || []}
+              onStepComplete={markStepAsCompleted}
             />
           </div>
         )}

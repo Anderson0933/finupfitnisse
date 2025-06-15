@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,11 +19,13 @@ interface ContextualTipsProps {
   currentTab: string;
   workoutPlan: any;
   onSwitchTab: (tab: string) => void;
+  dismissedTips: string[];
+  onDismissTip: (tipId: string) => void;
+  isEnabled: boolean;
 }
 
-const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTipsProps) => {
+const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab, dismissedTips, onDismissTip, isEnabled }: ContextualTipsProps) => {
   const [currentTip, setCurrentTip] = useState<Tip | null>(null);
-  const [dismissedTips, setDismissedTips] = useState<string[]>([]);
   const [lastShownTime, setLastShownTime] = useState<{ [key: string]: number }>({});
 
   const tips: Tip[] = [
@@ -95,27 +96,11 @@ const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTips
   }, [currentTab, workoutPlan, dismissedTips, lastShownTime]);
 
   const dismissTip = (tipId: string) => {
-    setDismissedTips(prev => [...prev, tipId]);
+    onDismissTip(tipId);
     setCurrentTip(null);
-    
-    // Salvar no localStorage para persistir entre sessões
-    const stored = localStorage.getItem('contextual_tips_dismissed') || '[]';
-    const dismissed = JSON.parse(stored);
-    if (!dismissed.includes(tipId)) {
-      dismissed.push(tipId);
-      localStorage.setItem('contextual_tips_dismissed', JSON.stringify(dismissed));
-    }
   };
 
-  // Carregar dicas dispensadas do localStorage na inicialização
-  useEffect(() => {
-    const stored = localStorage.getItem('contextual_tips_dismissed');
-    if (stored) {
-      setDismissedTips(JSON.parse(stored));
-    }
-  }, []);
-
-  if (!currentTip) return null;
+  if (!currentTip || !isEnabled) return null;
 
   return (
     <AnimatePresence>
@@ -123,7 +108,7 @@ const ContextualTips = ({ currentTab, workoutPlan, onSwitchTab }: ContextualTips
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -20, scale: 0.95 }}
-        className="fixed bottom-4 right-4 z-30 max-w-sm mx-4"
+        className="fixed bottom-4 right-4 z-30 max-w-sm mx-4 hidden lg:block"
       >
         <Card className="shadow-xl border-blue-200 bg-white/95 backdrop-blur-sm">
           <CardContent className="p-4">

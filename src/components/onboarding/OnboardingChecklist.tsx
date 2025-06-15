@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,9 +20,11 @@ interface OnboardingChecklistProps {
   isVisible: boolean;
   onClose: () => void;
   onSwitchTab: (tab: string) => void;
+  completedStepsDB: string[];
+  onStepComplete: (stepId: string) => void;
 }
 
-const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: OnboardingChecklistProps) => {
+const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedStepsDB, onStepComplete }: OnboardingChecklistProps) => {
   const [steps, setSteps] = useState<OnboardingStep[]>([
     {
       id: 'complete-profile',
@@ -60,21 +61,15 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
   ]);
 
   useEffect(() => {
-    if (user) {
-      checkCompletedSteps();
-    }
-  }, [user]);
-
-  // Recheck steps periodically to catch updates
-  useEffect(() => {
     if (user && isVisible) {
+      checkCompletedSteps();
       const interval = setInterval(() => {
         checkCompletedSteps();
-      }, 3000); // Check every 3 seconds
+      }, 5000); // Check every 5 seconds
 
       return () => clearInterval(interval);
     }
-  }, [user, isVisible]);
+  }, [user, isVisible, completedStepsDB]); // Adicionado completedStepsDB para reavaliar
 
   const checkCompletedSteps = async () => {
     if (!user) return;
@@ -115,42 +110,43 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
         .limit(1)
         .maybeSingle();
 
-      console.log('📊 Dados encontrados:', {
-        profile: !!profileData,
-        workout: !!workoutPlan,
-        progress: !!progressData,
-        nutrition: !!nutritionConversations
-      });
+      const currentSteps = steps; // Use a snapshot of current steps state
+      const newStepStates: { id: string; completed: boolean }[] = [];
+
+      for (const step of currentSteps) {
+        let isNowComplete = false;
+        switch (step.id) {
+          case 'complete-profile':
+            isNowComplete = !!(
+              profileData?.full_name || 
+              profileData?.age || 
+              profileData?.weight || 
+              user.user_metadata?.full_name
+            );
+            break;
+          case 'first-workout':
+            isNowComplete = !!workoutPlan;
+            break;
+          case 'nutrition-plan':
+            isNowComplete = !!nutritionConversations;
+            break;
+          case 'record-progress':
+            isNowComplete = !!progressData;
+            break;
+        }
+
+        if (isNowComplete && !completedStepsDB.includes(step.id)) {
+          console.log(`✅ Passo '${step.id}' concluído e será salvo.`);
+          onStepComplete(step.id);
+        }
+        
+        newStepStates.push({ id: step.id, completed: completedStepsDB.includes(step.id) || isNowComplete });
+      }
 
       setSteps(prevSteps => 
         prevSteps.map(step => {
-          let completed = step.completed;
-          
-          switch (step.id) {
-            case 'complete-profile':
-              // Verificar se tem dados básicos no perfil ou user_metadata
-              completed = !!(
-                profileData?.full_name || 
-                profileData?.age || 
-                profileData?.weight || 
-                user.user_metadata?.full_name
-              );
-              break;
-            case 'first-workout':
-              completed = !!workoutPlan;
-              break;
-            case 'nutrition-plan':
-              // Considerar concluído se visitou a aba de nutrição (tem conversa) ou se tem dados nutricionais
-              completed = !!nutritionConversations;
-              break;
-            case 'record-progress':
-              completed = !!progressData;
-              break;
-            default:
-              break;
-          }
-          
-          return { ...step, completed };
+          const newState = newStepStates.find(s => s.id === step.id);
+          return newState ? { ...step, completed: newState.completed } : step;
         })
       );
     } catch (error) {
@@ -184,10 +180,10 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
     }, 1000);
   };
 
-  const completedSteps = steps.filter(step => step.completed).length;
+  const completedSteps = completedStepsDB.length;
   const totalSteps = steps.length;
-  const progress = (completedSteps / totalSteps) * 100;
-  const isCompleted = completedSteps === totalSteps;
+  const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+  const isCompleted = completedSteps >= totalSteps;
 
   if (!isVisible) return null;
 

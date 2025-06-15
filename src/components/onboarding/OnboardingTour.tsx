@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -82,6 +81,7 @@ const OnboardingTour = ({ isOpen, onClose, onComplete }: OnboardingTourProps) =>
   };
 
   const skipTour = () => {
+    onComplete(); // Também marca como concluído ao pular
     onClose();
   };
 
@@ -94,19 +94,14 @@ const OnboardingTour = ({ isOpen, onClose, onComplete }: OnboardingTourProps) =>
       {/* Overlay escuro com z-index menor */}
       <div className="fixed inset-0 bg-black/40 z-40 pointer-events-auto" onClick={skipTour} />
       
-      {/* Card do tour com z-index adequado */}
+      {/* Card do tour com z-index adequado e posicionamento responsivo */}
       <AnimatePresence mode="wait">
         <motion.div
           key={step.id}
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: -20 }}
-          className="fixed z-50 max-w-sm mx-4"
-          style={{
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)'
-          }}
+          className="fixed z-50 max-w-sm w-[calc(100%-2rem)] top-20 left-1/2 -translate-x-1/2 sm:top-1/2 sm:-translate-y-1/2"
         >
           <Card className="shadow-2xl border-blue-200 bg-white/95 backdrop-blur-sm">
             <CardHeader className="pb-4">
