@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +16,10 @@ import UserAvatar from '@/components/UserAvatar';
 import FAQSection from '@/components/FAQSection';
 import ForumSection from '@/components/ForumSection';
 import NotificationCenter from '@/components/NotificationCenter';
+import OnboardingTour from '@/components/onboarding/OnboardingTour';
+import OnboardingChecklist from '@/components/onboarding/OnboardingChecklist';
+import ContextualTips from '@/components/onboarding/ContextualTips';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
@@ -30,17 +33,13 @@ const Dashboard = () => {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [activeTab, setActiveTab] = useState<string>('workout');
 
-  // Função para mudar para a aba do assistente
-  const switchToAssistant = () => {
-    console.log('🎯 Mudando para a aba do assistente via callback');
-    setActiveTab('assistant');
-  };
-
-  // Função para mudar para a aba de nutrição
-  const switchToNutrition = () => {
-    console.log('🎯 Mudando para a aba de nutrição via callback');
-    setActiveTab('nutrition');
-  };
+  const {
+    onboardingState,
+    shouldShowTour,
+    markTourAsCompleted,
+    markOnboardingAsCompleted,
+    hideChecklist
+  } = useOnboarding(user);
 
   useEffect(() => {
     // Definir a aba inicial baseada no plano de treino
@@ -201,6 +200,16 @@ const Dashboard = () => {
     );
   };
 
+  const switchToAssistant = () => {
+    console.log('🎯 Mudando para a aba do assistente via callback');
+    setActiveTab('assistant');
+  };
+
+  const switchToNutrition = () => {
+    console.log('🎯 Mudando para a aba de nutrição via callback');
+    setActiveTab('nutrition');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
@@ -216,6 +225,19 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
+      {/* Componentes de Onboarding */}
+      <OnboardingTour 
+        isOpen={shouldShowTour || false}
+        onClose={() => {}}
+        onComplete={markTourAsCompleted}
+      />
+
+      <ContextualTips
+        currentTab={activeTab}
+        workoutPlan={workoutPlan}
+        onSwitchTab={setActiveTab}
+      />
+
       <header className="border-b border-blue-200 bg-white/90 backdrop-blur-xl shadow-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 md:py-6">
           <div className="flex items-center justify-between">
@@ -245,7 +267,9 @@ const Dashboard = () => {
               </div>
 
               {/* Centro de Notificações */}
-              <NotificationCenter user={user} />
+              <div className="notification-bell">
+                <NotificationCenter user={user} />
+              </div>
 
               <Button variant="outline" onClick={handleSignOut} className="border-blue-200 text-blue-700 hover:bg-blue-50 text-xs md:text-sm px-2 md:px-4" size="sm">
                 <LogOut className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
@@ -282,6 +306,18 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Checklist de Onboarding */}
+        {hasAccess && onboardingState.shouldShowChecklist && (
+          <div className="mb-6 md:mb-8">
+            <OnboardingChecklist
+              user={user}
+              isVisible={true}
+              onClose={hideChecklist}
+              onSwitchTab={setActiveTab}
+            />
+          </div>
+        )}
+
         {/* Componente Dica do Dia */}
         {hasAccess && (
           <div className="mb-6 md:mb-8">
@@ -293,6 +329,7 @@ const Dashboard = () => {
           <TabsList className="grid w-full grid-cols-6 lg:grid-cols-7 mb-6 md:mb-8 bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl p-2 h-auto">
             <TabsTrigger 
               value="workout" 
+              data-value="workout"
               className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-blue-50 text-blue-700 group" 
               disabled={!hasAccess}
             >
@@ -303,6 +340,7 @@ const Dashboard = () => {
             
             <TabsTrigger 
               value="assistant" 
+              data-value="assistant"
               className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-purple-50 text-purple-700 group" 
               disabled={!hasAccess}
             >
@@ -313,6 +351,7 @@ const Dashboard = () => {
             
             <TabsTrigger 
               value="progress" 
+              data-value="progress"
               className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-green-50 text-green-700 group" 
               disabled={!hasAccess}
             >
@@ -323,6 +362,7 @@ const Dashboard = () => {
             
             <TabsTrigger 
               value="nutrition" 
+              data-value="nutrition"
               className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-emerald-50 text-emerald-700 group" 
               disabled={!hasAccess}
             >
@@ -334,6 +374,7 @@ const Dashboard = () => {
             {/* Aba Fórum - apenas desktop */}
             <TabsTrigger 
               value="forum" 
+              data-value="forum"
               className="hidden lg:flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-indigo-50 text-indigo-700 group" 
               disabled={!hasAccess}
             >
@@ -344,6 +385,7 @@ const Dashboard = () => {
             
             <TabsTrigger 
               value="faq" 
+              data-value="faq"
               className="flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-violet-50 text-violet-700 group" 
               disabled={!hasAccess}
             >
