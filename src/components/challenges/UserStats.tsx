@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, Star, Flame, Target, TrendingUp } from 'lucide-react';
 
-interface UserStats {
+interface UserStatsData {
   total_xp: number;
   current_level: number;
   current_streak: number;
@@ -13,7 +13,7 @@ interface UserStats {
 }
 
 interface UserStatsProps {
-  userStats: UserStats | null;
+  userStats: UserStatsData | null;
 }
 
 const UserStats = ({ userStats }: UserStatsProps) => {

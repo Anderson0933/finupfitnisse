@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -404,6 +403,18 @@ const Dashboard = () => {
               <CreditCard className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
               <span className="text-xs md:text-sm font-semibold">Pagamento</span>
             </TabsTrigger>
+
+             {/* Nova aba para Desafios */}
+             <TabsTrigger 
+              value="challenges" 
+              data-value="challenges"
+              className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-yellow-50 text-yellow-700 group" 
+              disabled={!hasAccess}
+            >
+              <Trophy className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
+              <span className="text-xs md:text-sm font-semibold">Desafios</span> 
+              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="workout">
@@ -453,6 +464,12 @@ const Dashboard = () => {
           <TabsContent value="forum">
             <LockedFeature title="Fórum">
               <ForumSection user={user} />
+            </LockedFeature>
+          </TabsContent>
+
+           <TabsContent value="challenges">
+            <LockedFeature title="Desafios">
+              <ChallengeCenter user={user} />
             </LockedFeature>
           </TabsContent>
         </Tabs>

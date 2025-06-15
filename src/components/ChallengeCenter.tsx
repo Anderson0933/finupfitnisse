@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ChallengeCard from './challenges/ChallengeCard';
 import AchievementCard from './challenges/AchievementCard';
-import UserStats from './challenges/UserStats';
+import UserStatsComponent from './challenges/UserStats';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Challenge {
@@ -46,7 +46,7 @@ interface Achievement {
   unlocked_at?: string;
 }
 
-interface UserStats {
+interface UserStatsData {
   total_xp: number;
   current_level: number;
   current_streak: number;
@@ -62,7 +62,7 @@ interface ChallengeCenterProps {
 const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [userStats, setUserStats] = useState<UserStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('challenges');
   const { toast } = useToast();
@@ -96,9 +96,12 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
 
       if (progressError) throw progressError;
 
-      // Combinar desafios com progresso
-      const challengesWithProgress = challengesData?.map(challenge => ({
+      // Combinar desafios com progresso e garantir tipos corretos
+      const challengesWithProgress: Challenge[] = challengesData?.map(challenge => ({
         ...challenge,
+        type: challenge.type as 'daily' | 'weekly' | 'monthly',
+        category: challenge.category as 'workout' | 'nutrition' | 'general',
+        difficulty: challenge.difficulty as 'easy' | 'medium' | 'hard',
         progress: progressData?.find(p => p.challenge_id === challenge.id) || {
           current_progress: 0,
           is_completed: false
@@ -123,9 +126,10 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
 
       if (userAchievementsError) throw userAchievementsError;
 
-      // Combinar conquistas com status de desbloqueio
-      const achievementsWithStatus = achievementsData?.map(achievement => ({
+      // Combinar conquistas com status de desbloqueio e garantir tipos corretos
+      const achievementsWithStatus: Achievement[] = achievementsData?.map(achievement => ({
         ...achievement,
+        rarity: achievement.rarity as 'common' | 'rare' | 'epic' | 'legendary',
         unlocked_at: userAchievements?.find(ua => ua.achievement_id === achievement.id)?.unlocked_at
       })) || [];
 
@@ -245,7 +249,7 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
   return (
     <div className="space-y-6">
       {/* Header com estatísticas do usuário */}
-      <UserStats userStats={userStats} />
+      <UserStatsComponent userStats={userStats} />
 
       {/* Tabs principais */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
