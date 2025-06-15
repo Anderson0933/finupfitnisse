@@ -120,11 +120,13 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
       // Garantir que o usuário tenha entrada na tabela de gamificação
       const gamificationData = await ensureUserGamification();
 
-      // Carregar desafios ativos
+      // Carregar apenas desafios ativos e relevantes para o usuário
+      // Buscar desafios gerais (sem created_for_user) ou específicos para este usuário
       const { data: challengesData, error: challengesError } = await supabase
         .from('challenges')
         .select('*')
         .eq('is_active', true)
+        .or(`created_for_user.is.null,created_for_user.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (challengesError) throw challengesError;
@@ -212,7 +214,6 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
     }
   };
 
-  // Carregamento inicial apenas uma vez
   useEffect(() => {
     if (user && !loading) return;
     
@@ -358,6 +359,43 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
     }
   };
 
+  const requestNewChallenges = async () => {
+    if (!user || updating) return;
+
+    try {
+      setUpdating(true);
+      
+      console.log('🎯 Solicitando novos desafios...');
+      
+      const { data, error } = await supabase.functions.invoke('generate-daily-challenges');
+      
+      if (error) {
+        console.error('❌ Erro ao gerar novos desafios:', error);
+        throw error;
+      }
+      
+      console.log('✅ Novos desafios solicitados:', data);
+      
+      toast({
+        title: "Novos Desafios Gerados!",
+        description: "Seus novos desafios estão disponíveis.",
+      });
+      
+      // Recarregar dados
+      await loadData();
+      
+    } catch (error: any) {
+      console.error('❌ Erro ao solicitar novos desafios:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar novos desafios.",
+        variant: "destructive"
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -420,11 +458,20 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
         <TabsContent value="challenges" className="space-y-6">
           {/* Desafios Ativos */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Flame className="h-5 w-5 text-orange-500" />
                 Desafios Ativos
               </CardTitle>
+              {activeChallenges.length === 0 && (
+                <Button 
+                  onClick={requestNewChallenges}
+                  disabled={updating}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {updating ? 'Gerando...' : 'Solicitar Novos Desafios'}
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {activeChallenges.length > 0 ? (
@@ -442,8 +489,8 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Todos os desafios foram concluídos! 🎉</p>
-                  <p className="text-sm mt-2">Novos desafios serão gerados automaticamente à meia-noite!</p>
+                  <p>Parabéns! Você completou todos os desafios! 🎉</p>
+                  <p className="text-sm mt-2">Clique no botão acima para solicitar novos desafios personalizados!</p>
                 </div>
               )}
             </CardContent>

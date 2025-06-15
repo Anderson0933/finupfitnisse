@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    console.log('🎯 Iniciando geração automática de desafios diários...')
+    console.log('🎯 Iniciando geração inteligente de desafios...')
 
     const today = new Date().toISOString().split('T')[0]
     const sevenDaysAgo = new Date()
@@ -71,151 +71,164 @@ Deno.serve(async (req) => {
 
     console.log('🗑️ Desafios expirados desativados')
 
-    // 3. Verificar se já existem desafios ativos para hoje
-    const { data: existingChallenges } = await supabase
+    // 3. Buscar usuários que completaram todos os desafios ativos
+    console.log('🔍 Buscando usuários que completaram todos os desafios ativos...')
+
+    // Primeiro, buscar todos os desafios ativos
+    const { data: activeChallenges, error: activeChallengesError } = await supabase
       .from('challenges')
       .select('id')
-      .eq('type', 'daily')
-      .eq('start_date', today)
       .eq('is_active', true)
+      .gte('end_date', today)
 
-    if (existingChallenges && existingChallenges.length > 0) {
-      console.log('✅ Desafios diários já existem para hoje')
+    if (activeChallengesError) {
+      console.error('❌ Erro ao buscar desafios ativos:', activeChallengesError)
+      throw activeChallengesError
+    }
+
+    console.log(`📊 Encontrados ${activeChallenges?.length || 0} desafios ativos`)
+
+    let usersNeedingNewChallenges: string[] = []
+
+    if (activeChallenges && activeChallenges.length > 0) {
+      // Buscar usuários que completaram TODOS os desafios ativos
+      const { data: userProgress, error: progressError } = await supabase
+        .from('user_challenge_progress')
+        .select('user_id, challenge_id, is_completed')
+        .in('challenge_id', activeChallenges.map(c => c.id))
+        .eq('is_completed', true)
+
+      if (progressError) {
+        console.error('❌ Erro ao buscar progresso dos usuários:', progressError)
+      } else {
+        // Agrupar por usuário e verificar quem completou todos
+        const userCompletionMap = new Map<string, Set<string>>()
+        
+        userProgress?.forEach(progress => {
+          if (!userCompletionMap.has(progress.user_id)) {
+            userCompletionMap.set(progress.user_id, new Set())
+          }
+          userCompletionMap.get(progress.user_id)!.add(progress.challenge_id)
+        })
+
+        // Verificar quais usuários completaram TODOS os desafios ativos
+        const totalActiveChallenges = activeChallenges.length
+        usersNeedingNewChallenges = Array.from(userCompletionMap.entries())
+          .filter(([userId, completedChallenges]) => 
+            completedChallenges.size === totalActiveChallenges
+          )
+          .map(([userId]) => userId)
+
+        console.log(`👥 ${usersNeedingNewChallenges.length} usuários completaram todos os desafios ativos`)
+      }
+    } else {
+      // Se não há desafios ativos, buscar todos os usuários que têm gamificação
+      console.log('📝 Nenhum desafio ativo encontrado, buscando todos os usuários...')
+      const { data: allUsers, error: usersError } = await supabase
+        .from('user_gamification')
+        .select('user_id')
+
+      if (usersError) {
+        console.error('❌ Erro ao buscar usuários:', usersError)
+      } else {
+        usersNeedingNewChallenges = allUsers?.map(u => u.user_id) || []
+        console.log(`👥 ${usersNeedingNewChallenges.length} usuários encontrados para novos desafios`)
+      }
+    }
+
+    // 4. Gerar novos desafios personalizados
+    if (usersNeedingNewChallenges.length === 0) {
+      console.log('✅ Nenhum usuário precisa de novos desafios no momento')
       return new Response(
         JSON.stringify({ 
-          message: 'Desafios diários já existem para hoje',
-          cleaned: oldChallenges?.length || 0
+          message: 'Nenhum usuário precisa de novos desafios',
+          cleaned: oldChallenges?.length || 0,
+          usersReady: 0
         }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // 4. Gerar novos desafios diários
-    const newDailyChallenges = [
-      {
-        title: 'Treino do Dia',
-        description: 'Complete 1 treino hoje',
-        type: 'daily',
-        category: 'workout',
-        target_value: 1,
-        target_unit: 'treino',
-        xp_reward: 20,
-        difficulty: 'easy',
-        start_date: today,
-        end_date: today,
-        is_active: true
-      },
-      {
-        title: 'Hidratação Diária',
-        description: 'Beba 8 copos de água hoje',
-        type: 'daily',
-        category: 'nutrition',
-        target_value: 8,
-        target_unit: 'copos',
-        xp_reward: 15,
-        difficulty: 'easy',
-        start_date: today,
-        end_date: today,
-        is_active: true
-      },
-      {
-        title: 'Atividade Física',
-        description: 'Faça 30 minutos de atividade física',
-        type: 'daily',
-        category: 'workout',
-        target_value: 30,
-        target_unit: 'minutos',
-        xp_reward: 25,
-        difficulty: 'medium',
-        start_date: today,
-        end_date: today,
-        is_active: true
-      },
-      {
-        title: 'Passo Saudável',
-        description: 'Caminhe por 15 minutos',
-        type: 'daily',
-        category: 'general',
-        target_value: 15,
-        target_unit: 'minutos',
-        xp_reward: 10,
-        difficulty: 'easy',
-        start_date: today,
-        end_date: today,
-        is_active: true
-      }
-    ]
-
-    const { data: insertedChallenges, error: insertError } = await supabase
-      .from('challenges')
-      .insert(newDailyChallenges)
-      .select()
-
-    if (insertError) {
-      console.error('❌ Erro ao inserir novos desafios:', insertError)
-      throw insertError
-    }
-
-    console.log(`✅ ${insertedChallenges?.length || 0} novos desafios diários criados para ${today}`)
-
-    // 5. Verificar e gerar desafios semanais se necessário
-    const { data: weeklyActiveChallenges } = await supabase
-      .from('challenges')
-      .select('id')
-      .eq('type', 'weekly')
-      .eq('is_active', true)
-      .gte('end_date', today)
-
-    if (!weeklyActiveChallenges || weeklyActiveChallenges.length === 0) {
-      const startDate = new Date()
-      const endDate = new Date()
-      endDate.setDate(startDate.getDate() + 6) // 7 dias no total
-
-      const newWeeklyChallenges = [
+    // Templates de desafios por categoria
+    const challengeTemplates = {
+      daily: [
         {
-          title: 'Guerreiro da Semana',
-          description: 'Complete 5 treinos esta semana',
-          type: 'weekly',
+          title: 'Treino do Dia',
+          description: 'Complete 1 treino hoje',
           category: 'workout',
-          target_value: 5,
-          target_unit: 'treinos',
-          xp_reward: 100,
-          difficulty: 'medium',
-          start_date: startDate.toISOString().split('T')[0],
-          end_date: endDate.toISOString().split('T')[0],
-          is_active: true
+          target_value: 1,
+          target_unit: 'treino',
+          xp_reward: 20,
+          difficulty: 'easy'
         },
         {
-          title: 'Consistência Semanal',
-          description: 'Complete desafios diários por 7 dias consecutivos',
-          type: 'weekly',
+          title: 'Hidratação Diária',
+          description: 'Beba 8 copos de água hoje',
+          category: 'nutrition',
+          target_value: 8,
+          target_unit: 'copos',
+          xp_reward: 15,
+          difficulty: 'easy'
+        },
+        {
+          title: 'Atividade Física',
+          description: 'Faça 30 minutos de atividade física',
+          category: 'workout',
+          target_value: 30,
+          target_unit: 'minutos',
+          xp_reward: 25,
+          difficulty: 'medium'
+        },
+        {
+          title: 'Passo Saudável',
+          description: 'Caminhe por 15 minutos',
           category: 'general',
-          target_value: 7,
-          target_unit: 'dias',
-          xp_reward: 75,
-          difficulty: 'medium',
-          start_date: startDate.toISOString().split('T')[0],
-          end_date: endDate.toISOString().split('T')[0],
-          is_active: true
+          target_value: 15,
+          target_unit: 'minutos',
+          xp_reward: 10,
+          difficulty: 'easy'
         }
       ]
+    }
 
-      const { data: weeklyInserted, error: weeklyError } = await supabase
+    // Gerar desafios diários para cada usuário
+    let totalCreatedChallenges = 0
+
+    for (const userId of usersNeedingNewChallenges) {
+      // Selecionar 2-3 desafios aleatórios para cada usuário
+      const selectedTemplates = challengeTemplates.daily
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3)
+
+      const userChallenges = selectedTemplates.map(template => ({
+        ...template,
+        type: 'daily',
+        start_date: today,
+        end_date: today,
+        is_active: true,
+        created_for_user: userId // Campo para rastrear para quem foi criado
+      }))
+
+      const { data: insertedChallenges, error: insertError } = await supabase
         .from('challenges')
-        .insert(newWeeklyChallenges)
+        .insert(userChallenges)
         .select()
 
-      if (weeklyError) {
-        console.error('❌ Erro ao inserir desafios semanais:', weeklyError)
+      if (insertError) {
+        console.error(`❌ Erro ao criar desafios para usuário ${userId}:`, insertError)
       } else {
-        console.log(`✅ ${weeklyInserted?.length || 0} novos desafios semanais criados`)
+        totalCreatedChallenges += insertedChallenges?.length || 0
+        console.log(`✅ ${insertedChallenges?.length || 0} novos desafios criados para usuário ${userId}`)
       }
     }
+
+    console.log(`🎉 Total: ${totalCreatedChallenges} novos desafios criados para ${usersNeedingNewChallenges.length} usuários`)
 
     return new Response(
       JSON.stringify({ 
         message: 'Novos desafios gerados com sucesso!',
-        dailyChallenges: insertedChallenges?.length || 0,
+        usersWithNewChallenges: usersNeedingNewChallenges.length,
+        totalChallengesCreated: totalCreatedChallenges,
         cleanedOldChallenges: oldChallenges?.length || 0
       }), 
       { 
