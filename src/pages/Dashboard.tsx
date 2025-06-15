@@ -327,7 +327,7 @@ const Dashboard = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full main-dashboard-tabs">
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-7 mb-6 md:mb-8 bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl p-2 h-auto">
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-8 mb-6 md:mb-8 bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl p-2 h-auto">
             <TabsTrigger 
               value="workout" 
               data-value="workout"
@@ -404,11 +404,11 @@ const Dashboard = () => {
               <span className="text-xs md:text-sm font-semibold">Pagamento</span>
             </TabsTrigger>
 
-             {/* Nova aba para Desafios */}
+             {/* Aba Desafios - apenas desktop */}
              <TabsTrigger 
               value="challenges" 
               data-value="challenges"
-              className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-yellow-50 text-yellow-700 group" 
+              className="relative hidden lg:flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-yellow-50 text-yellow-700 group" 
               disabled={!hasAccess}
             >
               <Trophy className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
