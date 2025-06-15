@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -284,28 +285,75 @@ const Dashboard = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full main-dashboard-tabs">
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-7 mb-6 md:mb-8 bg-white border border-blue-200 shadow-sm h-auto">
-            <TabsTrigger value="workout" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
-              <Dumbbell className="h-4 w-4" /> <span className="text-xs md:text-sm">Treinos</span> {!hasAccess && <Lock className="h-3 w-3" />}
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-7 mb-6 md:mb-8 bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl p-2 h-auto">
+            <TabsTrigger 
+              value="workout" 
+              className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-blue-50 text-blue-700 group" 
+              disabled={!hasAccess}
+            >
+              <Dumbbell className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
+              <span className="text-xs md:text-sm font-semibold">Treinos</span> 
+              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
-            <TabsTrigger value="assistant" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
-              <MessageCircle className="h-4 w-4" /> <span className="text-xs md:text-sm">Assistente</span> {!hasAccess && <Lock className="h-3 w-3" />}
+            
+            <TabsTrigger 
+              value="assistant" 
+              className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-purple-50 text-purple-700 group" 
+              disabled={!hasAccess}
+            >
+              <MessageCircle className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
+              <span className="text-xs md:text-sm font-semibold">Assistente</span> 
+              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
-            <TabsTrigger value="progress" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
-              <TrendingUp className="h-4 w-4" /> <span className="text-xs md:text-sm">Evolução</span> {!hasAccess && <Lock className="h-3 w-3" />}
+            
+            <TabsTrigger 
+              value="progress" 
+              className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-green-50 text-green-700 group" 
+              disabled={!hasAccess}
+            >
+              <TrendingUp className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
+              <span className="text-xs md:text-sm font-semibold">Evolução</span> 
+              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
-            <TabsTrigger value="nutrition" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
-              <Apple className="h-4 w-4" /> <span className="text-xs md:text-sm">Nutrição</span> {!hasAccess && <Lock className="h-3 w-3" />}
+            
+            <TabsTrigger 
+              value="nutrition" 
+              className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-emerald-50 text-emerald-700 group" 
+              disabled={!hasAccess}
+            >
+              <Apple className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
+              <span className="text-xs md:text-sm font-semibold">Nutrição</span> 
+              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
+            
             {/* Aba Fórum - apenas desktop */}
-            <TabsTrigger value="forum" className="hidden lg:flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
-              <Users className="h-4 w-4" /> <span className="text-xs md:text-sm">Fórum</span> {!hasAccess && <Lock className="h-3 w-3" />}
+            <TabsTrigger 
+              value="forum" 
+              className="hidden lg:flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-indigo-50 text-indigo-700 group" 
+              disabled={!hasAccess}
+            >
+              <Users className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
+              <span className="text-xs md:text-sm font-semibold">Fórum</span> 
+              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
-            <TabsTrigger value="faq" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3" disabled={!hasAccess}>
-              <HelpCircle className="h-4 w-4" /> <span className="text-xs md:text-sm">Dúvidas</span> {!hasAccess && <Lock className="h-3 w-3" />}
+            
+            <TabsTrigger 
+              value="faq" 
+              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-violet-50 text-violet-700 group" 
+              disabled={!hasAccess}
+            >
+              <HelpCircle className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
+              <span className="text-xs md:text-sm font-semibold">Dúvidas</span> 
+              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
-            <TabsTrigger value="payment" data-value="payment" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white text-blue-700 p-2 md:p-3">
-              <CreditCard className="h-4 w-4" /> <span className="text-xs md:text-sm">Pagamento</span>
+            
+            <TabsTrigger 
+              value="payment" 
+              data-value="payment" 
+              className="flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-orange-50 text-orange-700 group"
+            >
+              <CreditCard className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
+              <span className="text-xs md:text-sm font-semibold">Pagamento</span>
             </TabsTrigger>
           </TabsList>
 
