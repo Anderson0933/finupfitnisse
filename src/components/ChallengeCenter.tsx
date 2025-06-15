@@ -181,7 +181,14 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
       const newProgress = Math.min(currentProgress + increment, challenge.target_value);
       const isCompleted = newProgress >= challenge.target_value;
 
-      // Upsert progresso do desafio
+      console.log('Atualizando progresso:', {
+        challengeId,
+        currentProgress,
+        newProgress,
+        isCompleted
+      });
+
+      // Usar upsert para inserir ou atualizar o progresso
       const { error } = await supabase
         .from('user_challenge_progress')
         .upsert({
@@ -189,15 +196,26 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
           challenge_id: challengeId,
           current_progress: newProgress,
           is_completed: isCompleted,
-          completed_at: isCompleted ? new Date().toISOString() : null
+          completed_at: isCompleted ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,challenge_id'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao atualizar progresso:', error);
+        throw error;
+      }
 
       if (isCompleted) {
         toast({
           title: "🎉 Desafio Concluído!",
           description: `Você ganhou ${challenge.xp_reward} XP!`,
+        });
+      } else {
+        toast({
+          title: "Progresso Atualizado!",
+          description: `${newProgress}/${challenge.target_value} ${challenge.target_unit}`,
         });
       }
 
