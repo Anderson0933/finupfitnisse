@@ -4,13 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trophy, Target, Flame, Star, Crown, Award, Plus, Calendar, Timer } from 'lucide-react';
+import { Trophy, Target, Flame, Star, Award } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ChallengeCard from './challenges/ChallengeCard';
 import AchievementCard from './challenges/AchievementCard';
-import UserStatsComponent from './challenges/UserStats';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Challenge {
@@ -268,8 +267,6 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
 
       setChallenges(challengesWithProgress);
 
-      // ... keep existing code (achievements and stats loading)
-      
       // Carregar conquistas
       const { data: achievementsData, error: achievementsError } = await supabase
         .from('achievements')
@@ -398,8 +395,6 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
     }
   };
 
-  // ... keep existing code (getDifficultyColor, getRarityColor, loading state, etc.)
-  
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'easy': return 'bg-green-100 text-green-800';
@@ -432,41 +427,42 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
   const unlockedAchievements = achievements.filter(a => a.unlocked_at);
   const lockedAchievements = achievements.filter(a => !a.unlocked_at);
 
+  // Calcular XP necessário para o próximo nível
+  const getXPForNextLevel = (level: number) => level * 100;
+  const currentLevelXP = userStats ? getXPForNextLevel(userStats.current_level - 1) : 0;
+  const nextLevelXP = userStats ? getXPForNextLevel(userStats.current_level) : 100;
+  const progressToNextLevel = userStats ? ((userStats.total_xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100 : 0;
+
   return (
     <div className="space-y-6">
-      {/* Header com estatísticas do usuário */}
-      <UserStatsComponent userStats={userStats} />
-
-      {/* Botão para gerar novos desafios manualmente */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Quer mais desafios?</h3>
-              <p className="text-gray-600 text-sm">Gere novos desafios diários e semanais</p>
+      {/* Header com apenas nível */}
+      <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Star className="h-5 w-5" />
+            Nível {userStats?.current_level || 1}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>XP Total</span>
+              <span className="font-semibold">{userStats?.total_xp || 0}</span>
             </div>
-            <Button
-              onClick={async () => {
-                await generateNewDailyChallenges();
-                await generateNewWeeklyChallenges();
-                await loadData();
-                toast({
-                  title: "Novos Desafios!",
-                  description: "Novos desafios foram adicionados para você!",
-                });
-              }}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Gerar Novos Desafios
-            </Button>
+            <Progress 
+              value={Math.min(progressToNextLevel, 100)} 
+              className="h-2 bg-blue-300" 
+            />
+            <div className="text-xs opacity-90">
+              {Math.max(0, nextLevelXP - (userStats?.total_xp || 0))} XP para nível {(userStats?.current_level || 1) + 1}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabs principais */}
+      {/* Tabs principais - removido ranking */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="challenges" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
             Desafios
@@ -474,10 +470,6 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
           <TabsTrigger value="achievements" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
             Conquistas
-          </TabsTrigger>
-          <TabsTrigger value="leaderboard" className="flex items-center gap-2">
-            <Crown className="h-4 w-4" />
-            Ranking
           </TabsTrigger>
         </TabsList>
 
@@ -585,24 +577,6 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
                     getRarityColor={getRarityColor}
                   />
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="leaderboard" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-yellow-500" />
-                Ranking Global
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Crown className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Ranking em desenvolvimento...</p>
-                <p className="text-sm">Em breve você poderá competir com outros usuários!</p>
               </div>
             </CardContent>
           </Card>
