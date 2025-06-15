@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Circle, Play, User, Dumbbell, Apple, TrendingUp, X, Gift } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +14,6 @@ interface OnboardingStep {
   icon: React.ReactNode;
   action: string;
   completed: boolean;
-  points: number;
 }
 
 interface OnboardingChecklistProps {
@@ -33,8 +31,7 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
       description: 'Adicione informações básicas para personalizar sua experiência',
       icon: <User className="h-5 w-5" />,
       action: 'Completar Perfil',
-      completed: false,
-      points: 10
+      completed: false
     },
     {
       id: 'first-workout',
@@ -42,8 +39,7 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
       description: 'Crie um plano de treino personalizado com nossa IA',
       icon: <Dumbbell className="h-5 w-5" />,
       action: 'Criar Treino',
-      completed: false,
-      points: 20
+      completed: false
     },
     {
       id: 'nutrition-plan',
@@ -51,8 +47,7 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
       description: 'Descubra dicas alimentares personalizadas',
       icon: <Apple className="h-5 w-5" />,
       action: 'Ver Nutrição',
-      completed: false,
-      points: 15
+      completed: false
     },
     {
       id: 'record-progress',
@@ -60,12 +55,9 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
       description: 'Adicione suas medidas iniciais para acompanhar evolução',
       icon: <TrendingUp className="h-5 w-5" />,
       action: 'Registrar Dados',
-      completed: false,
-      points: 15
+      completed: false
     }
   ]);
-
-  const [totalPoints, setTotalPoints] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -119,13 +111,6 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
     }
   };
 
-  useEffect(() => {
-    const completedPoints = steps
-      .filter(step => step.completed)
-      .reduce((total, step) => total + step.points, 0);
-    setTotalPoints(completedPoints);
-  }, [steps]);
-
   const handleStepAction = (step: OnboardingStep) => {
     switch (step.id) {
       case 'first-workout':
@@ -171,12 +156,6 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
             <span className="text-sm text-blue-700 font-medium">
               {completedSteps} de {totalSteps} concluídos
             </span>
-            <Badge 
-              variant={isCompleted ? "default" : "secondary"}
-              className={isCompleted ? "bg-green-500 text-white" : "bg-blue-100 text-blue-700"}
-            >
-              {totalPoints} pontos
-            </Badge>
           </div>
           <Progress value={progress} className="h-2" />
           {isCompleted && (
@@ -232,12 +211,6 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab }: Onboardi
                   <Play className="h-3 w-3" />
                   {step.action}
                 </Button>
-              )}
-              
-              {step.completed && (
-                <Badge variant="secondary" className="bg-green-100 text-green-700">
-                  +{step.points} pts
-                </Badge>
               )}
             </div>
           ))}
