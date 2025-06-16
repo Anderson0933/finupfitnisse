@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Info, CreditCard } from 'lucide-react';
 
 interface AffiliateData {
   id: string;
@@ -154,15 +156,27 @@ export const WithdrawalManager = ({ affiliate }: WithdrawalManagerProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Informações sobre pagamento */}
+      <Alert>
+        <CreditCard className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Sistema de Pagamento:</strong> Os saques são processados via PIX em até 3 dias úteis. 
+          Nossa equipe analisa cada solicitação manualmente para garantir a segurança das transações.
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardHeader>
-          <CardTitle>Solicitar Saque</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Solicitar Saque via PIX
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-600 mb-2">
-                Saldo disponível: <span className="font-semibold">R$ {affiliate.total_earnings.toFixed(2)}</span>
+                Saldo disponível: <span className="font-semibold text-green-600">R$ {affiliate.total_earnings.toFixed(2)}</span>
               </p>
               <p className="text-sm text-gray-600 mb-4">
                 Valor mínimo para saque: R$ 50,00
@@ -170,7 +184,7 @@ export const WithdrawalManager = ({ affiliate }: WithdrawalManagerProps) => {
             </div>
             
             <div>
-              <Label htmlFor="withdrawalAmount">Valor do Saque</Label>
+              <Label htmlFor="withdrawalAmount">Valor do Saque (R$)</Label>
               <Input
                 id="withdrawalAmount"
                 type="number"
@@ -183,12 +197,19 @@ export const WithdrawalManager = ({ affiliate }: WithdrawalManagerProps) => {
               />
             </div>
 
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                O pagamento será feito via PIX para a chave cadastrada. Processamento em até 3 dias úteis.
+              </AlertDescription>
+            </Alert>
+
             <Button 
               onClick={requestWithdrawal} 
               disabled={loading || !affiliate.pix_key || parseFloat(withdrawalAmount) < 50}
               className="w-full"
             >
-              {loading ? 'Processando...' : 'Solicitar Saque'}
+              {loading ? 'Processando...' : 'Solicitar Saque via PIX'}
             </Button>
 
             {!affiliate.pix_key && (
@@ -217,6 +238,7 @@ export const WithdrawalManager = ({ affiliate }: WithdrawalManagerProps) => {
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Data Processamento</TableHead>
+                  <TableHead>Método</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -238,6 +260,12 @@ export const WithdrawalManager = ({ affiliate }: WithdrawalManagerProps) => {
                         format(new Date(withdrawal.processed_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }) :
                         '-'
                       }
+                    </TableCell>
+                    <TableCell>
+                      <span className="flex items-center gap-1">
+                        <CreditCard className="h-3 w-3" />
+                        PIX
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -20,7 +20,7 @@ const AffiliateDashboard = () => {
 
   const copyReferralLink = () => {
     if (affiliate) {
-      const referralLink = `${window.location.origin}/?ref=${affiliate.affiliate_code}`;
+      const referralLink = `https://fitaipro.cloud/?ref=${affiliate.affiliate_code}`;
       navigator.clipboard.writeText(referralLink);
       toast({
         title: "Link copiado!",
@@ -154,7 +154,7 @@ const AffiliateDashboard = () => {
         <CardContent>
           <div className="flex space-x-2">
             <Input
-              value={`${window.location.origin}/?ref=${affiliate.affiliate_code}`}
+              value={`https://fitaipro.cloud/?ref=${affiliate.affiliate_code}`}
               readOnly
               className="flex-1"
             />
@@ -233,7 +233,7 @@ const AffiliateDashboard = () => {
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">3. Solicite saques</h3>
+                <h3 className="font-semibold mb-2">3. Solicite saques via PIX</h3>
                 <p className="text-sm text-gray-600">
                   Quando atingir R$ 50, você pode solicitar o saque via PIX.
                 </p>
@@ -241,7 +241,7 @@ const AffiliateDashboard = () => {
               <div>
                 <h3 className="font-semibold mb-2">4. Receba o pagamento</h3>
                 <p className="text-sm text-gray-600">
-                  Os saques são processados em até 3 dias úteis.
+                  Os saques são processados manualmente em até 3 dias úteis via PIX.
                 </p>
               </div>
             </CardContent>
