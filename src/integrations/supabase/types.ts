@@ -48,6 +48,92 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_withdrawals: {
+        Row: {
+          affiliate_id: string | null
+          amount: number
+          id: string
+          notes: string | null
+          payment_proof: string | null
+          pix_key: string
+          processed_at: string | null
+          requested_at: string
+          status: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          amount: number
+          id?: string
+          notes?: string | null
+          payment_proof?: string | null
+          pix_key: string
+          processed_at?: string | null
+          requested_at?: string
+          status?: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          amount?: number
+          id?: string
+          notes?: string | null
+          payment_proof?: string | null
+          pix_key?: string
+          processed_at?: string | null
+          requested_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_withdrawals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          affiliate_code: string
+          bank_details: Json | null
+          commission_rate: number
+          created_at: string
+          id: string
+          pix_key: string | null
+          status: string
+          total_earnings: number
+          total_referrals: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          affiliate_code: string
+          bank_details?: Json | null
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          pix_key?: string | null
+          status?: string
+          total_earnings?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          affiliate_code?: string
+          bank_details?: Json | null
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          pix_key?: string | null
+          status?: string
+          total_earnings?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_conversations: {
         Row: {
           conversation_type: string | null
@@ -128,6 +214,67 @@ export type Database = {
           xp_reward?: number
         }
         Relationships: []
+      }
+      commissions: {
+        Row: {
+          affiliate_id: string | null
+          amount: number
+          commission_rate: number
+          created_at: string
+          id: string
+          payment_date: string | null
+          referral_id: string | null
+          status: string
+          subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          amount: number
+          commission_rate: number
+          created_at?: string
+          id?: string
+          payment_date?: string | null
+          referral_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          amount?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          payment_date?: string | null
+          referral_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       forum_categories: {
         Row: {
@@ -437,6 +584,47 @@ export type Database = {
         }
         Relationships: []
       }
+      referrals: {
+        Row: {
+          affiliate_id: string | null
+          conversion_date: string | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_user_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          conversion_date?: string | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          conversion_date?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           amount: number | null
@@ -446,6 +634,8 @@ export type Database = {
           id: string
           payment_id: string | null
           payment_method: string | null
+          referral_code: string | null
+          referred_by_affiliate_id: string | null
           status: string | null
           updated_at: string | null
           user_id: string
@@ -458,6 +648,8 @@ export type Database = {
           id?: string
           payment_id?: string | null
           payment_method?: string | null
+          referral_code?: string | null
+          referred_by_affiliate_id?: string | null
           status?: string | null
           updated_at?: string | null
           user_id: string
@@ -470,11 +662,21 @@ export type Database = {
           id?: string
           payment_id?: string | null
           payment_method?: string | null
+          referral_code?: string | null
+          referred_by_affiliate_id?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_referred_by_affiliate_id_fkey"
+            columns: ["referred_by_affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_achievements: {
         Row: {
@@ -805,9 +1007,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_affiliate_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       has_active_subscription: {
         Args: { user_uuid: string }
         Returns: boolean
+      }
+      process_referral_conversion: {
+        Args: { p_referred_user_id: string; p_subscription_id: string }
+        Returns: undefined
       }
     }
     Enums: {
