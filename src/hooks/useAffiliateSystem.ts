@@ -107,11 +107,12 @@ export const useAffiliateSystem = () => {
         return;
       }
 
-      // O affiliate_code será gerado automaticamente pelo trigger
+      // Fornecer um affiliate_code temporário que será sobrescrito pelo trigger
       const { data, error } = await supabase
         .from('affiliates')
         .insert({
           user_id: user.id,
+          affiliate_code: 'TEMP', // Será sobrescrito pelo trigger
           commission_rate: 15.00
         })
         .select()

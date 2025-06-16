@@ -4,27 +4,32 @@ import { toast } from "@/components/ui/use-toast"
 import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentManagerProps {
+  user?: any;
+  hasActiveSubscription?: boolean;
   onPaymentSuccess?: () => void;
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const PaymentManager = () => {
+const PaymentManager = ({ user: propUser, hasActiveSubscription, onPaymentSuccess }: PaymentManagerProps) => {
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const onPaymentSuccess = () => {};
+  const [user, setUser] = useState<any>(propUser || null);
 
   useEffect(() => {
-    // Get current user
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getCurrentUser();
-  }, []);
+    // Get current user if not provided via props
+    if (!propUser) {
+      const getCurrentUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+      };
+      getCurrentUser();
+    } else {
+      setUser(propUser);
+    }
+  }, [propUser]);
 
   useEffect(() => {
     // Extract paymentId from URL
