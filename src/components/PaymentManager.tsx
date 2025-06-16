@@ -9,9 +9,6 @@ interface PaymentManagerProps {
   onPaymentSuccess?: () => void;
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
 const PaymentManager = ({ user: propUser, hasActiveSubscription, onPaymentSuccess }: PaymentManagerProps) => {
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
@@ -52,33 +49,31 @@ const PaymentManager = ({ user: propUser, hasActiveSubscription, onPaymentSucces
     setVerifying(true);
     
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/verify-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('verify-payment', {
+        body: {
           paymentId: paymentId,
           userId: user.id
-        })
+        }
       });
 
-      const result = await response.json();
+      if (error) {
+        console.error('Erro na verificação:', error);
+        toast({
+          title: "Erro na Verificação",
+          description: "Erro ao verificar o pagamento. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
       
-      if (result.paid) {
+      if (data.paid) {
         // Processar conversão de afiliado se o pagamento foi confirmado
         try {
-          await fetch(`${SUPABASE_URL}/functions/v1/process-affiliate-conversion`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            },
-            body: JSON.stringify({
+          await supabase.functions.invoke('process-affiliate-conversion', {
+            body: {
               userId: user.id,
               subscriptionId: paymentId // Usar o paymentId como referência
-            })
+            }
           });
         } catch (affiliateError) {
           console.log('Erro ao processar afiliado (não crítico):', affiliateError);
