@@ -1,7 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from "@/components/ui/use-toast"
-import { useUser } from '@auth0/nextjs-auth0/client';
-import { useSearchParams } from 'next/navigation';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentManagerProps {
   onPaymentSuccess?: () => void;
@@ -14,20 +14,29 @@ const PaymentManager = () => {
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const { user } = useUser();
-	const searchParams = useSearchParams();
+  const [user, setUser] = useState<any>(null);
   const onPaymentSuccess = () => {};
 
   useEffect(() => {
+    // Get current user
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getCurrentUser();
+  }, []);
+
+  useEffect(() => {
     // Extract paymentId from URL
-		const payment = searchParams.get('paymentId')
+    const urlParams = new URLSearchParams(window.location.search);
+    const payment = urlParams.get('paymentId');
     if (payment) {
       setPaymentId(payment);
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
-    if (paymentId) {
+    if (paymentId && user) {
       handlePaymentVerification();
     }
   }, [paymentId, user]);
