@@ -437,6 +437,39 @@ export type Database = {
         }
         Relationships: []
       }
+      referrals: {
+        Row: {
+          affiliate_id: string | null
+          conversion_date: string | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_user_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          conversion_date?: string | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          conversion_date?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           amount: number | null
@@ -446,6 +479,8 @@ export type Database = {
           id: string
           payment_id: string | null
           payment_method: string | null
+          referral_code: string | null
+          referred_by_affiliate_id: string | null
           status: string | null
           updated_at: string | null
           user_id: string
@@ -458,6 +493,8 @@ export type Database = {
           id?: string
           payment_id?: string | null
           payment_method?: string | null
+          referral_code?: string | null
+          referred_by_affiliate_id?: string | null
           status?: string | null
           updated_at?: string | null
           user_id: string
@@ -470,6 +507,8 @@ export type Database = {
           id?: string
           payment_id?: string | null
           payment_method?: string | null
+          referral_code?: string | null
+          referred_by_affiliate_id?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string
@@ -805,9 +844,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_affiliate_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       has_active_subscription: {
         Args: { user_uuid: string }
         Returns: boolean
+      }
+      process_referral_conversion: {
+        Args: { p_referred_user_id: string; p_subscription_id: string }
+        Returns: undefined
       }
     }
     Enums: {
