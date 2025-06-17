@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 // Import the existing Supabase client
@@ -115,14 +114,49 @@ const deletePlanProgress = async (userId: string, planId: string) => {
 };
 // --- End Supabase Plan Progress Logic ---
 
-// Define WorkoutPlan interface
+// Updated WorkoutPlan interface
 export interface WorkoutPlan {
-  id?: string; // Add an ID field, potentially generated or fetched
+  id?: string;
   title: string;
   description: string;
   difficulty_level: string;
   duration_weeks: number;
-  exercises: Array<{
+  total_workouts?: number;
+  workouts?: Array<{
+    week: number;
+    day: number;
+    title: string;
+    focus: string;
+    estimated_duration: number;
+    warm_up: {
+      duration: number;
+      exercises: Array<{
+        name: string;
+        duration: number;
+        instructions: string;
+      }>;
+    };
+    main_exercises: Array<{
+      name: string;
+      muscle_groups: string[];
+      sets: number;
+      reps: string;
+      rest_seconds: number;
+      weight_guidance: string;
+      instructions: string;
+      form_cues: string[];
+      progression_notes: string;
+    }>;
+    cool_down: {
+      duration: number;
+      exercises: Array<{
+        name: string;
+        duration: number;
+        instructions: string;
+      }>;
+    };
+  }>;
+  exercises?: Array<{
     name: string;
     sets: number;
     reps: string;
@@ -136,6 +170,7 @@ export interface WorkoutPlan {
   recovery_protocols?: any;
   progress_tracking?: any;
   safety_guidelines?: any;
+  progression_schedule?: any;
 }
 
 interface WorkoutPlanGeneratorProps {
@@ -440,7 +475,7 @@ const WorkoutPlanGenerator = ({
       });
 
       if (functionError) throw new Error(functionError.message || 'Erro na função generate-workout-plan');
-      if (!data || typeof data !== 'object' || (!data.title && !data.exercises)) throw new Error('Plano de treino inválido retornado pela API');
+      if (!data || typeof data !== 'object' || (!data.title && !data.workouts)) throw new Error('Plano de treino inválido retornado pela API');
 
       console.log('✅ Dados do plano recebidos da API');
       const plan: WorkoutPlan = {
@@ -448,14 +483,10 @@ const WorkoutPlanGenerator = ({
         description: data.description || 'Plano gerado com base no seu perfil',
         difficulty_level: data.difficulty_level || 'iniciante',
         duration_weeks: data.duration_weeks || 8,
-        exercises: data.exercises || [],
+        total_workouts: data.total_workouts,
+        workouts: data.workouts || [],
         nutrition_tips: data.nutrition_tips || [],
-        weekly_schedule: data.weekly_schedule,
-        progression_protocol: data.progression_protocol,
-        nutrition_guidelines: data.nutrition_guidelines,
-        recovery_protocols: data.recovery_protocols,
-        progress_tracking: data.progress_tracking,
-        safety_guidelines: data.safety_guidelines
+        progression_schedule: data.progression_schedule,
       };
 
       const savedPlan = await saveWorkoutPlan(plan);
@@ -565,24 +596,31 @@ const WorkoutPlanGenerator = ({
       planText += `⏱️ DURAÇÃO: ${workoutPlan.duration_weeks} semanas\n\n`;
       
       // Se tiver cronograma semanal, usar essa estrutura
-      if (workoutPlan.weekly_schedule) {
-        planText += `📅 CRONOGRAMA SEMANAL:\n\n`;
-        Object.entries(workoutPlan.weekly_schedule).forEach(([day, dayData]: [string, any]) => {
-          planText += `${day.toUpperCase()}:\n`;
-          planText += `📍 Foco: ${dayData.focus || 'N/A'}\n`;
-          
-          if (dayData.main_workout && dayData.main_workout.length > 0) {
-            dayData.main_workout.forEach((exercise: any, index: number) => {
-              const itemIdentifier = `${day}_${exercise.exercise}_${index}`;
-              const isCompleted = progressMap.get(itemIdentifier) || false;
-              planText += `${isCompleted ? '[✅]' : '[ ]'} ${exercise.exercise}\n`;
-              planText += `   📊 ${exercise.sets} séries x ${exercise.reps} (${exercise.rest})\n`;
-            });
-          }
-          
-          if (dayData.activities && dayData.activities.length > 0) {
-            planText += `🎯 Atividades: ${dayData.activities.join(', ')}\n`;
-          }
+      if (workoutPlan.workouts) {
+        planText += `📅 CRONOGRAMA DE TREINOS:\n\n`;
+        workoutPlan.workouts.forEach((workout) => {
+          planText += `Semana ${workout.week} - Dia ${workout.day}: ${workout.title}\n`;
+          planText += `Foco: ${workout.focus}\n`;
+          planText += `Duração Estimada: ${workout.estimated_duration} minutos\n`;
+          planText += `Aquecimento:\n`;
+          workout.warm_up.exercises.forEach((ex) => {
+            planText += ` - ${ex.name} (${Math.floor(ex.duration/60)}:${(ex.duration%60).toString().padStart(2,'0')} min): ${ex.instructions}\n`;
+          });
+          planText += `Exercícios Principais:\n`;
+          workout.main_exercises.forEach((ex) => {
+            const itemIdentifier = `workout_${workout.week}_${workout.day}_${ex.name}`;
+            const isCompleted = progressMap.get(itemIdentifier) || false;
+            planText += `${isCompleted ? '[✅]' : '[ ]'} ${ex.name} - ${ex.sets} séries x ${ex.reps} reps, descanso ${Math.floor(ex.rest_seconds/60)}:${(ex.rest_seconds%60).toString().padStart(2,'0')} min, carga: ${ex.weight_guidance}\n`;
+            planText += `   Instruções: ${ex.instructions}\n`;
+            planText += `   Pontos: ${ex.form_cues.join(', ')}\n`;
+            if (ex.progression_notes) {
+              planText += `   Progressão: ${ex.progression_notes}\n`;
+            }
+          });
+          planText += `Relaxamento:\n`;
+          workout.cool_down.exercises.forEach((ex) => {
+            planText += ` - ${ex.name} (${Math.floor(ex.duration/60)}:${(ex.duration%60).toString().padStart(2,'0')} min): ${ex.instructions}\n`;
+          });
           planText += `\n`;
         });
       } else {

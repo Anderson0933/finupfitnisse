@@ -96,8 +96,8 @@ serve(async (req) => {
       else imcInfo += 'Obesidade - exercícios de baixo impacto e queima calórica';
     }
 
-    // Criar prompt super detalhado e personalizado para 8 semanas
-    const enhancedPrompt = `Você é um personal trainer certificado com 15 anos de experiência, especialista em fisiologia do exercício, biomecânica e periodização de treino. Sua missão é criar um plano de treino holístico e EXTREMAMENTE DETALHADO de 8 SEMANAS, totalmente personalizado para o indivíduo, com foco em segurança, eficácia e progressão contínua.
+    // Criar prompt detalhado para 8 semanas com estrutura correta
+    const enhancedPrompt = `Você é um personal trainer certificado com 15 anos de experiência. Crie um plano de treino de 8 SEMANAS estruturado com ${userProfile.available_days || 3} dias por semana.
 
 PERFIL COMPLETO DO ALUNO:
 - Idade: ${userProfile.age || 'Não informado'} anos
@@ -105,51 +105,76 @@ PERFIL COMPLETO DO ALUNO:
 - Altura: ${userProfile.height || 'Não informado'} cm
 - Peso: ${userProfile.weight || 'Não informado'} kg
 - ${imcInfo}
-- Nível de Condicionamento Atual: ${fitnessLevel}
-- Objetivo Principal: ${goals}
-- Dias Disponíveis para Treino: ${userProfile.available_days || 3} por semana
-- Duração por Sessão: ${userProfile.session_duration || 60} minutos
-- Equipamentos Disponíveis: ${equipment}
-- Limitações Físicas/Condições de Saúde: ${limitations}
+- Nível: ${fitnessLevel}
+- Objetivo: ${goals}
+- Dias Disponíveis: ${userProfile.available_days || 3} por semana
+- Duração: ${userProfile.session_duration || 60} minutos
+- Equipamentos: ${equipment}
+- Limitações: ${limitations}
 
-INSTRUÇÕES DETALHADAS PARA A CRIAÇÃO DO PLANO DE TREINO (8 SEMANAS):
+RETORNE APENAS um JSON seguindo EXATAMENTE esta estrutura:
 
-1. ESTRUTURA DE PERIODIZAÇÃO (8 SEMANAS):
-   - Semanas 1-2 (Adaptação e Familiarização): Foco em volume baixo a moderado, aprendizado da técnica correta dos exercícios, e construção de uma base sólida. Priorize movimentos multiarticulares básicos.
-   - Semanas 3-4 (Progressão Gradual): Aumento progressivo de volume (séries/repetições) e/ou intensidade (carga/dificuldade). Introduza variações de exercícios para estimular novos músculos.
-   - Semanas 5-6 (Intensificação e Sobrecarga Progressiva): Volume moderado a alto, com foco em técnicas avançadas (ex: drop-sets, super-sets, pausas, cadência controlada) para maximizar a sobrecarga e o estímulo muscular.
-   - Semanas 7-8 (Pico, Consolidação e Preparação): Refinamento da técnica, consolidação dos ganhos e preparação para o próximo ciclo de treino.
+{
+  "title": "Plano de Treino de 8 Semanas - [Objetivo] - Nível [Nível]",
+  "description": "Plano periodizado personalizado...",
+  "difficulty_level": "iniciante|intermediario|avancado",
+  "duration_weeks": 8,
+  "total_workouts": ${(userProfile.available_days || 3) * 8},
+  "workouts": [
+    {
+      "week": 1,
+      "day": 1,
+      "title": "Treino A - Corpo Inteiro",
+      "focus": "Adaptação e aprendizado técnico",
+      "estimated_duration": 45,
+      "warm_up": {
+        "duration": 10,
+        "exercises": [
+          {
+            "name": "Caminhada no Local",
+            "duration": 300,
+            "instructions": "Marche no local elevando os joelhos moderadamente"
+          }
+        ]
+      },
+      "main_exercises": [
+        {
+          "name": "Agachamento Livre",
+          "muscle_groups": ["Quadríceps", "Glúteos", "Core"],
+          "sets": 3,
+          "reps": "10-12",
+          "rest_seconds": 60,
+          "weight_guidance": "Peso corporal",
+          "instructions": "Posição inicial: Pés na largura dos ombros...",
+          "form_cues": ["Mantenha o peito ereto", "Joelhos alinhados com os pés"],
+          "progression_notes": "Aumente para 15 reps na semana 2"
+        }
+      ],
+      "cool_down": {
+        "duration": 8,
+        "exercises": [
+          {
+            "name": "Alongamento de Quadríceps",
+            "duration": 30,
+            "instructions": "Segure o pé e puxe em direção ao glúteo"
+          }
+        ]
+      }
+    }
+  ],
+  "nutrition_tips": [
+    "Hidrate-se com 35-40ml por kg de peso corporal diariamente",
+    "Consuma proteína 30min após o treino para recuperação muscular"
+  ],
+  "progression_schedule": {
+    "weeks_1_2": "Adaptação - foco na técnica e volume baixo",
+    "weeks_3_4": "Progressão gradual - aumento de volume",
+    "weeks_5_6": "Intensificação - técnicas avançadas",
+    "weeks_7_8": "Consolidação - refinamento e pico"
+  }
+}
 
-2. EXERCÍCIOS ESPECÍFICOS COM INSTRUÇÕES EXTREMAMENTE DETALHADAS:
-   Para CADA exercício, forneça:
-   - Nome do Exercício: Claro e conciso.
-   - Músculos Alvo: Primários, secundários e estabilizadores envolvidos.
-   - Posição Inicial Detalhada: Descreva a postura, alinhamento corporal, posicionamento dos pés/mãos, e pontos de referência para garantir a segurança e eficácia.
-   - Execução Passo a Passo: Divida o movimento em fases (preparação, fase concêntrica, fase excêntrica, finalização), com descrições precisas de cada etapa.
-   - Respiração: Indique o momento correto para inspirar e expirar durante o movimento.
-   - Sinais de Execução Correta: O que o aluno deve sentir e observar para saber que está executando corretamente.
-   - Erros Comuns a Evitar: Descreva os erros mais frequentes e como corrigi-los.
-   - Variações/Progressões: Sugira como o exercício pode ser modificado para se tornar mais fácil ou mais difícil.
-
-3. PRESCRIÇÃO DETALHADA POR SEMANA (Séries, Repetições, Carga, Descanso, Cadência):
-   Para cada semana, especifique séries, repetições, carga/intensidade, tempo de descanso e cadência (tempo sob tensão).
-
-4. AQUECIMENTO E RECUPERAÇÃO ESPECÍFICOS PARA CADA SESSÃO:
-   - Aquecimento Pré-Treino (10-15 minutos): Mobilidade articular, ativação neuromuscular, aquecimento cardiovascular.
-   - Alongamento Pós-Treino (5-10 minutos): Alongamentos estáticos para os grupos musculares trabalhados.
-   - Estratégias de Recuperação: Sugestões para otimizar a recuperação entre as sessões.
-
-5. DICAS DE NUTRIÇÃO E HIDRATAÇÃO (Gerais e Específicas para o Objetivo):
-   - Hidratação, timing de refeições, macronutrientes, micronutrientes, suplementação opcional.
-
-6. CONSIDERAÇÕES IMPORTANTES:
-   - Escuta corporal, consistência, adaptação, progressão lógica.
-
-RETORNE APENAS um JSON válido seguindo EXATAMENTE a estrutura fornecida, com sessions contendo exercícios extremamente detalhados para cada semana e dia de treino. O plano deve ter NO MÍNIMO ${Math.max(userProfile.available_days || 3, 3) * 8} exercícios diferentes distribuídos ao longo das 8 semanas, com progressão detalhada.
-
-Use o campo difficulty_level como: "iniciante", "intermediario", ou "avancado".
-
-RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
+IMPORTANTE: Crie EXATAMENTE ${(userProfile.available_days || 3) * 8} treinos completos distribuídos nas 8 semanas. Cada treino deve ter warm_up, main_exercises detalhados e cool_down.`;
 
     console.log('📤 Enviando requisição detalhada para Groq API...');
 
@@ -164,7 +189,7 @@ RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
         messages: [
           { 
             role: 'system', 
-            content: 'Você é um personal trainer certificado especialista em ciência do exercício com 15 anos de experiência. Crie planos de treino de 8 semanas extremamente detalhados e personalizados com progressão semanal específica seguindo exatamente o formato JSON solicitado.' 
+            content: 'Você é um personal trainer certificado especialista em ciência do exercício. Crie planos de treino estruturados seguindo exatamente o formato JSON solicitado.' 
           },
           { role: 'user', content: enhancedPrompt }
         ],
@@ -241,7 +266,7 @@ RETORNE APENAS O JSON, sem markdown, sem explicações adicionais.`;
       }
       
       // Validar estrutura básica
-      if (!workoutPlan.title || !workoutPlan.sessions || !Array.isArray(workoutPlan.sessions)) {
+      if (!workoutPlan.title || !workoutPlan.workouts || !Array.isArray(workoutPlan.workouts)) {
         throw new Error('Estrutura do JSON inválida da API Groq');
       }
 
@@ -320,6 +345,8 @@ function createEnhancedFallbackPlan(userProfile: any) {
   const level = userProfile?.fitness_level || 'sedentario';
   const goals = userProfile?.fitness_goals?.[0] || 'condicionamento geral';
   const difficultyLevel = mapFitnessLevelToDifficulty(level);
+  const availableDays = userProfile?.available_days || 3;
+  const sessionDuration = userProfile?.session_duration || 60;
   
   // Mapear objetivos para descrição
   const goalsDescription = {
@@ -337,203 +364,151 @@ function createEnhancedFallbackPlan(userProfile: any) {
 
   const goalDesc = goalsDescription[goals] || 'condicionamento geral';
   
+  // Criar workouts estruturados para 8 semanas
+  const workouts = [];
+  
+  for (let week = 1; week <= 8; week++) {
+    for (let day = 1; day <= availableDays; day++) {
+      const workoutIndex = ((week - 1) * availableDays) + day;
+      
+      let workoutTitle = '';
+      let focus = '';
+      let mainExercises = [];
+      
+      if (availableDays === 3) {
+        // Treino ABC
+        if (day === 1) {
+          workoutTitle = 'Treino A - Pernas e Glúteos';
+          focus = week <= 2 ? 'Adaptação técnica' : week <= 4 ? 'Progressão de volume' : week <= 6 ? 'Intensificação' : 'Consolidação';
+          mainExercises = [
+            {
+              name: 'Agachamento Livre',
+              muscle_groups: ['Quadríceps', 'Glúteos', 'Core'],
+              sets: week <= 2 ? 3 : week <= 4 ? 4 : week <= 6 ? 4 : 3,
+              reps: week <= 2 ? '10-12' : week <= 4 ? '12-15' : week <= 6 ? '8-12' : '10-12',
+              rest_seconds: week <= 2 ? 60 : week <= 4 ? 90 : week <= 6 ? 120 : 90,
+              weight_guidance: 'Peso corporal ou halteres',
+              instructions: 'Posição inicial: Pés na largura dos ombros, pontas levemente voltadas para fora. Desça flexionando joelhos e quadril, mantendo peito ereto e coluna neutra.',
+              form_cues: ['Mantenha o peito ereto', 'Joelhos alinhados com os pés', 'Peso nos calcanhares'],
+              progression_notes: week <= 2 ? 'Foque na técnica perfeita' : week <= 4 ? 'Aumente repetições gradualmente' : week <= 6 ? 'Adicione peso se possível' : 'Mantenha qualidade técnica'
+            }
+          ];
+        } else if (day === 2) {
+          workoutTitle = 'Treino B - Peito, Ombros e Tríceps';
+          focus = week <= 2 ? 'Adaptação técnica' : week <= 4 ? 'Progressão de volume' : week <= 6 ? 'Intensificação' : 'Consolidação';
+          mainExercises = [
+            {
+              name: 'Flexão de Braço',
+              muscle_groups: ['Peitoral', 'Deltoides', 'Tríceps'],
+              sets: week <= 2 ? 3 : week <= 4 ? 4 : week <= 6 ? 4 : 3,
+              reps: week <= 2 ? '6-10' : week <= 4 ? '8-12' : week <= 6 ? '6-10' : '8-10',
+              rest_seconds: week <= 2 ? 60 : week <= 4 ? 90 : week <= 6 ? 120 : 90,
+              weight_guidance: 'Peso corporal',
+              instructions: 'Posição inicial: Mãos no chão ligeiramente mais afastadas que os ombros. Corpo reto da cabeça aos calcanhares. Desça controladamente até o peito quase tocar o chão.',
+              form_cues: ['Corpo reto como prancha', 'Cotovelos a 45 graus', 'Amplitude completa'],
+              progression_notes: week <= 2 ? 'Pode usar joelhos se necessário' : week <= 4 ? 'Busque amplitude completa' : week <= 6 ? 'Explore variações' : 'Foque na qualidade'
+            }
+          ];
+        } else {
+          workoutTitle = 'Treino C - Costas e Bíceps';
+          focus = week <= 2 ? 'Adaptação técnica' : week <= 4 ? 'Progressão de volume' : week <= 6 ? 'Intensificação' : 'Consolidação';
+          mainExercises = [
+            {
+              name: 'Remada Isométrica',
+              muscle_groups: ['Latíssimo', 'Romboides', 'Bíceps'],
+              sets: week <= 2 ? 3 : week <= 4 ? 4 : week <= 6 ? 4 : 3,
+              reps: week <= 2 ? '30s' : week <= 4 ? '45s' : week <= 6 ? '60s' : '45s',
+              rest_seconds: week <= 2 ? 60 : week <= 4 ? 90 : week <= 6 ? 120 : 90,
+              weight_guidance: 'Resistência elástica ou peso corporal',
+              instructions: 'Simule movimento de remada, contraindo fortemente músculos das costas. Mantenha postura ereta e ombros para trás.',
+              form_cues: ['Ombros para trás', 'Peito aberto', 'Cotovelos junto ao corpo'],
+              progression_notes: week <= 2 ? 'Concentre-se na ativação muscular' : week <= 4 ? 'Aumente tempo gradualmente' : week <= 6 ? 'Maximize contração' : 'Mantenha intensidade'
+            }
+          ];
+        }
+      } else {
+        // Adaptação para outros números de dias
+        workoutTitle = `Treino ${day} - Corpo Inteiro`;
+        focus = week <= 2 ? 'Adaptação e familiarização' : week <= 4 ? 'Progressão gradual' : week <= 6 ? 'Intensificação' : 'Consolidação';
+        mainExercises = [
+          {
+            name: day % 2 === 1 ? 'Agachamento Livre' : 'Flexão de Braço',
+            muscle_groups: day % 2 === 1 ? ['Quadríceps', 'Glúteos'] : ['Peitoral', 'Tríceps'],
+            sets: week <= 2 ? 3 : week <= 4 ? 4 : 4,
+            reps: week <= 2 ? '8-12' : week <= 4 ? '10-15' : '8-12',
+            rest_seconds: week <= 2 ? 60 : week <= 4 ? 90 : 120,
+            weight_guidance: 'Peso corporal',
+            instructions: day % 2 === 1 ? 
+              'Agachamento: Pés na largura dos ombros, desça flexionando joelhos e quadril.' :
+              'Flexão: Mãos no chão, corpo reto, desça peito até quase tocar o solo.',
+            form_cues: day % 2 === 1 ? 
+              ['Joelhos alinhados', 'Peito ereto'] : 
+              ['Corpo reto', 'Amplitude completa'],
+            progression_notes: `Semana ${week}: ${focus}`
+          }
+        ];
+      }
+      
+      workouts.push({
+        week: week,
+        day: day,
+        title: workoutTitle,
+        focus: focus,
+        estimated_duration: sessionDuration,
+        warm_up: {
+          duration: 10,
+          exercises: [
+            {
+              name: 'Aquecimento Geral',
+              duration: 300,
+              instructions: 'Movimentos articulares e ativação gradual'
+            },
+            {
+              name: 'Mobilidade Específica',
+              duration: 300,
+              instructions: 'Prepare as articulações para o treino'
+            }
+          ]
+        },
+        main_exercises: mainExercises,
+        cool_down: {
+          duration: 8,
+          exercises: [
+            {
+              name: 'Alongamento Geral',
+              duration: 240,
+              instructions: 'Alongue os músculos trabalhados'
+            },
+            {
+              name: 'Relaxamento',
+              duration: 240,
+              instructions: 'Respire fundo e relaxe'
+            }
+          ]
+        }
+      });
+    }
+  }
+  
   return {
-    title: `Plano de Treino Avançado 8 Semanas ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
-    description: `Plano de treino periodizado de 8 semanas, desenvolvido especificamente para ${goalDesc}, considerando ${userProfile?.limitations || 'nenhuma limitação'}, com ${userProfile?.available_days || 3} sessões semanais e utilizando ${userProfile?.equipment || 'peso corporal'}. Este plano detalhado inclui progressão semanal, instruções de exercícios com foco em biomecânica, aquecimento, recuperação e dicas nutricionais, adaptado ao perfil individual completo.`,
+    title: `Plano de Treino 8 Semanas ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
+    description: `Plano de treino periodizado de 8 semanas, desenvolvido especificamente para ${goalDesc}, considerando ${userProfile?.limitations || 'nenhuma limitação'}, com ${availableDays} sessões semanais de ${sessionDuration} minutos cada.`,
     difficulty_level: difficultyLevel,
     duration_weeks: 8,
+    total_workouts: availableDays * 8,
     source: 'enhanced_fallback',
-    sessions: [
-      {
-        week_range: "Semanas 1-2",
-        focus: "Adaptação e Familiarização",
-        daily_workouts: [
-          {
-            day: "Dia 1",
-            theme: "Treino de Força Total - Adaptação",
-            warm_up: {
-              duration: "12-15 minutos",
-              exercises: [
-                {
-                  name: "Caminhada/Corrida Leve",
-                  duration: "5 minutos",
-                  notes: "Elevação gradual da frequência cardíaca de 50% para 60% da FC máxima. Mantenha ritmo confortável onde consiga conversar."
-                },
-                {
-                  name: "Mobilidade de Quadril - Rotações",
-                  sets: 2,
-                  reps: "10 por lado",
-                  notes: "Círculos amplos com a perna, mãos na cintura para equilíbrio. Foque na amplitude completa do movimento."
-                },
-                {
-                  name: "Alongamento Dinâmico de Tronco",
-                  sets: 2,
-                  reps: "8 por lado",
-                  notes: "Torções suaves do tronco com braços estendidos, mantendo quadris fixos."
-                }
-              ]
-            },
-            exercises: [
-              {
-                name: "Agachamento Livre (Bodyweight Squat)",
-                muscles_targeted: "Primários: Quadríceps (reto femoral, vasto lateral, vasto medial, vasto intermédio), Glúteos (máximo, médio, mínimo). Secundários: Isquiotibiais (bíceps femoral, semitendinoso, semimembranoso), Adutores. Estabilizadores: Core (reto abdominal, oblíquos, transverso do abdômen), Eretores da espinha, Gastrocnêmio.",
-                initial_position: "Posicione-se em pé com os pés na largura dos ombros, pontas dos pés levemente voltadas para fora (10-15 graus). Distribua o peso uniformemente em ambos os pés, com ligeira ênfase nos calcanhares. Mantenha a coluna em posição neutra, peito aberto, ombros relaxados e para trás. Olhar direcionado para frente ou ligeiramente para cima. Braços estendidos à frente na altura dos ombros para equilíbrio, ou cruzados no peito.",
-                execution_steps: "1. PREPARAÇÃO: Ative o core contraindo o abdômen como se fosse receber um soco. Inspire profundamente. 2. FASE EXCÊNTRICA (Descida): Inicie o movimento flexionando simultaneamente os joelhos e o quadril, como se fosse sentar em uma cadeira imaginária atrás de você. Mantenha o peito aberto e a coluna reta, evitando curvar as costas. Desça controladamente até que as coxas fiquem paralelas ao chão (90 graus de flexão no joelho) ou o máximo que sua mobilidade permitir sem compensações. 3. POSIÇÃO INFERIOR: Mantenha os joelhos alinhados com as pontas dos pés, sem deixá-los cair para dentro (valgo) ou para fora (varo). O peso deve estar distribuído nos calcanhares e parte média dos pés. 4. FASE CONCÊNTRICA (Subida): Empurre o chão com os calcanhares, iniciando a subida pela extensão do quadril (ativação dos glúteos) seguida pela extensão dos joelhos. Mantenha o tronco ereto durante toda a subida. Expire durante esta fase. 5. FINALIZAÇÃO: Estenda completamente os joelhos e quadris, retornando à posição inicial sem hiperextender.",
-                breathing: "INSPIRAÇÃO: Durante a fase de descida (excêntrica), inspire profundamente pelo nariz, expandindo o diafragma. RETENÇÃO: Mantenha o ar brevemente na posição mais baixa para estabilização do core. EXPIRAÇÃO: Expire pela boca durante a subida (concêntrica), contraindo o abdômen para auxiliar na estabilização.",
-                correct_execution_signs: "Peso distribuído nos calcanhares e parte média dos pés (não na ponta). Joelhos alinhados com as pontas dos pés durante todo o movimento. Coluna mantém curvatura natural (neutra). Peito aberto e ombros para trás. Sensação de 'sentar para trás' na descida. Ativação clara dos glúteos na subida. Movimento fluido e controlado sem compensações.",
-                common_errors: "Joelhos caindo para dentro (valgo dinâmico) - corrija fortalecendo glúteo médio e conscientização. Arredondamento da lombar (flexão excessiva) - melhore mobilidade de quadril e tornozelo. Peso transferido para a ponta dos pés - foque em 'sentar para trás'. Inclinação excessiva do tronco para frente - trabalhe mobilidade de tornozelo. Amplitude limitada - progressivamente aumente a descida conforme mobilidade melhora.",
-                progression_variations: "REGRESSÃO: Agachamento com apoio em cadeira (sente e levante), agachamento com TRX ou faixa elástica para assistência. PROGRESSÃO: Agachamento com pausa (3s em baixo), agachamento sumô (pés mais afastados), agachamento búlgaro (unilateral), agachamento com salto (pliométrico).",
-                sets: 3,
-                reps: "10-12",
-                rest: "60-90s",
-                cadence: "2-1-2-0 (2s descida, 1s pausa, 2s subida, sem pausa no topo)"
-              },
-              {
-                name: "Flexão de Braço (Push-up)",
-                muscles_targeted: "Primários: Peitoral maior (porção clavicular e esternocostal), Deltóides anteriores, Tríceps braquial (cabeça longa, lateral e medial). Secundários: Serrátil anterior, Peitoral menor. Estabilizadores: Core (reto abdominal, oblíquos, transverso), Glúteos, Eretores da espinha, Deltóides posteriores.",
-                initial_position: "Posicione-se em decúbito ventral (barriga para baixo). Coloque as mãos no chão, palmas apoiadas, dedos apontando para frente, posicionadas um pouco mais afastadas que a largura dos ombros. Para iniciantes: apoie os joelhos no chão. Para nível intermediário/avançado: apoie na ponta dos pés. Mantenha o corpo em linha reta da cabeça aos calcanhares (ou joelhos), sem deixar o quadril cair ou elevar excessivamente. Ombros posicionados diretamente acima das mãos. Core contraído para manter alinhamento corporal.",
-                execution_steps: "1. PREPARAÇÃO: Comece com os braços estendidos, corpo alinhado, core ativado. Inspire profundamente. 2. FASE EXCÊNTRICA (Descida): Flexione os cotovelos simultaneamente, abaixando o peito em direção ao chão de forma controlada. Os cotovelos devem apontar ligeiramente para trás e para fora (aproximadamente 45 graus em relação ao corpo), não completamente para os lados. Mantenha o corpo rígido como uma tábua durante toda a descida. Desça até que o peito quase toque o chão (2-3cm de distância). 3. POSIÇÃO INFERIOR: Pause brevemente na posição mais baixa, mantendo tensão muscular. 4. FASE CONCÊNTRICA (Subida): Empurre o chão com as palmas das mãos, estendendo os cotovelos para retornar à posição inicial. Mantenha o alinhamento corporal durante toda a subida. Expire durante esta fase. 5. FINALIZAÇÃO: Estenda completamente os braços sem travar os cotovelos em hiperextensão.",
-                breathing: "INSPIRAÇÃO: Durante a descida, inspire pelo nariz, expandindo a caixa torácica. RETENÇÃO: Mantenha o ar brevemente na posição inferior para estabilização. EXPIRAÇÃO: Expire pela boca durante a subida, contraindo o core.",
-                correct_execution_signs: "Corpo mantido em linha reta sem 'quebrar' no quadril. Cotovelos em ângulo de aproximadamente 45 graus. Amplitude completa de movimento (peito próximo ao chão). Core constantemente ativado. Movimento controlado sem 'cair' na descida. Sensação de empurrar o chão na subida.",
-                common_errors: "Quadril caindo (lordose excessiva) - fortaleça core e glúteos. Quadril muito elevado (posição de pique) - consciência corporal e prática. Cotovelos muito abertos (90 graus) - ajuste para 45 graus para proteger ombros. Amplitude limitada (não desce suficiente) - trabalhe flexibilidade e força. Movimento muito rápido - foque na cadência controlada.",
-                progression_variations: "REGRESSÃO: Flexão na parede (vertical), flexão inclinada (mãos elevadas em banco), flexão com joelhos apoiados. PROGRESSÃO: Flexão declinada (pés elevados), flexão com uma mão, flexão com aplauso, flexão archer (unilateral).",
-                sets: 3,
-                reps: "8-10",
-                rest: "60-90s",
-                cadence: "2-1-2-0 (2s descida, 1s pausa, 2s subida, sem pausa no topo)"
-              }
-            ],
-            cool_down: {
-              duration: "8-10 minutos",
-              exercises: [
-                {
-                  name: "Alongamento de Peitoral na Parede",
-                  duration: "30s por lado",
-                  notes: "Em pé, coloque a palma da mão na parede, braço estendido na altura do ombro. Gire o corpo para o lado oposto sentindo alongamento no peitoral."
-                },
-                {
-                  name: "Alongamento de Quadríceps",
-                  duration: "30s por lado",
-                  notes: "Em pé, segure o tornozelo e puxe o calcanhar em direção ao glúteo. Mantenha joelhos alinhados e quadril neutro."
-                }
-              ]
-            }
-          },
-          {
-            day: "Dia 2",
-            theme: "Treino de Resistência e Core - Adaptação",
-            warm_up: {
-              duration: "12-15 minutos",
-              exercises: [
-                {
-                  name: "Marcha Estacionária",
-                  duration: "4 minutos",
-                  notes: "Elevação alternada dos joelhos, braços acompanhando o movimento. Progressivamente aumente a intensidade."
-                },
-                {
-                  name: "Mobilidade de Ombros - Círculos",
-                  sets: 2,
-                  reps: "10 para frente e 10 para trás",
-                  notes: "Braços estendidos lateralmente, círculos amplos e controlados."
-                }
-              ]
-            },
-            exercises: [
-              {
-                name: "Prancha (Plank)",
-                muscles_targeted: "Primários: Reto abdominal, Transverso do abdômen, Oblíquos interno e externo. Secundários: Eretores da espinha, Multífidos. Estabilizadores: Deltóides anteriores, Serrátil anterior, Glúteos, Quadríceps.",
-                initial_position: "Posicione-se em decúbito ventral. Apoie-se nos antebraços (cotovelos diretamente abaixo dos ombros) e pontas dos pés. Para iniciantes: pode apoiar nos joelhos. Antebraços paralelos, mãos espalmadas no chão ou punhos fechados. Corpo deve formar uma linha reta da cabeça aos calcanhares (ou joelhos).",
-                execution_steps: "1. PREPARAÇÃO: Posicione-se corretamente, ative o core contraindo profundamente o abdômen. 2. MANUTENÇÃO: Mantenha a posição isométrica, respirando normalmente. Foque em manter o alinhamento corporal sem deixar o quadril cair ou subir. 3. ATIVAÇÃO CONTÍNUA: Mantenha glúteos contraídos, core ativado, e ombros estáveis. 4. RESPIRAÇÃO: Respire de forma controlada e ritmada durante toda a sustentação.",
-                breathing: "RESPIRAÇÃO CONTÍNUA: Mantenha respiração ritmada e controlada. Não prenda a respiração. Inspire pelo nariz, expire pela boca.",
-                correct_execution_signs: "Corpo em linha reta sem curvatura. Core constantemente ativado. Glúteos contraídos. Ombros estáveis e alinhados. Respiração controlada e ritmada.",
-                common_errors: "Quadril caído (lordose) - ative mais os glúteos e core. Quadril elevado - conscientização do alinhamento. Ombros desalinhados - posicione cotovelos sob os ombros. Respiração irregular - pratique respiração ritmada.",
-                progression_variations: "REGRESSÃO: Prancha com joelhos apoiados, prancha inclinada (mãos elevadas). PROGRESSÃO: Prancha com elevação de perna, prancha lateral, prancha com movimentos dinâmicos.",
-                sets: 3,
-                reps: "20-30s",
-                rest: "45-60s",
-                cadence: "Isométrico - manter posição"
-              }
-            ],
-            cool_down: {
-              duration: "8-10 minutos",
-              exercises: [
-                {
-                  name: "Posição da Criança (Child's Pose)",
-                  duration: "60s",
-                  notes: "Ajoelhado, sente nos calcanhares e estenda braços à frente, alongando coluna e relaxando."
-                }
-              ]
-            }
-          }
-        ]
-      },
-      {
-        week_range: "Semanas 3-4",
-        focus: "Progressão Gradual",
-        daily_workouts: [
-          {
-            day: "Dia 1",
-            theme: "Treino de Força - Progressão",
-            warm_up: {
-              duration: "12-15 minutos",
-              exercises: [
-                {
-                  name: "Aquecimento Cardiovascular Progressivo",
-                  duration: "6 minutos",
-                  notes: "Comece leve e aumente gradualmente: caminhada (2min) → caminhada rápida (2min) → trote leve (2min)."
-                },
-                {
-                  name: "Mobilidade Dinâmica Completa",
-                  sets: 2,
-                  reps: "8 de cada movimento",
-                  notes: "Rotações de braços, leg swings, torções de tronco, círculos de quadril."
-                }
-              ]
-            },
-            exercises: [
-              {
-                name: "Agachamento com Pausa",
-                muscles_targeted: "Primários: Quadríceps, Glúteos. Secundários: Isquiotibiais, Core. Estabilizadores: Panturrilhas, Eretores da espinha.",
-                initial_position: "Mesma posição do agachamento básico, com foco adicional na estabilização durante a pausa.",
-                execution_steps: "Execute o agachamento normal, mas adicione uma pausa de 3 segundos na posição mais baixa, mantendo toda a tensão muscular ativa.",
-                breathing: "Inspire na descida, mantenha o ar durante a pausa, expire na subida.",
-                correct_execution_signs: "Manutenção da posição sem relaxar, ativação constante dos músculos durante a pausa.",
-                common_errors: "Relaxar a musculatura durante a pausa, perder alinhamento na posição baixa.",
-                progression_variations: "Aumente o tempo de pausa para 5 segundos, adicione peso corporal ou implementos.",
-                sets: 4,
-                reps: "8-10",
-                rest: "90s",
-                cadence: "2-3-2-0 (2s descida, 3s pausa, 2s subida)"
-              }
-            ],
-            cool_down: {
-              duration: "10 minutos",
-              exercises: [
-                {
-                  name: "Sequência de Alongamentos Dirigidos",
-                  duration: "10 minutos",
-                  notes: "Quadríceps (1min cada lado), isquiotibiais (1min cada lado), glúteos (1min cada lado), panturrilhas (1min cada lado), lombar (2min)."
-                }
-              ]
-            }
-          }
-        ]
-      }
+    workouts: workouts,
+    nutrition_tips: [
+      'Hidrate-se com 35-40ml de água por kg de peso corporal diariamente',
+      'Consuma proteína de qualidade 30-60 minutos após o treino',
+      'Mantenha refeições equilibradas com carboidratos, proteínas e gorduras saudáveis',
+      'Evite treinar em jejum prolongado ou muito próximo às refeições principais'
     ],
-    nutrition_and_hydration_tips: [
-      "**Hidratação Essencial Personalizada:** Consuma 35-40ml de água por kg de peso corporal diariamente (ex: 70kg = 2,5L/dia). Nos dias de treino, adicione 500-750ml extras. Beba 200-300ml de água 30 minutos antes do treino para otimizar a hidratação celular.",
-      "**Estratégia Pré-Treino Detalhada (1-2 horas antes):** Priorize carboidratos complexos de absorção moderada (30-50g): aveia com banana, batata-doce assada, pão integral com mel, ou frutas como maçã com aveia. Evite alimentos ricos em gordura e fibras 2h antes do treino para prevenir desconforto digestivo. Inclua uma pequena quantidade de proteína (10-15g) se o treino for intenso.",
-      "**Janela Anabólica Pós-Treino (até 60 minutos após):** Foque na recuperação muscular e reposição de glicogênio. Combine proteínas de alta qualidade e aminoácidos essenciais (20-30g) com carboidratos de rápida absorção (30-40g). Opções ideais: whey protein com banana e mel, frango grelhado com arroz branco, iogurte grego com frutas vermelhas, ou vitamina de frutas com proteína.",
-      "**Progressão Nutricional Semanal Detalhada:** Semanas 1-2: Estabeleça rotina alimentar consistente, identifique horários de fome e saciedade, introduza fontes saudáveis de macronutrientes. Semanas 3-4: Otimize timing das refeições pré e pós-treino, ajuste porções conforme demanda energética, monitore níveis de energia durante treinos. Semanas 5-6: Refine quantidades de macronutrientes baseado na resposta corporal, aumente proteínas para ganho de massa (2g/kg) ou ajuste carboidratos para perda de peso. Semanas 7-8: Personalize completamente a dieta, foque em alimentos densos nutricionalmente, considere ciclagem de carboidratos se apropriado.",
-      "**Micronutrientes Essenciais para Performance:** Magnésio (400-500mg/dia) - crucial para contração muscular e recuperação, encontrado em folhas verdes, castanhas e sementes. Vitamina D (1000-2000 UI/dia) - fundamental para saúde óssea e força muscular, exposição solar ou suplementação. Ômega-3 (1-2g/dia) - reduz inflamação e acelera recuperação, presente em peixes gordos, linhaça e chia. Zinco (8-11mg/dia) - essencial para síntese proteica e função imunológica, carnes magras e leguminosas.",
-      "**Gestão Energética Progressiva:** Semanas 1-4: Mantenha ingestão calórica que suporte adequadamente o nível de atividade física, evite déficits drásticos que comprometam performance. Monitore peso corporal semanalmente. Semanas 5-8: Para perda de peso, implemente déficit calórico moderado de 300-500 calorias/dia, mantendo alta ingestão proteica para preservar massa muscular. Para ganho de massa, crie superávit controlado de 200-400 calorias/dia, focando em alimentos nutritivos e evitando ganho excessivo de gordura."
-    ],
-    important_considerations: [
-      "**Princípio da Escuta Corporal Ativa:** Desenvolva consciência corporal aguçada. Dor aguda, especialmente articular, não é normal e requer investigação médica. Diferencie entre desconforto muscular normal do exercício (queimação, fadiga) e dor potencialmente lesiva (aguda, cortante, persistente). Sempre priorize a técnica correta sobre carga ou intensidade.",
-      "**Consistência Como Fundamento:** A aderência contínua ao plano é exponencialmente mais importante que intensidade esporádica. Pequenos progressos diários acumulam resultados transformadores. É melhor treinar 3x/semana consistentemente por 8 semanas do que alternar entre períodos intensos e sedentários.",
-      "**Adaptação Inteligente e Flexibilidade:** Este plano é uma estrutura científica, não um dogma rígido. À medida que você evolui, suas necessidades mudarão. Esteja preparado para adaptar exercícios conforme limitações ou progressões, ajustar cargas baseado na recuperação, e modificar volume conforme capacidade de treino se desenvolve.",
-      "**Progressão Lógica e Segura:** Todo aumento de carga, volume ou intensidade deve seguir o princípio da sobrecarga progressiva gradual. Aumentos de 5-10% semanais são ideais para força, enquanto volume pode aumentar 10-15%. Evite saltos drásticos que levam a lesões ou overtraining.",
-      "**Recuperação Como Pilar Fundamental:** O treino é apenas o estímulo; a adaptação acontece na recuperação. Priorize 7-9 horas de sono de qualidade, mantenha níveis de estresse controlados, utilize técnicas de relaxamento como respiração diafragmática ou meditação. Considere massagem, liberação miofascial e banhos mornos para acelerar recuperação muscular."
-    ]
+    progression_schedule: {
+      weeks_1_2: 'Adaptação e familiarização - foco na técnica correta',
+      weeks_3_4: 'Progressão gradual - aumento de volume e repetições',
+      weeks_5_6: 'Intensificação - técnicas avançadas e maior sobrecarga',
+      weeks_7_8: 'Consolidação e refinamento - manutenção da qualidade técnica'
+    }
   };
 }
