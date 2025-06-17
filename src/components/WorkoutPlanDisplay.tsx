@@ -219,7 +219,7 @@ const WorkoutPlanDisplay = ({
                       <h4 className="font-semibold text-blue-700 capitalize">
                         {period.replace('_', ' ').replace(/(\d+)/g, '$1')}
                       </h4>
-                      <p className="text-sm text-gray-600 mt-1">{description}</p>
+                      <p className="text-sm text-gray-600 mt-1">{String(description)}</p>
                     </div>
                   ))}
                 </div>
