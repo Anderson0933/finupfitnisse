@@ -1,175 +1,28 @@
+
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
-// Import the existing Supabase client
-import { supabase } from '@/integrations/supabase/client'; 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox'; // Import Checkbox
-import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Target, Clock, User as UserIcon, Zap, RefreshCw, Copy, FileText, Trash2, AlertTriangle, CheckCircle2, MessageCircle } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Sparkles, Target, Clock, Dumbbell, Brain, Apple } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import WorkoutPlanDisplay from './WorkoutPlanDisplay';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 
-// --- Supabase Plan Progress Logic (Integrated within component file) ---
-
-// Define the structure for plan progress data
-interface PlanProgressItem {
-  id?: number; // Optional: Supabase assigns this
-  user_id: string;
-  plan_id: string; // Identifier for the specific plan instance (using title for now)
-  item_identifier: string; // Unique identifier for the item within the plan (e.g., exercise name + index)
-  is_completed: boolean;
-  created_at?: string; // Optional: Supabase handles this
-  updated_at?: string; // Optional: Supabase handles this
-}
-
-// Assumes a table named 'plan_progress' exists in Supabase with columns:
-// id (bigint, primary key), user_id (uuid, foreign key to auth.users), plan_id (text), item_identifier (text), is_completed (boolean), created_at (timestampz), updated_at (timestampz)
-// RLS should be enabled for this table.
-
-/**
- * Fetches the progress for a specific plan for the current user.
- * Uses the globally imported 'supabase' client.
- * @param userId - The ID of the current user.
- * @param planId - The identifier of the plan.
- * @returns A map of item identifiers to their completion status.
- */
-const getPlanProgress = async (userId: string, planId: string): Promise<Map<string, boolean>> => {
-  console.log(`[Supabase] Fetching progress for user ${userId}, plan ${planId}`);
-  const { data, error } = await supabase
-    .from('plan_progress')
-    .select('item_identifier, is_completed')
-    .eq('user_id', userId)
-    .eq('plan_id', planId);
-
-  if (error) {
-    console.error('[Supabase] Error fetching plan progress:', error);
-    throw error;
-  }
-
-  const progressMap = new Map<string, boolean>();
-  data?.forEach(item => {
-    progressMap.set(item.item_identifier, item.is_completed);
-  });
-  console.log(`[Supabase] Fetched ${progressMap.size} progress items.`);
-  return progressMap;
-};
-
-/**
- * Updates or inserts the completion status for a specific item in a plan.
- * Uses the globally imported 'supabase' client.
- * @param progressItem - The progress item data.
- */
-const updateItemProgress = async (progressItem: Omit<PlanProgressItem, 'id' | 'created_at' | 'updated_at'>) => {
-  console.log(`[Supabase] Upserting progress for item: ${progressItem.item_identifier}, status: ${progressItem.is_completed}`);
-  const { data, error } = await supabase
-    .from('plan_progress')
-    .upsert(progressItem, {
-      onConflict: 'user_id, plan_id, item_identifier' // Specify conflict columns for upsert
-    })
-    .select(); // Select the upserted/updated row
-
-  if (error) {
-    console.error('[Supabase] Error updating item progress:', error);
-    throw error;
-  }
-  console.log(`[Supabase] Progress upserted successfully for item: ${progressItem.item_identifier}`);
-  return data;
-};
-
-/**
- * Deletes all progress entries for a specific plan for the current user.
- * Uses the globally imported 'supabase' client.
- * @param userId - The ID of the current user.
- * @param planId - The identifier of the plan.
- */
-const deletePlanProgress = async (userId: string, planId: string) => {
-  console.log(`[Supabase] Deleting progress for user ${userId}, plan ${planId}`);
-  const { error } = await supabase
-    .from('plan_progress')
-    .delete()
-    .eq('user_id', userId)
-    .eq('plan_id', planId);
-
-  if (error) {
-    console.error('[Supabase] Error deleting plan progress:', error);
-    throw error;
-  }
-  console.log(`[Supabase] Progress deleted successfully for plan: ${planId}`);
-};
-// --- End Supabase Plan Progress Logic ---
-
-// Updated WorkoutPlan interface
 export interface WorkoutPlan {
-  id?: string;
   title: string;
   description: string;
   difficulty_level: string;
   duration_weeks: number;
   total_workouts?: number;
-  workouts?: Array<{
-    week: number;
-    day: number;
-    title: string;
-    focus: string;
-    estimated_duration: number;
-    warm_up: {
-      duration: number;
-      exercises: Array<{
-        name: string;
-        duration: number;
-        instructions: string;
-      }>;
-    };
-    main_exercises: Array<{
-      name: string;
-      muscle_groups: string[];
-      sets: number;
-      reps: string;
-      rest_seconds: number;
-      weight_guidance: string;
-      instructions: string;
-      form_cues: string[];
-      progression_notes: string;
-    }>;
-    cool_down: {
-      duration: number;
-      exercises: Array<{
-        name: string;
-        duration: number;
-        instructions: string;
-      }>;
-    };
-  }>;
-  exercises?: Array<{
-    name: string;
-    sets: number;
-    reps: string;
-    rest: string;
-    instructions: string;
-  }>;
+  workouts?: any[];
+  exercises?: any[];
   nutrition_tips?: string[];
-  weekly_schedule?: any;
-  progression_protocol?: any;
-  nutrition_guidelines?: any;
-  recovery_protocols?: any;
-  progress_tracking?: any;
-  safety_guidelines?: any;
   progression_schedule?: any;
 }
 
@@ -177,762 +30,345 @@ interface WorkoutPlanGeneratorProps {
   user: User | null;
   workoutPlan: WorkoutPlan | null;
   setWorkoutPlan: (plan: WorkoutPlan | null) => void;
-  initialActiveTab?: 'form' | 'plan';
-  onSwitchToAssistant?: () => void; // Nova prop para navegação
+  initialActiveTab?: string;
+  onSwitchToAssistant?: () => void;
 }
-
-// FORM PERSISTENCE KEY
-const FORM_STORAGE_KEY = 'workout_form_data';
 
 const WorkoutPlanGenerator = ({ 
   user, 
   workoutPlan, 
-  setWorkoutPlan,
+  setWorkoutPlan, 
   initialActiveTab = 'form',
-  onSwitchToAssistant
+  onSwitchToAssistant 
 }: WorkoutPlanGeneratorProps) => {
+  const [activeTab, setActiveTab] = useState(initialActiveTab);
   const [loading, setLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  
-  // Load form data from localStorage or use defaults
-  const loadFormData = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(FORM_STORAGE_KEY);
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (error) {
-          console.warn('Failed to parse saved form data:', error);
-        }
-      }
-    }
-    return {
-      age: '',
-      gender: '',
-      weight: '',
-      height: '',
-      fitnessLevel: '',
-      goals: [],
-      availableTime: '',
-      availableDays: '',
-      equipment: '',
-      limitations: ''
-    };
-  };
-
-  const [formData, setFormData] = useState(loadFormData);
-  const [activeTab, setActiveTab] = useState<'form' | 'plan'>(() => 
-    workoutPlan ? 'plan' : initialActiveTab
-  );
-  const [otherLimitationsText, setOtherLimitationsText] = useState(""); 
-  const [otherGoalsText, setOtherGoalsText] = useState(""); 
-  // State to store completion status for each item
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
+  
+  // Form states
+  const [fitnessLevel, setFitnessLevel] = useState('');
+  const [fitnessGoals, setFitnessGoals] = useState('');
+  const [availableTime, setAvailableTime] = useState('');
+  const [preferredExercises, setPreferredExercises] = useState('');
+  const [healthConditions, setHealthConditions] = useState('');
+  const [workoutDays, setWorkoutDays] = useState('');
+
   const { toast } = useToast();
 
-  // Save form data to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
-    }
-  }, [formData]);
-
-  // Clear form data when plan is successfully generated
-  const clearFormData = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(FORM_STORAGE_KEY);
-    }
-    setFormData({
-      age: '',
-      gender: '',
-      weight: '',
-      height: '',
-      fitnessLevel: '',
-      goals: [],
-      availableTime: '',
-      availableDays: '',
-      equipment: '',
-      limitations: ''
-    });
-    setOtherLimitationsText('');
-    setOtherGoalsText('');
-  };
-
-  // Effect to load progress when plan and user are available
+  // Carregar progresso do banco de dados
   useEffect(() => {
     const loadProgress = async () => {
-      // Use workoutPlan.title as the planId for now. Consider a more stable ID if possible.
-      const currentPlanId = workoutPlan?.title;
-      if (user && currentPlanId) { 
-        try {
-          console.log(`🔄 Loading progress for plan: ${currentPlanId}`);
-          // Use the function defined above
-          const fetchedProgress = await getPlanProgress(user.id, currentPlanId);
-          setProgressMap(fetchedProgress);
-          console.log(`✅ Progress loaded: ${fetchedProgress.size} items`);
-        } catch (error) {
-          console.error('❌ Error loading plan progress:', error);
-          toast({
-            title: "Erro ao Carregar Progresso",
-            description: "Não foi possível carregar o estado dos itens concluídos.",
-            variant: "destructive",
-          });
+      if (!user || !workoutPlan) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('plan_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('plan_id', workoutPlan.title);
+
+        if (error) {
+          console.error('Error loading progress:', error);
+          return;
         }
-      } else {
-        // Clear progress if no user or plan
-        setProgressMap(new Map());
+
+        const newProgressMap = new Map<string, boolean>();
+        data?.forEach(progress => {
+          newProgressMap.set(progress.item_identifier, progress.is_completed);
+        });
+        
+        setProgressMap(newProgressMap);
+        console.log('Progress loaded:', newProgressMap);
+      } catch (error) {
+        console.error('Error in loadProgress:', error);
       }
     };
 
     loadProgress();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, workoutPlan?.title]); // Rerun only when user or plan *title* changes
+  }, [user, workoutPlan]);
 
   useEffect(() => {
-    if (workoutPlan && activeTab !== 'plan') {
+    if (workoutPlan) {
       setActiveTab('plan');
     }
-  }, [workoutPlan, activeTab]);
+  }, [workoutPlan]);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleProgressChange = (itemId: string, completed: boolean) => {
+    setProgressMap(prev => new Map(prev.set(itemId, completed)));
   };
 
-  // NEW: Handler for Goals Checkboxes
-  const handleGoalChange = (goal: string, checked: boolean) => {
-    setFormData(prev => {
-      const currentGoals = prev.goals || []; // Ensure goals is an array
-      if (checked) {
-        // Add goal if checked and not already present
-        return { ...prev, goals: [...currentGoals, goal] };
-      } else {
-        // Remove goal if unchecked
-        const updatedGoals = currentGoals.filter(g => g !== goal);
-        // If unchecking "outros", also clear the text
-        if (goal === "outros") {
-          setOtherGoalsText("");
-        }
-        return { ...prev, goals: updatedGoals };
-      }
-    });
-  };
-
-  const handleSelectChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Limpa o texto de "outras" se a seleção mudar
-    if (field === 'limitations' && value !== 'outros') {
-      setOtherLimitationsText('');
-    }
-  };
-
-  // Function to handle checkbox change
-  const handleProgressChange = async (itemIdentifier: string, currentStatus: boolean) => {
-    const currentPlanId = workoutPlan?.title;
-    if (!user || !currentPlanId) return;
-
-    const newStatus = !currentStatus;
-    const userId = user.id;
-    const planId = currentPlanId; // Using title as planId
-
-    // Optimistic UI update
-    setProgressMap(prevMap => new Map(prevMap).set(itemIdentifier, newStatus));
-
-    try {
-      // Use the function defined above
-      await updateItemProgress({
-        user_id: userId,
-        plan_id: planId,
-        item_identifier: itemIdentifier,
-        is_completed: newStatus,
-      });
-      console.log(`✅ Progress updated for item: ${itemIdentifier} to ${newStatus}`);
-    } catch (error) {
-      console.error('❌ Error updating item progress:', error);
-      // Revert UI on error
-      setProgressMap(prevMap => new Map(prevMap).set(itemIdentifier, currentStatus));
-      toast({
-        title: "Erro ao Salvar Progresso",
-        description: "Não foi possível salvar a alteração. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const saveWorkoutPlan = async (plan: WorkoutPlan) => {
-    if (!user) return;
-
-    console.log('💾 Tentando salvar o plano no DB...');
-    try {
-      // Delete existing plan first (current logic)
-      const { error: deleteError } = await supabase
-        .from('user_workout_plans')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (deleteError) {
-        console.warn('⚠️ Erro ao deletar plano antigo (pode não existir):', deleteError.message);
-      }
-
-      // Also delete existing progress for the *old* plan before saving the new one
-      // This assumes generating a new plan replaces the old one entirely.
-      const oldPlanId = workoutPlan?.title; // Get the ID (title) of the plan being replaced
-      if (oldPlanId) {
-         console.log(`🗑️ Deleting old progress for plan being replaced: ${oldPlanId}`);
-         // Use the function defined above
-         await deletePlanProgress(user.id, oldPlanId);
-      }
-
-      // Insert the new plan
-      const { data: insertData, error: insertError } = await supabase
-        .from('user_workout_plans')
-        .insert({
-          user_id: user.id,
-          plan_data: plan as any // Cast to any to satisfy the Json type requirement
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('❌ Erro ao salvar novo plano:', insertError);
-        throw new Error('Falha ao salvar o plano de treino no banco de dados.');
-      }
-      
-      const savedPlan = plan; // Continue using title as ID for now
-
-      console.log('✅ Plano salvo com sucesso no DB!');
-      return savedPlan; // Return the saved plan
-    } catch (error: any) {
-      console.error('💥 Erro na função saveWorkoutPlan:', error);
-      toast({
-        title: "Erro ao Salvar Plano",
-        description: error.message || "Não foi possível salvar seu plano. Tente gerar novamente.",
-        variant: "destructive",
-      });
-      return null; // Indicate failure
-    }
-  };
-
-  const generateWorkoutPlan = async () => {
+  const handleGeneratePlan = async () => {
     if (!user) {
-      toast({ title: "Erro de autenticação", description: "Logue novamente.", variant: "destructive" });
+      toast({ title: "Erro", description: "Você precisa estar logado para gerar um plano.", variant: "destructive" });
       return;
     }
 
-    const requiredFields = ['age', 'gender', 'weight', 'height', 'fitnessLevel', 'goals'];
-    const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
-    if (missingFields.length > 0) {
-      toast({ title: "Campos obrigatórios", description: `Preencha: ${missingFields.join(', ')}`, variant: "destructive" });
-      return;
-    }
-    if (isNaN(parseInt(formData.age)) || isNaN(parseInt(formData.height)) || isNaN(parseInt(formData.weight))) {
-       toast({ title: "Valores inválidos", description: "Idade, Altura (cm) e Peso (kg) devem ser números.", variant: "destructive" });
+    if (!fitnessLevel || !fitnessGoals || !availableTime || !workoutDays) {
+      toast({ title: "Campos obrigatórios", description: "Por favor, preencha todos os campos obrigatórios.", variant: "destructive" });
       return;
     }
 
     setLoading(true);
-    const oldPlanId = workoutPlan?.title;
-    setWorkoutPlan(null);
-    setProgressMap(new Map());
     
     try {
-      console.log('🚀 INICIANDO GERAÇÃO DO PLANO');
-      const sessionDuration = formData.availableTime ? parseInt(formData.availableTime) || 60 : 60;
-      const availableDays = formData.availableDays ? parseInt(formData.availableDays) || 3 : 3;
-
-      let finalGoals = formData.goals || [];
-      if (finalGoals.includes("outros")) {
-        finalGoals = finalGoals.filter(g => g !== "outros");
-        if (otherGoalsText.trim()) {
-          finalGoals.push(`outros: ${otherGoalsText.trim()}`);
+      const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
+        body: {
+          user_id: user.id,
+          fitness_level: fitnessLevel,
+          fitness_goals: fitnessGoals,
+          available_time: availableTime,
+          preferred_exercises: preferredExercises,
+          health_conditions: healthConditions,
+          workout_days: parseInt(workoutDays)
         }
-      }
-      if (finalGoals.length === 0) {
-         finalGoals.push("saude_geral");
-         toast({ title: "Objetivo Padrão", description: "Nenhum objetivo selecionado, usando 'Saúde Geral'.", variant: "default" });
-      }
-
-      const requestData = {
-        userProfile: {
-          age: parseInt(formData.age),
-          gender: formData.gender,
-          weight: parseInt(formData.weight),
-          height: parseInt(formData.height),
-          fitness_level: formData.fitnessLevel,
-          fitness_goals: finalGoals,
-          available_days: availableDays,
-          session_duration: sessionDuration,
-          equipment: formData.equipment || 'peso_corporal',
-          limitations: formData.limitations === 'outros'
-                        ? `outros: ${otherLimitationsText || 'não especificado'}`
-                        : formData.limitations || 'nenhuma'
-        },
-        userId: user.id
-      };
-
-      console.log('📤 Enviando para a API generate-workout-plan...');
-      const { data, error: functionError } = await supabase.functions.invoke('generate-workout-plan', {
-        body: requestData
       });
 
-      if (functionError) throw new Error(functionError.message || 'Erro na função generate-workout-plan');
-      if (!data || typeof data !== 'object' || (!data.title && !data.workouts)) throw new Error('Plano de treino inválido retornado pela API');
-
-      console.log('✅ Dados do plano recebidos da API');
-      const plan: WorkoutPlan = {
-        title: data.title || 'Plano de Treino Personalizado',
-        description: data.description || 'Plano gerado com base no seu perfil',
-        difficulty_level: data.difficulty_level || 'iniciante',
-        duration_weeks: data.duration_weeks || 8,
-        total_workouts: data.total_workouts,
-        workouts: data.workouts || [],
-        nutrition_tips: data.nutrition_tips || [],
-        progression_schedule: data.progression_schedule,
-      };
-
-      const savedPlan = await saveWorkoutPlan(plan);
-      if (!savedPlan) {
-        setLoading(false);
+      if (error) {
+        console.error('Error generating workout plan:', error);
+        toast({ 
+          title: "Erro ao gerar plano", 
+          description: "Houve um problema ao gerar seu plano. Tente novamente.", 
+          variant: "destructive" 
+        });
         return;
       }
 
-      console.log('✅ Plano processado e salvo. Atualizando estado...');
-      setWorkoutPlan(savedPlan);
-      
-      setActiveTab('plan');
-      console.log('✅ Aba interna alterada para "plan"');
-      
-      clearFormData();
-      
-      // Mostrar toast de sucesso
-      toast({
-        title: "Plano gerado e salvo!",
-        description: "Seu plano de treino personalizado está pronto.",
-      });
-
-      // Mostrar toast adicional direcionando para o assistente
-      setTimeout(() => {
-        toast({
-          title: "💪 Dúvidas sobre o treino?",
-          description: "Fale com nosso Personal Trainer IA na aba Assistente para esclarecimentos!",
-          duration: 6000,
+      if (data && data.plan) {
+        console.log('Generated workout plan:', data.plan);
+        setWorkoutPlan(data.plan);
+        setActiveTab('plan');
+        
+        // Resetar progresso para o novo plano
+        setProgressMap(new Map());
+        
+        toast({ 
+          title: "Plano gerado com sucesso!", 
+          description: "Seu plano de treino personalizado está pronto." 
         });
-      }, 2000);
-
-    } catch (error: any) {
-      console.error('💥 Erro ao gerar/salvar plano:', error);
-      setWorkoutPlan(null);
-      setProgressMap(new Map());
-      toast({
-        title: "Erro ao Gerar Plano",
-        description: error.message || 'Erro desconhecido.',
-        variant: "destructive",
+      }
+    } catch (error) {
+      console.error('Error in handleGeneratePlan:', error);
+      toast({ 
+        title: "Erro inesperado", 
+        description: "Ocorreu um erro inesperado. Tente novamente.", 
+        variant: "destructive" 
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteWorkoutPlan = async () => {
-    const currentPlanId = workoutPlan?.title;
-    if (!user || !currentPlanId) return; // Check title for planId
-
-    setDeleting(true);
-    console.log('🗑️ Tentando deletar o plano e seu progresso do DB...');
-    const planId = currentPlanId; // Use title as planId
-
+  const handleCopyPlan = async () => {
+    if (!workoutPlan) return;
+    
     try {
-      // 1. Delete progress first
-      console.log(`🗑️ Deletando progresso para o plano: ${planId}`);
-      // Use the function defined above
-      await deletePlanProgress(user.id, planId);
-      console.log('✅ Progresso deletado com sucesso!');
-
-      // 2. Delete the plan itself
-      console.log(`🗑️ Deletando plano: ${planId}`);
-      // Use the existing Supabase client
-      const { error: deletePlanError } = await supabase
-        .from('user_workout_plans')
-        .delete()
-        .eq('user_id', user.id);
-        // Assuming only one plan per user is stored in this table
-
-      if (deletePlanError) {
-        console.error('❌ Erro ao deletar plano:', deletePlanError);
-        toast({
-          title: "Erro Parcial ao Excluir",
-          description: "Não foi possível excluir os dados do plano, mas o progresso foi removido.",
-          variant: "destructive",
-        });
-      } else {
-         console.log('✅ Plano deletado com sucesso do DB!');
-      }
-
-      // 3. Update UI state
-      setWorkoutPlan(null);
-      setProgressMap(new Map()); // Clear progress map
-      setActiveTab('form');
-      toast({
-        title: "Plano Excluído",
-        description: "Seu plano de treino e progresso foram removidos.",
-      });
-
-    } catch (error: any) {
-      console.error('💥 Erro na função deleteWorkoutPlan:', error);
-      toast({
-        title: "Erro ao Excluir Plano",
-        description: error.message || "Não foi possível excluir seu plano ou progresso.",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleting(false);
+      const planText = `**${workoutPlan.title}**\n\n${workoutPlan.description}\n\nNível: ${workoutPlan.difficulty_level}\nDuração: ${workoutPlan.duration_weeks} semanas`;
+      await navigator.clipboard.writeText(planText);
+      toast({ title: "Plano copiado!", description: "O plano foi copiado para sua área de transferência." });
+    } catch (error) {
+      toast({ title: "Erro", description: "Não foi possível copiar o plano.", variant: "destructive" });
     }
   };
 
-  const copyPlan = () => {
-    if (workoutPlan) {
-      let planText = `🏋️ ${workoutPlan.title}\n\n`;
-      planText += `📝 DESCRIÇÃO:\n${workoutPlan.description}\n\n`;
-      planText += `📊 NÍVEL: ${workoutPlan.difficulty_level.toUpperCase()}\n`;
-      planText += `⏱️ DURAÇÃO: ${workoutPlan.duration_weeks} semanas\n\n`;
-      
-      // Se tiver cronograma semanal, usar essa estrutura
-      if (workoutPlan.workouts) {
-        planText += `📅 CRONOGRAMA DE TREINOS:\n\n`;
-        workoutPlan.workouts.forEach((workout) => {
-          planText += `Semana ${workout.week} - Dia ${workout.day}: ${workout.title}\n`;
-          planText += `Foco: ${workout.focus}\n`;
-          planText += `Duração Estimada: ${workout.estimated_duration} minutos\n`;
-          planText += `Aquecimento:\n`;
-          workout.warm_up.exercises.forEach((ex) => {
-            planText += ` - ${ex.name} (${Math.floor(ex.duration/60)}:${(ex.duration%60).toString().padStart(2,'0')} min): ${ex.instructions}\n`;
-          });
-          planText += `Exercícios Principais:\n`;
-          workout.main_exercises.forEach((ex) => {
-            const itemIdentifier = `workout_${workout.week}_${workout.day}_${ex.name}`;
-            const isCompleted = progressMap.get(itemIdentifier) || false;
-            planText += `${isCompleted ? '[✅]' : '[ ]'} ${ex.name} - ${ex.sets} séries x ${ex.reps} reps, descanso ${Math.floor(ex.rest_seconds/60)}:${(ex.rest_seconds%60).toString().padStart(2,'0')} min, carga: ${ex.weight_guidance}\n`;
-            planText += `   Instruções: ${ex.instructions}\n`;
-            planText += `   Pontos: ${ex.form_cues.join(', ')}\n`;
-            if (ex.progression_notes) {
-              planText += `   Progressão: ${ex.progression_notes}\n`;
-            }
-          });
-          planText += `Relaxamento:\n`;
-          workout.cool_down.exercises.forEach((ex) => {
-            planText += ` - ${ex.name} (${Math.floor(ex.duration/60)}:${(ex.duration%60).toString().padStart(2,'0')} min): ${ex.instructions}\n`;
-          });
-          planText += `\n`;
-        });
-      } else {
-        // Fallback para exercícios antigos
-        planText += `💪 EXERCÍCIOS:\n\n`;
-        workoutPlan.exercises.forEach((exercise, index) => {
-          const itemIdentifier = `${exercise.name}_${index}`;
-          const isCompleted = progressMap.get(itemIdentifier) || false;
-          planText += `${isCompleted ? '[✅]' : '[ ]'} ${index + 1}. ${exercise.name}\n`;
-          planText += `   📊 Séries: ${exercise.sets}\n`;
-          planText += `   🔢 Repetições: ${exercise.reps}\n`;
-          planText += `   ⏰ Descanso: ${exercise.rest}\n`;
-          planText += `   📋 ${exercise.instructions}\n\n`;
-        });
-      }
-      
-      if (workoutPlan.nutrition_tips && workoutPlan.nutrition_tips.length > 0) {
-        planText += `🥗 DICAS NUTRICIONAIS:\n\n`;
-        workoutPlan.nutrition_tips.forEach((tip, index) => {
-          planText += `${index + 1}. ${tip}\n`;
-        });
-      }
-      
-      navigator.clipboard.writeText(planText);
-      toast({ title: "Copiado!", description: "Plano de treino (com progresso) copiado." });
-    }
+  const handleDeletePlan = () => {
+    setWorkoutPlan(null);
+    setProgressMap(new Map());
+    setActiveTab('form');
+    toast({ title: "Plano excluído", description: "Seu plano de treino foi removido." });
   };
 
-  // --- RENDER SECTION --- 
-  return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header Card */}
-      <Card className="bg-white border-blue-200 shadow-lg">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
-            <Dumbbell className="h-8 w-8 text-white" />
-          </div>
-          <CardTitle className="text-blue-800 text-2xl">Gerador de Plano de Treino</CardTitle>
-          <CardDescription className="text-blue-600">
-            Crie ou visualize seu plano de treino personalizado com IA
-          </CardDescription>
+  const handleGenerateNew = () => {
+    setWorkoutPlan(null);
+    setProgressMap(new Map());
+    setActiveTab('form');
+  };
+
+  if (!user) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-center">Acesso Restrito</CardTitle>
         </CardHeader>
+        <CardContent>
+          <p className="text-center text-gray-600">
+            Você precisa estar logado para acessar o gerador de planos de treino.
+          </p>
+        </CardContent>
       </Card>
+    );
+  }
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'form' | 'plan')} className="w-full">
-        {/* Tabs List */}
-        <TabsList className="grid w-full grid-cols-2 mb-6 bg-white border border-blue-200 shadow-sm h-12">
-          <TabsTrigger 
-            value="form" 
-            className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-700 py-3"
-          >
-            <UserIcon className="h-4 w-4" />
-            {workoutPlan ? 'Gerar Novo Plano' : 'Criar Plano'}
+  return (
+    <div className="w-full max-w-6xl mx-auto space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="form" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Gerar Plano
           </TabsTrigger>
-          <TabsTrigger 
-            value="plan" 
-            className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white text-blue-700 py-3"
-            disabled={!workoutPlan}
-          >
-            <FileText className="h-4 w-4" />
-            Seu Plano Atual
-            {workoutPlan && (
-              <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full ml-1">
-                Salvo
-              </span>
-            )}
+          <TabsTrigger value="plan" disabled={!workoutPlan} className="flex items-center gap-2">
+            <Dumbbell className="h-4 w-4" />
+            Meu Plano
           </TabsTrigger>
         </TabsList>
 
-        {/* Form Tab Content */}
-        <TabsContent value="form">
-          <Card className="bg-white border-blue-200 shadow-lg">
+        <TabsContent value="form" className="space-y-6">
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
             <CardHeader>
-              <CardTitle className="text-blue-800 flex items-center gap-2">
-                <UserIcon className="h-5 w-5" />
-                Informações para Gerar seu Plano
+              <CardTitle className="flex items-center gap-2 text-blue-800">
+                <Brain className="h-6 w-6" />
+                IA Personal Trainer
               </CardTitle>
-              {workoutPlan && (
-                 <CardDescription className="text-orange-600 flex items-center gap-1 text-sm pt-2">
-                   <AlertTriangle className="h-4 w-4" />
-                   Gerar um novo plano substituirá o plano atual salvo e seu progresso.
-                 </CardDescription>
-              )}
+              <p className="text-blue-600">
+                Crie um plano de treino personalizado com nossa inteligência artificial avançada.
+              </p>
             </CardHeader>
-            <CardContent className="space-y-6">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          </Card>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Informações Básicas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="age" className="text-blue-700 font-medium">Idade *</Label>
-                  <Input 
-                    id="age"
-                    type="number" 
-                    placeholder="Sua idade em anos" 
-                    value={formData.age} 
-                    onChange={(e) => handleInputChange('age', e.target.value)} 
-                    className="border-blue-200 focus:border-blue-400 mt-2"
+                  <Label htmlFor="fitness-level">Nível de Condicionamento *</Label>
+                  <Select value={fitnessLevel} onValueChange={setFitnessLevel}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione seu nível" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sedentario">Sedentário</SelectItem>
+                      <SelectItem value="iniciante">Iniciante</SelectItem>
+                      <SelectItem value="intermediario">Intermediário</SelectItem>
+                      <SelectItem value="avancado">Avançado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="workout-days">Dias de Treino por Semana *</Label>
+                  <Select value={workoutDays} onValueChange={setWorkoutDays}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Quantos dias você pode treinar?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2 dias</SelectItem>
+                      <SelectItem value="3">3 dias</SelectItem>
+                      <SelectItem value="4">4 dias</SelectItem>
+                      <SelectItem value="5">5 dias</SelectItem>
+                      <SelectItem value="6">6 dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="available-time">Tempo Disponível por Treino *</Label>
+                  <Select value={availableTime} onValueChange={setAvailableTime}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Quanto tempo você tem?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30min">30 minutos</SelectItem>
+                      <SelectItem value="45min">45 minutos</SelectItem>
+                      <SelectItem value="60min">1 hora</SelectItem>
+                      <SelectItem value="90min">1 hora e 30 minutos</SelectItem>
+                      <SelectItem value="120min">2 horas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Apple className="h-5 w-5" />
+                  Objetivos e Preferências
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="fitness-goals">Objetivos de Fitness *</Label>
+                  <Textarea
+                    id="fitness-goals"
+                    placeholder="Ex: Perder peso, ganhar massa muscular, melhorar resistência..."
+                    value={fitnessGoals}
+                    onChange={(e) => setFitnessGoals(e.target.value)}
+                    className="min-h-[80px]"
                   />
                 </div>
-                <div>
-                  <Label className="text-blue-700 font-medium">Sexo *</Label>
-                  <RadioGroup
-                    value={formData.gender}
-                    onValueChange={(value) => handleInputChange('gender', value)}
-                    className="flex flex-wrap gap-4 mt-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="masculino" id="masculino" />
-                      <Label htmlFor="masculino" className="text-sm">Masculino</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="feminino" id="feminino" />
-                      <Label htmlFor="feminino" className="text-sm">Feminino</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="outro" id="outro" />
-                      <Label htmlFor="outro" className="text-sm">Outro</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="height" className="text-blue-700 font-medium">Altura (cm) *</Label>
-                  <Input 
-                    id="height"
-                    type="number" 
-                    placeholder="Sua altura em cm" 
-                    value={formData.height} 
-                    onChange={(e) => handleInputChange('height', e.target.value)} 
-                    className="border-blue-200 focus:border-blue-400 mt-2"
+                  <Label htmlFor="preferred-exercises">Exercícios Preferidos (opcional)</Label>
+                  <Textarea
+                    id="preferred-exercises"
+                    placeholder="Ex: Musculação, funcional, cardio, pilates..."
+                    value={preferredExercises}
+                    onChange={(e) => setPreferredExercises(e.target.value)}
+                    className="min-h-[60px]"
                   />
                 </div>
+
                 <div>
-                  <Label htmlFor="weight" className="text-blue-700 font-medium">Peso (kg) *</Label>
-                  <Input 
-                    id="weight"
-                    type="number" 
-                    placeholder="Seu peso em kg" 
-                    value={formData.weight} 
-                    onChange={(e) => handleInputChange('weight', e.target.value)} 
-                    className="border-blue-200 focus:border-blue-400 mt-2"
+                  <Label htmlFor="health-conditions">Condições de Saúde (opcional)</Label>
+                  <Textarea
+                    id="health-conditions"
+                    placeholder="Ex: Lesões, limitações, problemas articulares..."
+                    value={healthConditions}
+                    onChange={(e) => setHealthConditions(e.target.value)}
+                    className="min-h-[60px]"
                   />
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          </div>
 
-              <div>
-                <Label className="text-blue-700 font-medium flex items-center gap-2">
-                  <Zap className="h-4 w-4" /> Nível de Condicionamento Atual *
-                </Label>
-                <RadioGroup value={formData.fitnessLevel} onValueChange={(value) => handleInputChange('fitnessLevel', value)} className="mt-3 space-y-3">
-                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="sedentario" id="sedentario" /><Label htmlFor="sedentario" className="flex items-center gap-2 cursor-pointer">🟡 Sedentário</Label></div>
-                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="iniciante" id="iniciante" /><Label htmlFor="iniciante" className="flex items-center gap-2 cursor-pointer">🟠 Iniciante</Label></div>
-                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="intermediario" id="intermediario" /><Label htmlFor="intermediario" className="flex items-center gap-2 cursor-pointer">🟢 Intermediário</Label></div>
-                  <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50"><RadioGroupItem value="avancado" id="avancado" /><Label htmlFor="avancado" className="flex items-center gap-2 cursor-pointer">🏆 Avançado</Label></div>
-                </RadioGroup>
-              </div>
-
-              {/* MODIFIED: Goals with Checkboxes */}
-              <div>
-                <Label className="text-blue-700 font-medium flex items-center gap-2">
-                  <Target className="h-4 w-4" /> Objetivos Principais (selecione um ou mais) *
-                </Label>
-                <div className="mt-3 space-y-3">
-                  {[ // Define goal options here
-                    { value: "perda_peso", label: "📉 Perda de Peso / Gordura" },
-                    { value: "hipertrofia", label: "💪 Ganho de Massa Muscular" },
-                    { value: "condicionamento", label: "❤️ Melhora Cardiovascular" },
-                    { value: "forca", label: "⚡ Aumento de Força" },
-                    { value: "saude_geral", label: "🧘 Saúde Geral / Manutenção" },
-                    { value: "outros", label: "⚠️ Outros (descreva abaixo)" }
-                  ].map((goal) => (
-                    <div key={goal.value} className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg hover:bg-blue-50">
-                      <Checkbox
-                        id={goal.value}
-                        checked={(formData.goals || []).includes(goal.value)} // Check if goal is in the array
-                        onCheckedChange={(checked) => handleGoalChange(goal.value, !!checked)} // Pass boolean
-                      />
-                      <Label htmlFor={goal.value} className="flex items-center gap-2 cursor-pointer">
-                        {goal.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-                {/* Input condicional para "Outros" objetivos */}
-                {(formData.goals || []).includes("outros") && (
-                  <div className="mt-4">
-                    <Label htmlFor="otherGoals" className="text-blue-700 font-medium">Descreva seus outros objetivos:</Label>
-                    <Input
-                      id="otherGoals"
-                      type="text"
-                      placeholder="Ex: Preparação para maratona, reabilitação..."
-                      value={otherGoalsText}
-                      onChange={(e) => setOtherGoalsText(e.target.value)}
-                      className="border-blue-200 focus:border-blue-400 mt-2"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <Label className="text-blue-700 font-medium flex items-center gap-2">
-                  <Clock className="h-4 w-4" /> Tempo Disponível por Treino
-                </Label>
-                <Select value={formData.availableTime} onValueChange={(value) => handleSelectChange('availableTime', value)}>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2"><SelectValue placeholder="Selecione o tempo (opcional, padrão 60min)" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">⏰ 30 min</SelectItem>
-                    <SelectItem value="45">⏰ 45 min</SelectItem>
-                    <SelectItem value="60">⏰ 60 min</SelectItem>
-                    <SelectItem value="90">⏰ 90 min</SelectItem>
-                    <SelectItem value="120">⏰ 2 horas</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* NEW: Available Days per Week */}
-              <div>
-                <Label className="text-blue-700 font-medium flex items-center gap-2">
-                  🗓️ Dias Disponíveis por Semana *
-                </Label>
-                <Select value={formData.availableDays} onValueChange={(value) => handleSelectChange("availableDays", value)}>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2"><SelectValue placeholder="Selecione quantos dias na semana" /></SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7].map(day => (
-                      <SelectItem key={day} value={String(day)}>{day} dia{day > 1 ? 's' : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-blue-700 font-medium">Equipamentos Disponíveis</Label>
-                <Select value={formData.equipment} onValueChange={(value) => handleSelectChange('equipment', value)}>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2"><SelectValue placeholder="Selecione os equipamentos (opcional, padrão peso corporal)" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="academia_completa">🏢 Academia completa</SelectItem>
-                    <SelectItem value="casa_halteres">🏠 Casa com halteres</SelectItem>
-                    <SelectItem value="casa_basico">🏠 Casa básicos (elásticos, etc)</SelectItem>
-                    <SelectItem value="peso_corporal">🤸 Peso corporal</SelectItem>
-                    <SelectItem value="parque">🌳 Parque (barras, etc)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-blue-700 font-medium">Limitações Físicas</Label>
-                <Select value={formData.limitations} onValueChange={(value) => handleSelectChange('limitations', value)}>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-400 mt-2"><SelectValue placeholder="Selecione limitações (opcional, padrão nenhuma)" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nenhuma">✅ Nenhuma</SelectItem>
-                    <SelectItem value="joelho">🦵 Joelho</SelectItem>
-                    <SelectItem value="costas">🔙 Costas</SelectItem>
-                    <SelectItem value="ombro">💪 Ombro</SelectItem>
-                    <SelectItem value="tornozelo">🦶 Tornozelo</SelectItem>
-                    <SelectItem value="cardiaco">❤️ Cardíaco</SelectItem>
-                    <SelectItem value="outros">⚠️ Outras (descreva se possível)</SelectItem>
-                  </SelectContent>
-                </Select>
-                {/* Input condicional para "Outras" limitações */}
-                {formData.limitations === 'outros' && (
-                  <div className="mt-4">
-                    <Label htmlFor="otherLimitations" className="text-blue-700 font-medium">Descreva suas outras limitações:</Label>
-                    <Input 
-                      id="otherLimitations"
-                      type="text" 
-                      placeholder="Ex: Tendinite no pulso, asma leve..." 
-                      value={otherLimitationsText} 
-                      onChange={(e) => setOtherLimitationsText(e.target.value)} 
-                      className="border-blue-200 focus:border-blue-400 mt-2"
-                    />
-                  </div>
-                )}
-              </div>
-
+          <Card>
+            <CardContent className="pt-6">
               <Button 
-                onClick={generateWorkoutPlan}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-lg"
+                onClick={handleGeneratePlan}
                 disabled={loading}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 text-lg"
+                size="lg"
               >
                 {loading ? (
-                  <><RefreshCw className="h-5 w-5 mr-2 animate-spin" /> Gerando...</>
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Gerando seu plano personalizado...
+                  </>
                 ) : (
-                  <><Dumbbell className="h-5 w-5 mr-2" /> {workoutPlan ? 'Gerar e Substituir Plano' : 'Gerar Plano de Treino'}</>
+                  <>
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Gerar Plano de Treino
+                  </>
                 )}
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Plan Tab Content - SIMPLIFIED */}
         <TabsContent value="plan">
           {workoutPlan ? (
             <WorkoutPlanDisplay
               plan={workoutPlan}
-              onCopyPlan={copyPlan}
-              onDeletePlan={deleteWorkoutPlan}
-              onGenerateNew={() => setActiveTab('form')}
+              onCopyPlan={handleCopyPlan}
+              onDeletePlan={handleDeletePlan}
+              onGenerateNew={handleGenerateNew}
               progressMap={progressMap}
               onProgressChange={handleProgressChange}
               onSwitchToAssistant={onSwitchToAssistant}
+              user={user}
             />
           ) : (
-            // Empty State
-            <Card className="bg-white border-gray-200 shadow-lg">
+            <Card>
               <CardContent className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="h-8 w-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Nenhum plano salvo</h3>
-                <p className="text-gray-500 mb-6">Vá para "Criar Plano" para gerar seu treino.</p>
-                <Button onClick={() => setActiveTab('form')} className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Dumbbell className="h-4 w-4 mr-2" /> Criar Meu Plano
+                <p className="text-gray-500 mb-4">Nenhum plano de treino encontrado.</p>
+                <Button onClick={() => setActiveTab('form')}>
+                  Gerar Novo Plano
                 </Button>
               </CardContent>
             </Card>

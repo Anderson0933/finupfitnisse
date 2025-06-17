@@ -46,7 +46,6 @@ const Dashboard = () => {
   } = useOnboarding(user);
 
   useEffect(() => {
-    // Definir a aba inicial baseada no plano de treino
     const initialTab = workoutPlan ? 'workout' : 'workout';
     setActiveTab(initialTab);
   }, [workoutPlan]);
@@ -273,7 +272,6 @@ const Dashboard = () => {
                 )}
               </div>
 
-              {/* Centro de Notificações */}
               <div className="notification-bell">
                 <NotificationCenter user={user} />
               </div>

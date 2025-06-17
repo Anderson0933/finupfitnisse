@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Clock, Target, Trophy, Play, Copy, Trash2, MessageCircle, Dumbbell } from 'lucide-react';
 import WorkoutSession from './workout/WorkoutSession';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 interface Workout {
   week: number;
@@ -63,6 +65,7 @@ interface WorkoutPlanDisplayProps {
   progressMap: Map<string, boolean>;
   onProgressChange: (itemId: string, completed: boolean) => void;
   onSwitchToAssistant?: () => void;
+  user?: User | null;
 }
 
 const WorkoutPlanDisplay = ({
@@ -72,13 +75,13 @@ const WorkoutPlanDisplay = ({
   onGenerateNew,
   progressMap,
   onProgressChange,
-  onSwitchToAssistant
+  onSwitchToAssistant,
+  user
 }: WorkoutPlanDisplayProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const { toast } = useToast();
 
-  // Verificar se é o novo formato com workouts estruturados
   const hasStructuredWorkouts = plan.workouts && plan.workouts.length > 0;
 
   const handleStartWorkout = (workout: Workout) => {
@@ -86,19 +89,69 @@ const WorkoutPlanDisplay = ({
     setActiveTab('session');
   };
 
-  const handleWorkoutComplete = () => {
-    toast({
-      title: "🎉 Treino Concluído!",
-      description: "Parabéns! Você completou mais um treino. Continue assim!",
-    });
+  const saveProgressToDatabase = async (workoutId: string, completed: boolean) => {
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('plan_progress')
+        .upsert({
+          user_id: user.id,
+          plan_id: plan.title, // Usando o título como ID do plano
+          item_identifier: workoutId,
+          is_completed: completed,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,plan_id,item_identifier'
+        });
+
+      if (error) {
+        console.error('Error saving progress:', error);
+        toast({
+          title: "Erro ao Salvar Progresso",
+          description: "Não foi possível salvar seu progresso. Tente novamente.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Progress saved successfully for:', workoutId);
+      }
+    } catch (error) {
+      console.error('Error in saveProgressToDatabase:', error);
+    }
+  };
+
+  const handleWorkoutComplete = async () => {
+    if (selectedWorkout) {
+      const workoutId = `workout_${selectedWorkout.week}_${selectedWorkout.day}`;
+      
+      // Salvar no estado local
+      onProgressChange(workoutId, true);
+      
+      // Salvar no banco de dados
+      await saveProgressToDatabase(workoutId, true);
+      
+      toast({
+        title: "🎉 Treino Concluído!",
+        description: "Parabéns! Você completou mais um treino. Continue assim!",
+      });
+    }
+    
     setSelectedWorkout(null);
     setActiveTab('workouts');
   };
 
-  const handleExerciseComplete = (exerciseName: string) => {
+  const handleExerciseComplete = async (exerciseName: string) => {
     if (selectedWorkout) {
       const itemId = `workout_${selectedWorkout.week}_${selectedWorkout.day}_${exerciseName}`;
+      
+      // Salvar no estado local
       onProgressChange(itemId, true);
+      
+      // Salvar no banco de dados
+      await saveProgressToDatabase(itemId, true);
     }
   };
 
