@@ -111,6 +111,16 @@ const WorkoutPlanGenerator = ({
     setLoading(true);
     
     try {
+      console.log('📤 Enviando dados para geração:', {
+        user_id: user.id,
+        fitness_level: fitnessLevel,
+        fitness_goals: fitnessGoals,
+        available_time: availableTime,
+        preferred_exercises: preferredExercises,
+        health_conditions: healthConditions,
+        workout_days: parseInt(workoutDays)
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
         body: {
           user_id: user.id,
@@ -134,7 +144,20 @@ const WorkoutPlanGenerator = ({
       }
 
       if (data && data.plan) {
-        console.log('Generated workout plan:', data.plan);
+        console.log('✅ Plano gerado com sucesso:', data.plan);
+        console.log('📊 Detalhes do plano:', {
+          title: data.plan.title,
+          total_workouts: data.plan.total_workouts,
+          workouts_count: data.plan.workouts?.length,
+          duration_weeks: data.plan.duration_weeks
+        });
+        
+        // Verificar se o plano tem o número correto de treinos
+        const expectedWorkouts = parseInt(workoutDays) * 8;
+        if (data.plan.workouts && data.plan.workouts.length !== expectedWorkouts) {
+          console.warn(`⚠️ Plano gerado com ${data.plan.workouts.length} treinos, esperado ${expectedWorkouts}`);
+        }
+        
         setWorkoutPlan(data.plan);
         setActiveTab('plan');
         
@@ -143,7 +166,14 @@ const WorkoutPlanGenerator = ({
         
         toast({ 
           title: "Plano gerado com sucesso!", 
-          description: "Seu plano de treino personalizado está pronto." 
+          description: `Seu plano de treino personalizado está pronto com ${data.plan.workouts?.length || 0} treinos.` 
+        });
+      } else {
+        console.error('No plan data received:', data);
+        toast({ 
+          title: "Erro", 
+          description: "Nenhum plano foi gerado. Tente novamente.", 
+          variant: "destructive" 
         });
       }
     } catch (error) {
@@ -347,6 +377,19 @@ const WorkoutPlanGenerator = ({
                   </>
                 )}
               </Button>
+              
+              {/* Debug info quando carregando */}
+              {loading && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+                  <p>🔄 Configurações selecionadas:</p>
+                  <ul className="mt-2 space-y-1">
+                    <li>• Nível: {fitnessLevel}</li>
+                    <li>• Dias por semana: {workoutDays}</li>
+                    <li>• Tempo por treino: {availableTime}</li>
+                    <li>• Total de treinos esperados: {workoutDays ? parseInt(workoutDays) * 8 : 0}</li>
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
