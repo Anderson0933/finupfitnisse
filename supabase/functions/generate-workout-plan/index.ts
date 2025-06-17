@@ -13,18 +13,25 @@ serve(async (req) => {
   }
 
   try {
-    const { userProfile } = await req.json();
-    console.log('🚀 Dados recebidos na API:', userProfile);
+    const { user_id, fitness_level, fitness_goals, available_time, preferred_exercises, health_conditions, workout_days } = await req.json();
+    console.log('🚀 Dados recebidos na API:', { user_id, fitness_level, fitness_goals, available_time, preferred_exercises, health_conditions, workout_days });
 
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
     if (!groqApiKey || groqApiKey.trim() === '') {
       console.error('❌ GROQ_API_KEY não configurada ou vazia');
       console.log('📋 Usando plano de fallback devido à chave não configurada');
-      const fallbackPlan = createEnhancedFallbackPlan(userProfile);
+      const fallbackPlan = createEnhancedFallbackPlan({ 
+        fitness_level, 
+        fitness_goals, 
+        available_days: workout_days, 
+        session_duration: parseInt(available_time.replace('min', '')),
+        health_conditions,
+        preferred_exercises
+      });
       
       return new Response(
-        JSON.stringify(fallbackPlan),
+        JSON.stringify({ plan: fallbackPlan }),
         { 
           headers: { 
             'Content-Type': 'application/json',
@@ -36,135 +43,38 @@ serve(async (req) => {
 
     console.log('✅ Chave Groq configurada, gerando prompt personalizado avançado...');
 
-    // Mapear valores para português mais amigável
-    const goalsMap = {
-      'perder_peso': 'perder peso e queimar gordura corporal',
-      'perda_peso': 'perder peso e queimar gordura corporal',
-      'ganhar_massa': 'ganhar massa muscular e hipertrofia',
-      'hipertrofia': 'ganhar massa muscular e hipertrofia',
-      'tonificar': 'tonificar o corpo e definir músculos',
-      'condicionamento': 'melhorar condicionamento cardiovascular',
-      'forca': 'aumentar força e potência muscular',
-      'flexibilidade': 'melhorar flexibilidade e mobilidade',
-      'geral': 'condicionamento físico geral',
-      'saude_geral': 'condicionamento físico geral'
-    };
-
-    const equipmentMap = {
-      'academia_completa': 'academia completa com halteres, barras, máquinas de musculação, esteiras e equipamentos de cardio',
-      'casa_halteres': 'treino em casa com halteres, barras, elásticos e equipamentos básicos',
-      'casa_basico': 'treino em casa com equipamentos básicos limitados',
-      'peso_corporal': 'exercícios usando apenas o peso corporal, sem equipamentos',
-      'parque': 'exercícios ao ar livre em parques com barras e equipamentos públicos'
-    };
-
-    const limitationsMap = {
-      'nenhuma': 'nenhuma limitação física',
-      'joelho': 'problemas no joelho - evitar impacto e sobrecarga',
-      'costas': 'problemas nas costas - foco em fortalecimento do core',
-      'ombro': 'problemas no ombro - evitar movimentos overhead',
-      'tornozelo': 'problemas no tornozelo - exercícios de baixo impacto',
-      'cardiaco': 'problemas cardíacos - intensidade moderada controlada',
-      'outros': 'outras limitações físicas específicas'
-    };
-
-    const fitnessLevelMap = {
-      'sedentario': 'sedentário - iniciante absoluto sem experiência em exercícios',
-      'pouco_ativo': 'pouco ativo - experiência limitada com exercícios',
-      'iniciante': 'iniciante - alguma experiência básica com treinos',
-      'moderado': 'moderadamente ativo - alguma experiência com treinos',
-      'intermediario': 'intermediário - experiência regular com exercícios',
-      'ativo': 'ativo - experiência regular com exercícios',
-      'muito_ativo': 'muito ativo - experiência avançada em treinamento',
-      'avancado': 'atlético avançado - alto nível de condicionamento'
-    };
-
-    const goals = goalsMap[userProfile.fitness_goals?.[0]] || userProfile.fitness_goals?.[0] || 'melhorar condicionamento geral';
-    const equipment = equipmentMap[userProfile.equipment] || userProfile.equipment || 'equipamentos básicos';
-    const limitations = limitationsMap[userProfile.limitations] || userProfile.limitations || 'nenhuma limitação';
-    const fitnessLevel = fitnessLevelMap[userProfile.fitness_level] || userProfile.fitness_level || 'iniciante';
-
-    // Calcular IMC para personalização adicional
-    let imcInfo = '';
-    if (userProfile.height && userProfile.weight) {
-      const heightInMeters = userProfile.height / 100;
-      const imc = userProfile.weight / (heightInMeters * heightInMeters);
-      imcInfo = `IMC: ${imc.toFixed(1)} - `;
-      if (imc < 18.5) imcInfo += 'Abaixo do peso - foco em ganho de massa e força';
-      else if (imc < 25) imcInfo += 'Peso normal - manutenção e tonificação';
-      else if (imc < 30) imcInfo += 'Sobrepeso - foco em queima de gordura';
-      else imcInfo += 'Obesidade - exercícios de baixo impacto e queima calórica';
-    }
+    // Mapear tempo disponível para minutos
+    const timeInMinutes = parseInt(available_time.replace('min', ''));
 
     // Criar prompt detalhado para 8 semanas com estrutura correta
-    const enhancedPrompt = `Você é um personal trainer certificado com 15 anos de experiência. Crie um plano de treino de 8 SEMANAS estruturado com ${userProfile.available_days || 3} dias por semana.
+    const enhancedPrompt = `Você é um personal trainer certificado com 15 anos de experiência. Crie um plano de treino de 8 SEMANAS estruturado com EXATAMENTE ${workout_days} dias por semana.
 
 PERFIL COMPLETO DO ALUNO:
-- Idade: ${userProfile.age || 'Não informado'} anos
-- Sexo: ${userProfile.gender || 'Não informado'}
-- Altura: ${userProfile.height || 'Não informado'} cm
-- Peso: ${userProfile.weight || 'Não informado'} kg
-- ${imcInfo}
-- Nível: ${fitnessLevel}
-- Objetivo: ${goals}
-- Dias Disponíveis: ${userProfile.available_days || 3} por semana
-- Duração: ${userProfile.session_duration || 60} minutos
-- Equipamentos: ${equipment}
-- Limitações: ${limitations}
+- Nível: ${fitness_level}
+- Objetivo: ${fitness_goals}
+- Dias Disponíveis: EXATAMENTE ${workout_days} por semana
+- Duração por Sessão: EXATAMENTE ${timeInMinutes} minutos
+- Exercícios Preferidos: ${preferred_exercises || 'Nenhuma preferência'}
+- Limitações: ${health_conditions || 'Nenhuma limitação'}
+
+IMPORTANTE: O plano deve ter EXATAMENTE ${workout_days * 8} treinos distribuídos em 8 semanas, com ${workout_days} treinos por semana, cada um com duração de ${timeInMinutes} minutos.
 
 RETORNE APENAS um JSON seguindo EXATAMENTE esta estrutura:
 
 {
-  "title": "Plano de Treino de 8 Semanas - [Objetivo] - Nível [Nível]",
-  "description": "Plano periodizado personalizado...",
-  "difficulty_level": "iniciante|intermediario|avancado",
+  "title": "Plano de Treino de 8 Semanas - ${fitness_goals} - Nível ${fitness_level}",
+  "description": "Plano periodizado personalizado de 8 semanas com ${workout_days} treinos semanais de ${timeInMinutes} minutos cada",
+  "difficulty_level": "${mapFitnessLevelToDifficulty(fitness_level)}",
   "duration_weeks": 8,
-  "total_workouts": ${(userProfile.available_days || 3) * 8},
+  "total_workouts": ${workout_days * 8},
   "workouts": [
-    {
-      "week": 1,
-      "day": 1,
-      "title": "Treino A - Corpo Inteiro",
-      "focus": "Adaptação e aprendizado técnico",
-      "estimated_duration": 45,
-      "warm_up": {
-        "duration": 10,
-        "exercises": [
-          {
-            "name": "Caminhada no Local",
-            "duration": 300,
-            "instructions": "Marche no local elevando os joelhos moderadamente"
-          }
-        ]
-      },
-      "main_exercises": [
-        {
-          "name": "Agachamento Livre",
-          "muscle_groups": ["Quadríceps", "Glúteos", "Core"],
-          "sets": 3,
-          "reps": "10-12",
-          "rest_seconds": 60,
-          "weight_guidance": "Peso corporal",
-          "instructions": "Posição inicial: Pés na largura dos ombros...",
-          "form_cues": ["Mantenha o peito ereto", "Joelhos alinhados com os pés"],
-          "progression_notes": "Aumente para 15 reps na semana 2"
-        }
-      ],
-      "cool_down": {
-        "duration": 8,
-        "exercises": [
-          {
-            "name": "Alongamento de Quadríceps",
-            "duration": 30,
-            "instructions": "Segure o pé e puxe em direção ao glúteo"
-          }
-        ]
-      }
-    }
+    ${generateWorkoutStructure(workout_days, timeInMinutes, fitness_level)}
   ],
   "nutrition_tips": [
     "Hidrate-se com 35-40ml por kg de peso corporal diariamente",
-    "Consuma proteína 30min após o treino para recuperação muscular"
+    "Consuma proteína 30min após o treino para recuperação muscular",
+    "Mantenha refeições equilibradas ao longo do dia",
+    "Evite treinar em jejum prolongado"
   ],
   "progression_schedule": {
     "weeks_1_2": "Adaptação - foco na técnica e volume baixo",
@@ -174,7 +84,7 @@ RETORNE APENAS um JSON seguindo EXATAMENTE esta estrutura:
   }
 }
 
-IMPORTANTE: Crie EXATAMENTE ${(userProfile.available_days || 3) * 8} treinos completos distribuídos nas 8 semanas. Cada treino deve ter warm_up, main_exercises detalhados e cool_down.`;
+Crie EXATAMENTE ${workout_days * 8} treinos completos, distribuídos igualmente nas 8 semanas (${workout_days} treinos por semana). Cada treino deve ter duração de ${timeInMinutes} minutos e incluir warm_up, main_exercises detalhados e cool_down.`;
 
     console.log('📤 Enviando requisição detalhada para Groq API...');
 
@@ -205,10 +115,17 @@ IMPORTANTE: Crie EXATAMENTE ${(userProfile.available_days || 3) * 8} treinos com
       console.error('❌ Erro da API Groq:', response.status, errorText);
       
       console.log('📋 Usando plano de fallback avançado devido ao erro na API Groq');
-      const fallbackPlan = createEnhancedFallbackPlan(userProfile);
+      const fallbackPlan = createEnhancedFallbackPlan({
+        fitness_level, 
+        fitness_goals, 
+        available_days: workout_days, 
+        session_duration: timeInMinutes,
+        health_conditions,
+        preferred_exercises
+      });
       
       return new Response(
-        JSON.stringify(fallbackPlan),
+        JSON.stringify({ plan: fallbackPlan }),
         { 
           headers: { 
             'Content-Type': 'application/json',
@@ -225,10 +142,17 @@ IMPORTANTE: Crie EXATAMENTE ${(userProfile.available_days || 3) * 8} treinos com
 
     if (!content || content.trim() === '') {
       console.log('⚠️ Conteúdo vazio da API Groq, usando fallback avançado');
-      const fallbackPlan = createEnhancedFallbackPlan(userProfile);
+      const fallbackPlan = createEnhancedFallbackPlan({
+        fitness_level, 
+        fitness_goals, 
+        available_days: workout_days, 
+        session_duration: timeInMinutes,
+        health_conditions,
+        preferred_exercises
+      });
       
       return new Response(
-        JSON.stringify(fallbackPlan),
+        JSON.stringify({ plan: fallbackPlan }),
         { 
           headers: { 
             'Content-Type': 'application/json',
@@ -259,27 +183,8 @@ IMPORTANTE: Crie EXATAMENTE ${(userProfile.available_days || 3) * 8} treinos com
       workoutPlan = JSON.parse(content);
       console.log('✅ JSON parseado com sucesso da API Groq');
       
-      // Validar e corrigir difficulty_level
-      const validLevels = ['iniciante', 'intermediario', 'avancado'];
-      if (!workoutPlan.difficulty_level || !validLevels.includes(workoutPlan.difficulty_level)) {
-        workoutPlan.difficulty_level = mapFitnessLevelToDifficulty(userProfile.fitness_level);
-      }
-      
-      // Validar estrutura básica
-      if (!workoutPlan.title || !workoutPlan.workouts || !Array.isArray(workoutPlan.workouts)) {
-        throw new Error('Estrutura do JSON inválida da API Groq');
-      }
-
-      // Adicionar flag indicando que veio da API Groq
-      workoutPlan.source = 'groq_api_enhanced';
-      workoutPlan.generated_for = {
-        goals: goals,
-        equipment: equipment,
-        level: fitnessLevel,
-        limitations: limitations,
-        days: userProfile.available_days || 3,
-        duration: userProfile.session_duration || 60
-      };
+      // Validar e corrigir structure
+      workoutPlan = validateAndFixPlan(workoutPlan, workout_days, timeInMinutes, fitness_level);
       
       console.log('🎯 Plano personalizado avançado de 8 semanas gerado com sucesso pela API Groq!');
       
@@ -289,13 +194,20 @@ IMPORTANTE: Crie EXATAMENTE ${(userProfile.available_days || 3) * 8} treinos com
       
       // Usar plano de fallback avançado
       console.log('📋 Usando plano de fallback avançado devido ao erro de parse');
-      workoutPlan = createEnhancedFallbackPlan(userProfile);
+      workoutPlan = createEnhancedFallbackPlan({
+        fitness_level, 
+        fitness_goals, 
+        available_days: workout_days, 
+        session_duration: timeInMinutes,
+        health_conditions,
+        preferred_exercises
+      });
     }
 
-    console.log('🎉 Retornando plano final avançado de 8 semanas gerado pela API Groq');
+    console.log('🎉 Retornando plano final avançado de 8 semanas');
 
     return new Response(
-      JSON.stringify(workoutPlan),
+      JSON.stringify({ plan: workoutPlan }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -308,10 +220,15 @@ IMPORTANTE: Crie EXATAMENTE ${(userProfile.available_days || 3) * 8} treinos com
     console.error('💥 Erro geral no generate-workout-plan:', error);
     
     // Em caso de erro geral, retornar plano básico avançado
-    const basicPlan = createEnhancedFallbackPlan(null);
+    const basicPlan = createEnhancedFallbackPlan({
+      fitness_level: 'iniciante',
+      fitness_goals: 'condicionamento geral',
+      available_days: 3,
+      session_duration: 60
+    });
 
     return new Response(
-      JSON.stringify(basicPlan),
+      JSON.stringify({ plan: basicPlan }),
       { 
         status: 200,
         headers: { 
@@ -341,12 +258,91 @@ function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
   }
 }
 
+function generateWorkoutStructure(workoutDays: number, sessionDuration: number, fitnessLevel: string): string {
+  // Esta função seria usada no prompt para dar exemplo de estrutura
+  return `{
+      "week": 1,
+      "day": 1,
+      "title": "Treino A - Exemplo",
+      "focus": "Adaptação técnica",
+      "estimated_duration": ${sessionDuration},
+      "warm_up": {
+        "duration": ${Math.round(sessionDuration * 0.15)},
+        "exercises": [
+          {
+            "name": "Aquecimento Articular",
+            "duration": ${Math.round(sessionDuration * 0.15 * 60)},
+            "instructions": "Movimentos circulares das articulações"
+          }
+        ]
+      },
+      "main_exercises": [
+        {
+          "name": "Exercício Principal",
+          "muscle_groups": ["Grupo Muscular"],
+          "sets": 3,
+          "reps": "10-12",
+          "rest_seconds": 60,
+          "weight_guidance": "Peso adequado",
+          "instructions": "Instruções detalhadas",
+          "form_cues": ["Dica técnica"],
+          "progression_notes": "Como progredir"
+        }
+      ],
+      "cool_down": {
+        "duration": ${Math.round(sessionDuration * 0.15)},
+        "exercises": [
+          {
+            "name": "Alongamento",
+            "duration": ${Math.round(sessionDuration * 0.15 * 60)},
+            "instructions": "Alongamentos específicos"
+          }
+        ]
+      }
+    }`;
+}
+
+function validateAndFixPlan(plan: any, workoutDays: number, sessionDuration: number, fitnessLevel: string): any {
+  // Garantir que o plano tenha a estrutura correta
+  if (!plan.workouts || !Array.isArray(plan.workouts)) {
+    plan.workouts = [];
+  }
+
+  // Verificar se tem o número correto de treinos
+  const expectedWorkouts = workoutDays * 8;
+  if (plan.workouts.length !== expectedWorkouts) {
+    console.log(`⚠️ Plano tem ${plan.workouts.length} treinos, esperado ${expectedWorkouts}. Corrigindo...`);
+    plan = createEnhancedFallbackPlan({
+      fitness_level: fitnessLevel,
+      available_days: workoutDays,
+      session_duration: sessionDuration
+    });
+  }
+
+  // Garantir que cada treino tenha a duração correta
+  if (plan.workouts) {
+    plan.workouts.forEach((workout: any) => {
+      if (workout.estimated_duration !== sessionDuration) {
+        workout.estimated_duration = sessionDuration;
+      }
+    });
+  }
+
+  // Corrigir total_workouts
+  plan.total_workouts = expectedWorkouts;
+  plan.difficulty_level = mapFitnessLevelToDifficulty(fitnessLevel);
+
+  return plan;
+}
+
 function createEnhancedFallbackPlan(userProfile: any) {
-  const level = userProfile?.fitness_level || 'sedentario';
-  const goals = userProfile?.fitness_goals?.[0] || 'condicionamento geral';
+  const level = userProfile?.fitness_level || 'iniciante';
+  const goals = userProfile?.fitness_goals || 'condicionamento geral';
   const difficultyLevel = mapFitnessLevelToDifficulty(level);
   const availableDays = userProfile?.available_days || 3;
   const sessionDuration = userProfile?.session_duration || 60;
+  
+  console.log(`📋 Criando plano fallback: ${availableDays} dias/semana, ${sessionDuration} min/sessão`);
   
   // Mapear objetivos para descrição
   const goalsDescription = {
@@ -367,132 +363,56 @@ function createEnhancedFallbackPlan(userProfile: any) {
   // Criar workouts estruturados para 8 semanas
   const workouts = [];
   
+  // Templates de treino baseados no número de dias
+  const workoutTemplates = generateWorkoutTemplates(availableDays, sessionDuration);
+  
   for (let week = 1; week <= 8; week++) {
     for (let day = 1; day <= availableDays; day++) {
-      const workoutIndex = ((week - 1) * availableDays) + day;
+      const templateIndex = (day - 1) % workoutTemplates.length;
+      const template = workoutTemplates[templateIndex];
       
-      let workoutTitle = '';
-      let focus = '';
-      let mainExercises = [];
-      
-      if (availableDays === 3) {
-        // Treino ABC
-        if (day === 1) {
-          workoutTitle = 'Treino A - Pernas e Glúteos';
-          focus = week <= 2 ? 'Adaptação técnica' : week <= 4 ? 'Progressão de volume' : week <= 6 ? 'Intensificação' : 'Consolidação';
-          mainExercises = [
-            {
-              name: 'Agachamento Livre',
-              muscle_groups: ['Quadríceps', 'Glúteos', 'Core'],
-              sets: week <= 2 ? 3 : week <= 4 ? 4 : week <= 6 ? 4 : 3,
-              reps: week <= 2 ? '10-12' : week <= 4 ? '12-15' : week <= 6 ? '8-12' : '10-12',
-              rest_seconds: week <= 2 ? 60 : week <= 4 ? 90 : week <= 6 ? 120 : 90,
-              weight_guidance: 'Peso corporal ou halteres',
-              instructions: 'Posição inicial: Pés na largura dos ombros, pontas levemente voltadas para fora. Desça flexionando joelhos e quadril, mantendo peito ereto e coluna neutra.',
-              form_cues: ['Mantenha o peito ereto', 'Joelhos alinhados com os pés', 'Peso nos calcanhares'],
-              progression_notes: week <= 2 ? 'Foque na técnica perfeita' : week <= 4 ? 'Aumente repetições gradualmente' : week <= 6 ? 'Adicione peso se possível' : 'Mantenha qualidade técnica'
-            }
-          ];
-        } else if (day === 2) {
-          workoutTitle = 'Treino B - Peito, Ombros e Tríceps';
-          focus = week <= 2 ? 'Adaptação técnica' : week <= 4 ? 'Progressão de volume' : week <= 6 ? 'Intensificação' : 'Consolidação';
-          mainExercises = [
-            {
-              name: 'Flexão de Braço',
-              muscle_groups: ['Peitoral', 'Deltoides', 'Tríceps'],
-              sets: week <= 2 ? 3 : week <= 4 ? 4 : week <= 6 ? 4 : 3,
-              reps: week <= 2 ? '6-10' : week <= 4 ? '8-12' : week <= 6 ? '6-10' : '8-10',
-              rest_seconds: week <= 2 ? 60 : week <= 4 ? 90 : week <= 6 ? 120 : 90,
-              weight_guidance: 'Peso corporal',
-              instructions: 'Posição inicial: Mãos no chão ligeiramente mais afastadas que os ombros. Corpo reto da cabeça aos calcanhares. Desça controladamente até o peito quase tocar o chão.',
-              form_cues: ['Corpo reto como prancha', 'Cotovelos a 45 graus', 'Amplitude completa'],
-              progression_notes: week <= 2 ? 'Pode usar joelhos se necessário' : week <= 4 ? 'Busque amplitude completa' : week <= 6 ? 'Explore variações' : 'Foque na qualidade'
-            }
-          ];
-        } else {
-          workoutTitle = 'Treino C - Costas e Bíceps';
-          focus = week <= 2 ? 'Adaptação técnica' : week <= 4 ? 'Progressão de volume' : week <= 6 ? 'Intensificação' : 'Consolidação';
-          mainExercises = [
-            {
-              name: 'Remada Isométrica',
-              muscle_groups: ['Latíssimo', 'Romboides', 'Bíceps'],
-              sets: week <= 2 ? 3 : week <= 4 ? 4 : week <= 6 ? 4 : 3,
-              reps: week <= 2 ? '30s' : week <= 4 ? '45s' : week <= 6 ? '60s' : '45s',
-              rest_seconds: week <= 2 ? 60 : week <= 4 ? 90 : week <= 6 ? 120 : 90,
-              weight_guidance: 'Resistência elástica ou peso corporal',
-              instructions: 'Simule movimento de remada, contraindo fortemente músculos das costas. Mantenha postura ereta e ombros para trás.',
-              form_cues: ['Ombros para trás', 'Peito aberto', 'Cotovelos junto ao corpo'],
-              progression_notes: week <= 2 ? 'Concentre-se na ativação muscular' : week <= 4 ? 'Aumente tempo gradualmente' : week <= 6 ? 'Maximize contração' : 'Mantenha intensidade'
-            }
-          ];
-        }
-      } else {
-        // Adaptação para outros números de dias
-        workoutTitle = `Treino ${day} - Corpo Inteiro`;
-        focus = week <= 2 ? 'Adaptação e familiarização' : week <= 4 ? 'Progressão gradual' : week <= 6 ? 'Intensificação' : 'Consolidação';
-        mainExercises = [
-          {
-            name: day % 2 === 1 ? 'Agachamento Livre' : 'Flexão de Braço',
-            muscle_groups: day % 2 === 1 ? ['Quadríceps', 'Glúteos'] : ['Peitoral', 'Tríceps'],
-            sets: week <= 2 ? 3 : week <= 4 ? 4 : 4,
-            reps: week <= 2 ? '8-12' : week <= 4 ? '10-15' : '8-12',
-            rest_seconds: week <= 2 ? 60 : week <= 4 ? 90 : 120,
-            weight_guidance: 'Peso corporal',
-            instructions: day % 2 === 1 ? 
-              'Agachamento: Pés na largura dos ombros, desça flexionando joelhos e quadril.' :
-              'Flexão: Mãos no chão, corpo reto, desça peito até quase tocar o solo.',
-            form_cues: day % 2 === 1 ? 
-              ['Joelhos alinhados', 'Peito ereto'] : 
-              ['Corpo reto', 'Amplitude completa'],
-            progression_notes: `Semana ${week}: ${focus}`
-          }
-        ];
-      }
-      
-      workouts.push({
+      const workout = {
         week: week,
         day: day,
-        title: workoutTitle,
-        focus: focus,
+        title: template.title,
+        focus: getWeekFocus(week),
         estimated_duration: sessionDuration,
         warm_up: {
-          duration: 10,
+          duration: Math.round(sessionDuration * 0.15),
           exercises: [
             {
-              name: 'Aquecimento Geral',
-              duration: 300,
-              instructions: 'Movimentos articulares e ativação gradual'
-            },
-            {
-              name: 'Mobilidade Específica',
-              duration: 300,
-              instructions: 'Prepare as articulações para o treino'
+              name: 'Aquecimento Articular',
+              duration: Math.round(sessionDuration * 0.15 * 60),
+              instructions: 'Movimentos circulares das articulações principais: ombros, quadris, joelhos e tornozelos'
             }
           ]
         },
-        main_exercises: mainExercises,
+        main_exercises: template.exercises.map(exercise => ({
+          ...exercise,
+          sets: getWeekSets(week, exercise.sets),
+          reps: getWeekReps(week, exercise.reps),
+          rest_seconds: getWeekRest(week, exercise.rest_seconds),
+          progression_notes: getWeekProgression(week)
+        })),
         cool_down: {
-          duration: 8,
+          duration: Math.round(sessionDuration * 0.15),
           exercises: [
             {
               name: 'Alongamento Geral',
-              duration: 240,
-              instructions: 'Alongue os músculos trabalhados'
-            },
-            {
-              name: 'Relaxamento',
-              duration: 240,
-              instructions: 'Respire fundo e relaxe'
+              duration: Math.round(sessionDuration * 0.15 * 60),
+              instructions: 'Alongue os principais grupos musculares trabalhados no treino'
             }
           ]
         }
-      });
+      };
+      
+      workouts.push(workout);
     }
   }
   
   return {
     title: `Plano de Treino 8 Semanas ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
-    description: `Plano de treino periodizado de 8 semanas, desenvolvido especificamente para ${goalDesc}, considerando ${userProfile?.limitations || 'nenhuma limitação'}, com ${availableDays} sessões semanais de ${sessionDuration} minutos cada.`,
+    description: `Plano de treino periodizado de 8 semanas, desenvolvido especificamente para ${goalDesc}, com ${availableDays} sessões semanais de ${sessionDuration} minutos cada.`,
     difficulty_level: difficultyLevel,
     duration_weeks: 8,
     total_workouts: availableDays * 8,
@@ -511,4 +431,232 @@ function createEnhancedFallbackPlan(userProfile: any) {
       weeks_7_8: 'Consolidação e refinamento - manutenção da qualidade técnica'
     }
   };
+}
+
+function generateWorkoutTemplates(availableDays: number, sessionDuration: number) {
+  const templates = [];
+  
+  if (availableDays <= 2) {
+    // Full body para 1-2 dias
+    templates.push({
+      title: 'Treino Full Body A',
+      exercises: [
+        {
+          name: 'Agachamento Livre',
+          muscle_groups: ['Quadríceps', 'Glúteos', 'Core'],
+          sets: 3,
+          reps: '10-12',
+          rest_seconds: 60,
+          weight_guidance: 'Peso corporal ou halteres',
+          instructions: 'Posição inicial: Pés na largura dos ombros, desça flexionando joelhos e quadril.',
+          form_cues: ['Mantenha o peito ereto', 'Joelhos alinhados com os pés']
+        },
+        {
+          name: 'Flexão de Braço',
+          muscle_groups: ['Peitoral', 'Deltoides', 'Tríceps'],
+          sets: 3,
+          reps: '8-12',
+          rest_seconds: 60,
+          weight_guidance: 'Peso corporal',
+          instructions: 'Mãos no chão, corpo reto, desça peito até quase tocar o solo.',
+          form_cues: ['Corpo reto como prancha', 'Amplitude completa']
+        }
+      ]
+    });
+    
+    templates.push({
+      title: 'Treino Full Body B',
+      exercises: [
+        {
+          name: 'Afundo',
+          muscle_groups: ['Quadríceps', 'Glúteos'],
+          sets: 3,
+          reps: '10 cada perna',
+          rest_seconds: 60,
+          weight_guidance: 'Peso corporal',
+          instructions: 'Passo grande à frente, desça flexionando ambos os joelhos.',
+          form_cues: ['Joelho da frente alinhado', 'Descida controlada']
+        },
+        {
+          name: 'Prancha',
+          muscle_groups: ['Core', 'Ombros'],
+          sets: 3,
+          reps: '30-60s',
+          rest_seconds: 45,
+          weight_guidance: 'Peso corporal',
+          instructions: 'Posição de flexão, mantenha corpo reto e estável.',
+          form_cues: ['Core contraído', 'Respiração constante']
+        }
+      ]
+    });
+  } else if (availableDays === 3) {
+    // Treino ABC
+    templates.push({
+      title: 'Treino A - Pernas e Glúteos',
+      exercises: [
+        {
+          name: 'Agachamento Livre',
+          muscle_groups: ['Quadríceps', 'Glúteos', 'Core'],
+          sets: 4,
+          reps: '12-15',
+          rest_seconds: 90,
+          weight_guidance: 'Peso corporal ou halteres',
+          instructions: 'Desça até os quadris ficarem paralelos ao chão.',
+          form_cues: ['Peito ereto', 'Peso nos calcanhares']
+        },
+        {
+          name: 'Afundo Alternado',
+          muscle_groups: ['Quadríceps', 'Glúteos'],
+          sets: 3,
+          reps: '12 cada perna',
+          rest_seconds: 60,
+          weight_guidance: 'Peso corporal',
+          instructions: 'Alterne as pernas a cada repetição.',
+          form_cues: ['Passos amplos', 'Joelhos alinhados']
+        }
+      ]
+    });
+    
+    templates.push({
+      title: 'Treino B - Peito, Ombros e Tríceps',
+      exercises: [
+        {
+          name: 'Flexão de Braço',
+          muscle_groups: ['Peitoral', 'Deltoides', 'Tríceps'],
+          sets: 4,
+          reps: '8-12',
+          rest_seconds: 90,
+          weight_guidance: 'Peso corporal',
+          instructions: 'Descida controlada até o peito quase tocar o chão.',
+          form_cues: ['Corpo reto', 'Cotovelos a 45 graus']
+        },
+        {
+          name: 'Elevação Lateral',
+          muscle_groups: ['Deltoides'],
+          sets: 3,
+          reps: '12-15',
+          rest_seconds: 60,
+          weight_guidance: 'Halteres leves',
+          instructions: 'Eleve os braços lateralmente até a altura dos ombros.',
+          form_cues: ['Movimento controlado', 'Ligeira flexão dos cotovelos']
+        }
+      ]
+    });
+    
+    templates.push({
+      title: 'Treino C - Costas e Bíceps',
+      exercises: [
+        {
+          name: 'Remada com Halteres',
+          muscle_groups: ['Latíssimo', 'Romboides', 'Bíceps'],
+          sets: 4,
+          reps: '10-12',
+          rest_seconds: 90,
+          weight_guidance: 'Halteres moderados',
+          instructions: 'Puxe o halter em direção ao abdômen, contraindo as costas.',
+          form_cues: ['Ombros para trás', 'Cotovelos junto ao corpo']
+        },
+        {
+          name: 'Rosca Direta',
+          muscle_groups: ['Bíceps'],
+          sets: 3,
+          reps: '12-15',
+          rest_seconds: 60,
+          weight_guidance: 'Halteres',
+          instructions: 'Flexione os braços elevando os halteres.',
+          form_cues: ['Cotovelos fixos', 'Movimento controlado']
+        }
+      ]
+    });
+  } else {
+    // 4+ dias - Upper/Lower split
+    templates.push({
+      title: 'Treino Upper - Membros Superiores',
+      exercises: [
+        {
+          name: 'Flexão de Braço',
+          muscle_groups: ['Peitoral', 'Tríceps', 'Deltoides'],
+          sets: 4,
+          reps: '8-12',
+          rest_seconds: 90,
+          weight_guidance: 'Peso corporal',
+          instructions: 'Flexão tradicional com amplitude completa.',
+          form_cues: ['Corpo alinhado', 'Descida controlada']
+        },
+        {
+          name: 'Remada Invertida',
+          muscle_groups: ['Latíssimo', 'Romboides', 'Bíceps'],
+          sets: 4,
+          reps: '8-12',
+          rest_seconds: 90,
+          weight_guidance: 'Peso corporal',
+          instructions: 'Puxe o corpo em direção à barra.',
+          form_cues: ['Corpo reto', 'Ombros retraídos']
+        }
+      ]
+    });
+    
+    templates.push({
+      title: 'Treino Lower - Membros Inferiores',
+      exercises: [
+        {
+          name: 'Agachamento Profundo',
+          muscle_groups: ['Quadríceps', 'Glúteos', 'Posterior'],
+          sets: 4,
+          reps: '12-15',
+          rest_seconds: 90,
+          weight_guidance: 'Peso corporal ou halteres',
+          instructions: 'Agachamento com maior amplitude de movimento.',
+          form_cues: ['Flexibilidade de tornozelo', 'Core ativo']
+        },
+        {
+          name: 'Stiff',
+          muscle_groups: ['Posterior de coxa', 'Glúteos'],
+          sets: 3,
+          reps: '12-15',
+          rest_seconds: 75,
+          weight_guidance: 'Halteres',
+          instructions: 'Flexione o quadril mantendo pernas estendidas.',
+          form_cues: ['Costas retas', 'Quadril para trás']
+        }
+      ]
+    });
+  }
+  
+  return templates;
+}
+
+function getWeekFocus(week: number): string {
+  if (week <= 2) return 'Adaptação e familiarização';
+  if (week <= 4) return 'Progressão gradual';
+  if (week <= 6) return 'Intensificação';
+  return 'Consolidação e refinamento';
+}
+
+function getWeekSets(week: number, baseSets: number): number {
+  if (week <= 2) return baseSets;
+  if (week <= 4) return baseSets + 1;
+  if (week <= 6) return baseSets + 1;
+  return baseSets;
+}
+
+function getWeekReps(week: number, baseReps: string): string {
+  if (week <= 2) return baseReps;
+  if (week <= 4) return baseReps.includes('-') ? baseReps.replace(/(\d+)-(\d+)/, (match, min, max) => `${parseInt(min) + 2}-${parseInt(max) + 2}`) : baseReps;
+  if (week <= 6) return baseReps;
+  return baseReps;
+}
+
+function getWeekRest(week: number, baseRest: number): number {
+  if (week <= 2) return baseRest;
+  if (week <= 4) return baseRest + 15;
+  if (week <= 6) return baseRest + 30;
+  return baseRest + 15;
+}
+
+function getWeekProgression(week: number): string {
+  if (week <= 2) return 'Foque na técnica perfeita e aprendizado dos movimentos';
+  if (week <= 4) return 'Aumente gradualmente o volume e intensidade';
+  if (week <= 6) return 'Maximize a intensidade e explore variações avançadas';
+  return 'Mantenha a qualidade técnica e consolide os ganhos';
 }
