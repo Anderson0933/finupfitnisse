@@ -48,7 +48,7 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY não configurada');
     }
 
-    console.log('✅ Chave Groq configurada, gerando prompt personalizado avançado...');
+    console.log('✅ Chave Groq configurada, gerando prompt personalizado...');
 
     // Calcular IMC
     const heightInMeters = height / 100;
@@ -60,42 +60,30 @@ serve(async (req) => {
     else if (bmi < 30) bmiCategory = 'sobrepeso';
     else bmiCategory = 'obesidade';
 
-    // Determinar experiência baseada na idade e nível
-    let experienceLevel = '';
-    if (age < 25 && fitness_level === 'sedentario') {
-      experienceLevel = 'jovem iniciante';
-    } else if (age >= 40 && fitness_level === 'intermediario') {
-      experienceLevel = 'adulto experiente';
-    } else if (age >= 50) {
-      experienceLevel = 'adulto maduro';
-    } else {
-      experienceLevel = fitness_level;
-    }
-
-    // Definir equipamentos baseado no local
+    // Determinar equipamentos baseado no local
     let availableEquipment = '';
     let workoutStyle = '';
     
     switch (workout_location) {
       case 'casa':
         availableEquipment = 'apenas peso corporal, sem equipamentos';
-        workoutStyle = 'treinos funcionais com peso corporal, flexibilidade e cardio';
+        workoutStyle = 'treinos funcionais com peso corporal';
         break;
       case 'casa_equipamentos':
         availableEquipment = 'halteres, elásticos, tapete, possível barra fixa';
-        workoutStyle = 'treinos com equipamentos básicos, exercícios funcionais';
+        workoutStyle = 'treinos com equipamentos básicos';
         break;
       case 'academia':
         availableEquipment = 'equipamentos completos: máquinas, pesos livres, cardio';
-        workoutStyle = 'musculação tradicional com progressão de cargas';
+        workoutStyle = 'musculação tradicional';
         break;
       case 'parque':
-        availableEquipment = 'barras, paralelas, espaço para corrida e exercícios ao ar livre';
-        workoutStyle = 'calistenia, corrida, exercícios funcionais ao ar livre';
+        availableEquipment = 'barras, paralelas, espaço para corrida';
+        workoutStyle = 'calistenia e exercícios ao ar livre';
         break;
       case 'condominio':
         availableEquipment = 'equipamentos básicos de academia';
-        workoutStyle = 'treinos adaptados com equipamentos limitados';
+        workoutStyle = 'treinos adaptados';
         break;
     }
 
@@ -103,38 +91,33 @@ serve(async (req) => {
     const totalWorkouts = workout_days * 8; // 8 semanas
 
     const prompt = `
-Você é um personal trainer especialista em criar planos de treino personalizados. 
+You are a professional personal trainer. Create a workout plan in VALID JSON format only.
 
-DADOS PESSOAIS DO CLIENTE:
-- Idade: ${age} anos
-- Altura: ${height} cm
-- Peso: ${weight} kg
-- IMC: ${bmi.toFixed(1)} (${bmiCategory})
-- Nível de experiência: ${experienceLevel}
+USER DATA:
+- Age: ${age} years
+- Height: ${height} cm  
+- Weight: ${weight} kg
+- BMI: ${bmi.toFixed(1)} (${bmiCategory})
+- Fitness level: ${fitness_level}
+- Goals: ${fitness_goals}
+- Workout days per week: ${workout_days}
+- Session duration: ${available_time}
+- Location: ${workout_location}
+- Available equipment: ${availableEquipment}
+- Preferred exercises: ${preferred_exercises || 'None specified'}
+- Health conditions: ${health_conditions || 'None reported'}
 
-PARÂMETROS DO TREINO:
-- Dias por semana: ${workout_days}
-- Tempo por treino: ${available_time}
-- Local: ${workout_location}
-- Equipamentos disponíveis: ${availableEquipment}
-- Estilo de treino: ${workoutStyle}
+CRITICAL INSTRUCTIONS:
+1. Return ONLY valid JSON, no text before or after
+2. Create exactly ${totalWorkouts} workouts (${workout_days} per week × 8 weeks)
+3. Each workout must be ${available_time} duration
+4. Use ONLY equipment available at: ${workout_location}
+5. Adapt intensity for age ${age} and BMI ${bmi.toFixed(1)}
 
-OBJETIVOS: ${fitness_goals}
-EXERCÍCIOS PREFERIDOS: ${preferred_exercises || 'Nenhuma preferência específica'}
-CONDIÇÕES DE SAÚDE: ${health_conditions || 'Nenhuma limitação reportada'}
-
-INSTRUÇÕES CRÍTICAS:
-1. Crie EXATAMENTE ${totalWorkouts} treinos (${workout_days} treinos/semana × 8 semanas)
-2. Cada treino deve durar ${available_time}
-3. Considere a idade (${age} anos) para intensidade e recuperação
-4. Adapte para o IMC ${bmi.toFixed(1)} (${bmiCategory})
-5. Use APENAS equipamentos de: ${workout_location}
-6. Progresse gradualmente considerando o nível ${fitness_level}
-
-RETORNE UM JSON VÁLIDO com esta estrutura EXATA:
+REQUIRED JSON STRUCTURE:
 {
-  "title": "Plano Personalizado - ${experienceLevel} (${age} anos)",
-  "description": "Plano de 8 semanas adaptado para ${bmiCategory}, ${workout_location}, focado em ${fitness_goals}",
+  "title": "8-Week Plan - ${fitness_level} (Age ${age})",
+  "description": "Personalized plan for ${bmiCategory}, ${workout_location}, focused on ${fitness_goals}",
   "difficulty_level": "${fitness_level}",
   "duration_weeks": 8,
   "total_workouts": ${totalWorkouts},
@@ -142,39 +125,59 @@ RETORNE UM JSON VÁLIDO com esta estrutura EXATA:
     {
       "week": 1,
       "day": 1,
-      "title": "Nome do Treino",
-      "duration": "${available_time}",
-      "exercises": [
+      "title": "Workout Name",
+      "focus": "Target area",
+      "estimated_duration": ${parseInt(available_time)},
+      "warm_up": {
+        "duration": 5,
+        "exercises": [
+          {
+            "name": "Exercise name",
+            "duration": 30,
+            "instructions": "How to perform"
+          }
+        ]
+      },
+      "main_exercises": [
         {
-          "name": "Nome do Exercício",
+          "name": "Exercise name",
+          "muscle_groups": ["chest", "shoulders"],
           "sets": 3,
           "reps": "8-12",
-          "rest": "60s",
-          "notes": "Instruções específicas considerando idade ${age} e ${workout_location}"
+          "rest_seconds": 60,
+          "weight_guidance": "Start light",
+          "instructions": "Detailed instructions",
+          "form_cues": ["Keep core tight"],
+          "progression_notes": "Increase weight when ready"
         }
-      ]
+      ],
+      "cool_down": {
+        "duration": 5,
+        "exercises": [
+          {
+            "name": "Stretch name",
+            "duration": 30,
+            "instructions": "How to stretch"
+          }
+        ]
+      }
     }
   ],
   "nutrition_tips": [
-    "Dica nutricional para IMC ${bmi.toFixed(1)} e objetivo ${fitness_goals}",
-    "Hidratação adequada para treinos de ${available_time}"
+    "Hydration tip for ${available_time} workouts",
+    "Nutrition advice for BMI ${bmi.toFixed(1)} and goal ${fitness_goals}"
   ],
   "progression_schedule": {
-    "week_1_2": "Adaptação e aprendizado de movimentos",
-    "week_3_4": "Aumento gradual de intensidade",
-    "week_5_6": "Progressão com foco nos objetivos",
-    "week_7_8": "Consolidação e preparação para próximo ciclo"
+    "week_1_2": "Adaptation phase",
+    "week_3_4": "Progressive overload",
+    "week_5_6": "Intensity increase", 
+    "week_7_8": "Peak performance"
   }
 }
 
-IMPORTANTE: 
-- Para idade ${age}, ajuste intensidade e tempo de recuperação
-- Para ${bmiCategory}, adapte exercícios cardiovasculares  
-- Para ${workout_location}, use APENAS equipamentos disponíveis
-- Garanta progressão segura para nível ${fitness_level}
-`;
+Return ONLY the JSON object above, properly formatted and complete with all ${totalWorkouts} workouts.`;
 
-    console.log('📤 Enviando requisição detalhada para Groq API...');
+    console.log('📤 Enviando requisição para Groq API...');
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -187,14 +190,14 @@ IMPORTANTE:
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer especialista que sempre retorna JSON válido e cria planos detalhados considerando dados biométricos completos.'
+            content: 'You are a professional personal trainer. You MUST respond with ONLY valid JSON, no additional text or explanations. Start your response with { and end with }.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.7,
+        temperature: 0.3,
         max_tokens: 8000
       }),
     });
@@ -205,28 +208,43 @@ IMPORTANTE:
       throw new Error(`Erro na API Groq: ${response.status}`);
     }
 
-    console.log('✅ Resposta recebida do Groq com sucesso');
-
     const data = await response.json();
-    
-    console.log('✅ JSON parseado com sucesso da API Groq');
+    console.log('✅ Resposta recebida do Groq');
 
     let workoutPlan;
     try {
       const content = data.choices[0].message.content;
-      workoutPlan = JSON.parse(content);
+      console.log('🔍 Conteúdo recebido:', content.substring(0, 200) + '...');
+      
+      // Limpar o conteúdo para garantir que seja JSON válido
+      let cleanContent = content.trim();
+      
+      // Remover texto antes do JSON se existir
+      const jsonStart = cleanContent.indexOf('{');
+      if (jsonStart > 0) {
+        cleanContent = cleanContent.substring(jsonStart);
+      }
+      
+      // Remover texto depois do JSON se existir
+      const jsonEnd = cleanContent.lastIndexOf('}');
+      if (jsonEnd < cleanContent.length - 1) {
+        cleanContent = cleanContent.substring(0, jsonEnd + 1);
+      }
+      
+      workoutPlan = JSON.parse(cleanContent);
+      console.log('✅ JSON parseado com sucesso');
+      
     } catch (parseError) {
-      console.error('Erro ao parsear JSON da API:', parseError);
+      console.error('❌ Erro ao parsear JSON:', parseError);
+      console.error('❌ Conteúdo original:', data.choices[0].message.content);
       throw new Error('Resposta da API não é um JSON válido');
     }
 
-    console.log('🎯 Plano personalizado avançado de 8 semanas gerado com sucesso pela API Groq!');
-
-    // Validação crítica do plano gerado
+    // Validação do plano gerado
     if (!workoutPlan.workouts || workoutPlan.workouts.length !== totalWorkouts) {
-      console.warn(`⚠️ Plano gerado com ${workoutPlan.workouts?.length || 0} treinos, corrigindo para ${totalWorkouts}...`);
+      console.warn(`⚠️ Plano gerado com ${workoutPlan.workouts?.length || 0} treinos, esperado ${totalWorkouts}`);
       
-      // Se necessário, duplicar ou ajustar treinos para atingir o número exato
+      // Corrigir número de treinos se necessário
       if (workoutPlan.workouts && workoutPlan.workouts.length > 0) {
         while (workoutPlan.workouts.length < totalWorkouts) {
           const baseWorkout = workoutPlan.workouts[workoutPlan.workouts.length % workout_days];
@@ -238,6 +256,7 @@ IMPORTANTE:
           workoutPlan.workouts.push(newWorkout);
         }
         workoutPlan.total_workouts = totalWorkouts;
+        console.log('✅ Número de treinos corrigido');
       }
     }
 
@@ -255,19 +274,19 @@ IMPORTANTE:
       });
 
     if (saveError) {
-      console.error('Erro ao salvar plano:', saveError);
+      console.error('❌ Erro ao salvar plano:', saveError);
     } else {
-      console.log('✅ Plano salvo no banco de dados com sucesso');
+      console.log('✅ Plano salvo no banco de dados');
     }
 
-    console.log('🎉 Retornando plano final avançado de 8 semanas');
+    console.log('🎉 Plano gerado com sucesso');
 
     return new Response(JSON.stringify({ plan: workoutPlan }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Erro na função:', error);
+    console.error('❌ Erro na função:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
