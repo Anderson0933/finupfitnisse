@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Sparkles, Target, Clock, Dumbbell, Brain, Apple } from 'lucide-react';
+import { Loader2, Sparkles, Target, Clock, Dumbbell, Brain, Apple, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import WorkoutPlanDisplay from './WorkoutPlanDisplay';
@@ -52,6 +52,7 @@ const WorkoutPlanGenerator = ({
   const [preferredExercises, setPreferredExercises] = useState('');
   const [healthConditions, setHealthConditions] = useState('');
   const [workoutDays, setWorkoutDays] = useState('');
+  const [workoutLocation, setWorkoutLocation] = useState(''); // NOVA PERGUNTA ESSENCIAL
 
   const { toast } = useToast();
 
@@ -97,20 +98,60 @@ const WorkoutPlanGenerator = ({
     setProgressMap(prev => new Map(prev.set(itemId, completed)));
   };
 
+  // FUNÇÃO CRÍTICA: Deletar plano anterior antes de criar novo
+  const deleteExistingPlan = async () => {
+    if (!user) return;
+
+    try {
+      // Deletar plano anterior do usuário
+      const { error: deleteError } = await supabase
+        .from('user_workout_plans')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        console.error('Error deleting existing plan:', deleteError);
+        // Continuar mesmo com erro de deleção para não bloquear criação
+      }
+
+      // Deletar progresso anterior
+      const { error: progressError } = await supabase
+        .from('plan_progress')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (progressError) {
+        console.error('Error deleting existing progress:', progressError);
+      }
+
+      console.log('✅ Plano anterior deletado com sucesso');
+    } catch (error) {
+      console.error('Error in deleteExistingPlan:', error);
+    }
+  };
+
   const handleGeneratePlan = async () => {
     if (!user) {
       toast({ title: "Erro", description: "Você precisa estar logado para gerar um plano.", variant: "destructive" });
       return;
     }
 
-    if (!fitnessLevel || !fitnessGoals || !availableTime || !workoutDays) {
-      toast({ title: "Campos obrigatórios", description: "Por favor, preencha todos os campos obrigatórios.", variant: "destructive" });
+    // VALIDAÇÃO CRÍTICA: Verificar todos os campos obrigatórios incluindo local
+    if (!fitnessLevel || !fitnessGoals || !availableTime || !workoutDays || !workoutLocation) {
+      toast({ 
+        title: "Campos obrigatórios", 
+        description: "Por favor, preencha todos os campos obrigatórios, incluindo o local de treino.", 
+        variant: "destructive" 
+      });
       return;
     }
 
     setLoading(true);
     
     try {
+      // CRÍTICO: Deletar plano anterior ANTES de criar novo
+      await deleteExistingPlan();
+
       console.log('📤 Enviando dados para geração:', {
         user_id: user.id,
         fitness_level: fitnessLevel,
@@ -118,7 +159,8 @@ const WorkoutPlanGenerator = ({
         available_time: availableTime,
         preferred_exercises: preferredExercises,
         health_conditions: healthConditions,
-        workout_days: parseInt(workoutDays)
+        workout_days: parseInt(workoutDays),
+        workout_location: workoutLocation // NOVO CAMPO ESSENCIAL
       });
 
       const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
@@ -129,7 +171,8 @@ const WorkoutPlanGenerator = ({
           available_time: availableTime,
           preferred_exercises: preferredExercises,
           health_conditions: healthConditions,
-          workout_days: parseInt(workoutDays)
+          workout_days: parseInt(workoutDays),
+          workout_location: workoutLocation // CAMPO ESSENCIAL
         }
       });
 
@@ -145,12 +188,6 @@ const WorkoutPlanGenerator = ({
 
       if (data && data.plan) {
         console.log('✅ Plano gerado com sucesso:', data.plan);
-        console.log('📊 Detalhes do plano:', {
-          title: data.plan.title,
-          total_workouts: data.plan.total_workouts,
-          workouts_count: data.plan.workouts?.length,
-          duration_weeks: data.plan.duration_weeks
-        });
         
         // Verificar se o plano tem o número correto de treinos
         const expectedWorkouts = parseInt(workoutDays) * 8;
@@ -166,7 +203,7 @@ const WorkoutPlanGenerator = ({
         
         toast({ 
           title: "Plano gerado com sucesso!", 
-          description: `Seu plano de treino personalizado está pronto com ${data.plan.workouts?.length || 0} treinos.` 
+          description: `Seu plano personalizado para ${workoutLocation} está pronto com ${data.plan.workouts?.length || 0} treinos.` 
         });
       } else {
         console.error('No plan data received:', data);
@@ -200,17 +237,38 @@ const WorkoutPlanGenerator = ({
     }
   };
 
-  const handleDeletePlan = () => {
-    setWorkoutPlan(null);
-    setProgressMap(new Map());
-    setActiveTab('form');
-    toast({ title: "Plano excluído", description: "Seu plano de treino foi removido." });
+  const handleDeletePlan = async () => {
+    if (!user) return;
+
+    try {
+      // Deletar do banco de dados
+      await deleteExistingPlan();
+      
+      // Limpar estado local
+      setWorkoutPlan(null);
+      setProgressMap(new Map());
+      setActiveTab('form');
+      
+      toast({ title: "Plano excluído", description: "Seu plano de treino foi removido." });
+    } catch (error) {
+      console.error('Error deleting plan:', error);
+      toast({ title: "Erro", description: "Não foi possível excluir o plano.", variant: "destructive" });
+    }
   };
 
-  const handleGenerateNew = () => {
-    setWorkoutPlan(null);
-    setProgressMap(new Map());
-    setActiveTab('form');
+  const handleGenerateNew = async () => {
+    if (!user) return;
+
+    try {
+      // Deletar plano atual antes de gerar novo
+      await deleteExistingPlan();
+      
+      setWorkoutPlan(null);
+      setProgressMap(new Map());
+      setActiveTab('form');
+    } catch (error) {
+      console.error('Error in handleGenerateNew:', error);
+    }
   };
 
   if (!user) {
@@ -310,6 +368,23 @@ const WorkoutPlanGenerator = ({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* CAMPO ESSENCIAL NOVO: Local de Treino */}
+                <div>
+                  <Label htmlFor="workout-location">Local de Treino *</Label>
+                  <Select value={workoutLocation} onValueChange={setWorkoutLocation}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Onde você vai treinar?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="casa">Casa (sem equipamentos)</SelectItem>
+                      <SelectItem value="casa_equipamentos">Casa (com equipamentos básicos)</SelectItem>
+                      <SelectItem value="academia">Academia completa</SelectItem>
+                      <SelectItem value="parque">Parque/Ar livre</SelectItem>
+                      <SelectItem value="condominio">Academia do condomínio</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardContent>
             </Card>
 
@@ -384,6 +459,7 @@ const WorkoutPlanGenerator = ({
                   <p>🔄 Configurações selecionadas:</p>
                   <ul className="mt-2 space-y-1">
                     <li>• Nível: {fitnessLevel}</li>
+                    <li>• Local: {workoutLocation}</li>
                     <li>• Dias por semana: {workoutDays}</li>
                     <li>• Tempo por treino: {availableTime}</li>
                     <li>• Total de treinos esperados: {workoutDays ? parseInt(workoutDays) * 8 : 0}</li>

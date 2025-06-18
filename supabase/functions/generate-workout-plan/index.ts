@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -13,8 +12,27 @@ serve(async (req) => {
   }
 
   try {
-    const { user_id, fitness_level, fitness_goals, available_time, preferred_exercises, health_conditions, workout_days } = await req.json();
-    console.log('🚀 Dados recebidos na API:', { user_id, fitness_level, fitness_goals, available_time, preferred_exercises, health_conditions, workout_days });
+    const { 
+      user_id, 
+      fitness_level, 
+      fitness_goals, 
+      available_time, 
+      preferred_exercises, 
+      health_conditions, 
+      workout_days,
+      workout_location // NOVO CAMPO ESSENCIAL
+    } = await req.json();
+    
+    console.log('🚀 Dados recebidos na API:', { 
+      user_id, 
+      fitness_level, 
+      fitness_goals, 
+      available_time, 
+      preferred_exercises, 
+      health_conditions, 
+      workout_days,
+      workout_location 
+    });
 
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
@@ -27,7 +45,8 @@ serve(async (req) => {
         available_days: workout_days, 
         session_duration: parseInt(available_time.replace('min', '')),
         health_conditions,
-        preferred_exercises
+        preferred_exercises,
+        workout_location // INCLUIR LOCAL
       });
       
       return new Response(
@@ -46,6 +65,9 @@ serve(async (req) => {
     // Mapear tempo disponível para minutos
     const timeInMinutes = parseInt(available_time.replace('min', ''));
 
+    // Mapear local de treino para equipamentos disponíveis
+    const locationEquipment = getLocationEquipment(workout_location);
+
     // Criar prompt detalhado para 8 semanas com estrutura correta
     const enhancedPrompt = `Você é um personal trainer certificado com 15 anos de experiência. Crie um plano de treino de 8 SEMANAS estruturado com EXATAMENTE ${workout_days} dias por semana.
 
@@ -54,21 +76,25 @@ PERFIL COMPLETO DO ALUNO:
 - Objetivo: ${fitness_goals}
 - Dias Disponíveis: EXATAMENTE ${workout_days} por semana
 - Duração por Sessão: EXATAMENTE ${timeInMinutes} minutos
+- Local de Treino: ${workout_location} (${locationEquipment})
 - Exercícios Preferidos: ${preferred_exercises || 'Nenhuma preferência'}
 - Limitações: ${health_conditions || 'Nenhuma limitação'}
 
-IMPORTANTE: O plano deve ter EXATAMENTE ${workout_days * 8} treinos distribuídos em 8 semanas, com ${workout_days} treinos por semana, cada um com duração de ${timeInMinutes} minutos.
+IMPORTANTE: 
+- O plano deve ter EXATAMENTE ${workout_days * 8} treinos distribuídos em 8 semanas
+- ${workout_days} treinos por semana, cada um com duração de ${timeInMinutes} minutos
+- Todos os exercícios devem ser adequados para ${workout_location}: ${locationEquipment}
 
 RETORNE APENAS um JSON seguindo EXATAMENTE esta estrutura:
 
 {
-  "title": "Plano de Treino de 8 Semanas - ${fitness_goals} - Nível ${fitness_level}",
-  "description": "Plano periodizado personalizado de 8 semanas com ${workout_days} treinos semanais de ${timeInMinutes} minutos cada",
+  "title": "Plano ${workout_location.toUpperCase()} - 8 Semanas - ${fitness_goals} - Nível ${fitness_level}",
+  "description": "Plano periodizado personalizado de 8 semanas para ${workout_location} com ${workout_days} treinos semanais de ${timeInMinutes} minutos cada",
   "difficulty_level": "${mapFitnessLevelToDifficulty(fitness_level)}",
   "duration_weeks": 8,
   "total_workouts": ${workout_days * 8},
   "workouts": [
-    ${generateWorkoutStructure(workout_days, timeInMinutes, fitness_level)}
+    ${generateWorkoutStructure(workout_days, timeInMinutes, fitness_level, workout_location)}
   ],
   "nutrition_tips": [
     "Hidrate-se com 35-40ml por kg de peso corporal diariamente",
@@ -84,7 +110,7 @@ RETORNE APENAS um JSON seguindo EXATAMENTE esta estrutura:
   }
 }
 
-Crie EXATAMENTE ${workout_days * 8} treinos completos, distribuídos igualmente nas 8 semanas (${workout_days} treinos por semana). Cada treino deve ter duração de ${timeInMinutes} minutos e incluir warm_up, main_exercises detalhados e cool_down.`;
+Crie EXATAMENTE ${workout_days * 8} treinos completos, distribuídos igualmente nas 8 semanas (${workout_days} treinos por semana). Cada treino deve ter duração de ${timeInMinutes} minutos e incluir warm_up, main_exercises detalhados e cool_down ADEQUADOS PARA ${workout_location}.`;
 
     console.log('📤 Enviando requisição detalhada para Groq API...');
 
@@ -121,7 +147,8 @@ Crie EXATAMENTE ${workout_days * 8} treinos completos, distribuídos igualmente 
         available_days: workout_days, 
         session_duration: timeInMinutes,
         health_conditions,
-        preferred_exercises
+        preferred_exercises,
+        workout_location
       });
       
       return new Response(
@@ -148,7 +175,8 @@ Crie EXATAMENTE ${workout_days * 8} treinos completos, distribuídos igualmente 
         available_days: workout_days, 
         session_duration: timeInMinutes,
         health_conditions,
-        preferred_exercises
+        preferred_exercises,
+        workout_location
       });
       
       return new Response(
@@ -184,7 +212,7 @@ Crie EXATAMENTE ${workout_days * 8} treinos completos, distribuídos igualmente 
       console.log('✅ JSON parseado com sucesso da API Groq');
       
       // Validar e corrigir structure
-      workoutPlan = validateAndFixPlan(workoutPlan, workout_days, timeInMinutes, fitness_level);
+      workoutPlan = validateAndFixPlan(workoutPlan, workout_days, timeInMinutes, fitness_level, workout_location);
       
       console.log('🎯 Plano personalizado avançado de 8 semanas gerado com sucesso pela API Groq!');
       
@@ -200,7 +228,8 @@ Crie EXATAMENTE ${workout_days * 8} treinos completos, distribuídos igualmente 
         available_days: workout_days, 
         session_duration: timeInMinutes,
         health_conditions,
-        preferred_exercises
+        preferred_exercises,
+        workout_location
       });
     }
 
@@ -224,7 +253,8 @@ Crie EXATAMENTE ${workout_days * 8} treinos completos, distribuídos igualmente 
       fitness_level: 'iniciante',
       fitness_goals: 'condicionamento geral',
       available_days: 3,
-      session_duration: 60
+      session_duration: 60,
+      workout_location: 'casa'
     });
 
     return new Response(
@@ -258,35 +288,53 @@ function mapFitnessLevelToDifficulty(fitnessLevel: string): string {
   }
 }
 
-function generateWorkoutStructure(workoutDays: number, sessionDuration: number, fitnessLevel: string): string {
+// NOVA FUNÇÃO: Mapear local para equipamentos disponíveis
+function getLocationEquipment(location: string): string {
+  switch (location) {
+    case 'casa':
+      return 'apenas peso corporal, sem equipamentos';
+    case 'casa_equipamentos':
+      return 'peso corporal, halteres, elásticos, tapete';
+    case 'academia':
+      return 'equipamentos completos, máquinas, pesos livres, cardio';
+    case 'parque':
+      return 'peso corporal, barras de exercício, bancos';
+    case 'condominio':
+      return 'equipamentos básicos, alguns pesos, esteira';
+    default:
+      return 'peso corporal';
+  }
+}
+
+function generateWorkoutStructure(workoutDays: number, sessionDuration: number, fitnessLevel: string, workoutLocation: string): string {
   // Esta função seria usada no prompt para dar exemplo de estrutura
   return `{
       "week": 1,
       "day": 1,
-      "title": "Treino A - Exemplo",
-      "focus": "Adaptação técnica",
+      "title": "Treino A - ${workoutLocation.toUpperCase()}",
+      "focus": "Adaptação técnica para ${workoutLocation}",
       "estimated_duration": ${sessionDuration},
       "warm_up": {
         "duration": ${Math.round(sessionDuration * 0.15)},
         "exercises": [
           {
-            "name": "Aquecimento Articular",
+            "name": "Aquecimento para ${workoutLocation}",
             "duration": ${Math.round(sessionDuration * 0.15 * 60)},
-            "instructions": "Movimentos circulares das articulações"
+            "instructions": "Aquecimento específico para ${workoutLocation}"
           }
         ]
       },
       "main_exercises": [
         {
-          "name": "Exercício Principal",
+          "name": "Exercício adequado para ${workoutLocation}",
           "muscle_groups": ["Grupo Muscular"],
           "sets": 3,
           "reps": "10-12",
           "rest_seconds": 60,
-          "weight_guidance": "Peso adequado",
-          "instructions": "Instruções detalhadas",
+          "weight_guidance": "Adequado para ${workoutLocation}",
+          "instructions": "Instruções específicas para ${workoutLocation}",
           "form_cues": ["Dica técnica"],
-          "progression_notes": "Como progredir"
+          "progression_notes": "Como progredir em ${workoutLocation}"
         }
       ],
       "cool_down": {
@@ -295,14 +343,14 @@ function generateWorkoutStructure(workoutDays: number, sessionDuration: number, 
           {
             "name": "Alongamento",
             "duration": ${Math.round(sessionDuration * 0.15 * 60)},
-            "instructions": "Alongamentos específicos"
+            "instructions": "Alongamentos para ${workoutLocation}"
           }
         ]
       }
     }`;
 }
 
-function validateAndFixPlan(plan: any, workoutDays: number, sessionDuration: number, fitnessLevel: string): any {
+function validateAndFixPlan(plan: any, workoutDays: number, sessionDuration: number, fitnessLevel: string, workoutLocation: string): any {
   // Garantir que o plano tenha a estrutura correta
   if (!plan.workouts || !Array.isArray(plan.workouts)) {
     plan.workouts = [];
@@ -315,7 +363,8 @@ function validateAndFixPlan(plan: any, workoutDays: number, sessionDuration: num
     plan = createEnhancedFallbackPlan({
       fitness_level: fitnessLevel,
       available_days: workoutDays,
-      session_duration: sessionDuration
+      session_duration: sessionDuration,
+      workout_location: workoutLocation
     });
   }
 
@@ -341,8 +390,9 @@ function createEnhancedFallbackPlan(userProfile: any) {
   const difficultyLevel = mapFitnessLevelToDifficulty(level);
   const availableDays = userProfile?.available_days || 3;
   const sessionDuration = userProfile?.session_duration || 60;
+  const workoutLocation = userProfile?.workout_location || 'casa';
   
-  console.log(`📋 Criando plano fallback: ${availableDays} dias/semana, ${sessionDuration} min/sessão`);
+  console.log(`📋 Criando plano fallback: ${availableDays} dias/semana, ${sessionDuration} min/sessão, local: ${workoutLocation}`);
   
   // Mapear objetivos para descrição
   const goalsDescription = {
@@ -363,8 +413,8 @@ function createEnhancedFallbackPlan(userProfile: any) {
   // Criar workouts estruturados para 8 semanas
   const workouts = [];
   
-  // Templates de treino baseados no número de dias
-  const workoutTemplates = generateWorkoutTemplates(availableDays, sessionDuration);
+  // Templates de treino baseados no local e número de dias
+  const workoutTemplates = generateWorkoutTemplates(availableDays, sessionDuration, workoutLocation);
   
   for (let week = 1; week <= 8; week++) {
     for (let day = 1; day <= availableDays; day++) {
@@ -381,9 +431,9 @@ function createEnhancedFallbackPlan(userProfile: any) {
           duration: Math.round(sessionDuration * 0.15),
           exercises: [
             {
-              name: 'Aquecimento Articular',
+              name: `Aquecimento para ${workoutLocation}`,
               duration: Math.round(sessionDuration * 0.15 * 60),
-              instructions: 'Movimentos circulares das articulações principais: ombros, quadris, joelhos e tornozelos'
+              instructions: `Aquecimento adequado para treino em ${workoutLocation}: movimentos articulares e ativação muscular`
             }
           ]
         },
@@ -398,9 +448,9 @@ function createEnhancedFallbackPlan(userProfile: any) {
           duration: Math.round(sessionDuration * 0.15),
           exercises: [
             {
-              name: 'Alongamento Geral',
+              name: 'Alongamento e Relaxamento',
               duration: Math.round(sessionDuration * 0.15 * 60),
-              instructions: 'Alongue os principais grupos musculares trabalhados no treino'
+              instructions: `Alongue os principais grupos musculares trabalhados, adequado para ${workoutLocation}`
             }
           ]
         }
@@ -411,8 +461,8 @@ function createEnhancedFallbackPlan(userProfile: any) {
   }
   
   return {
-    title: `Plano de Treino 8 Semanas ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
-    description: `Plano de treino periodizado de 8 semanas, desenvolvido especificamente para ${goalDesc}, com ${availableDays} sessões semanais de ${sessionDuration} minutos cada.`,
+    title: `Plano ${workoutLocation.toUpperCase()} - 8 Semanas ${difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)} - ${goalDesc.charAt(0).toUpperCase() + goalDesc.slice(1)}`,
+    description: `Plano de treino periodizado de 8 semanas, desenvolvido especificamente para ${goalDesc} em ${workoutLocation}, com ${availableDays} sessões semanais de ${sessionDuration} minutos cada.`,
     difficulty_level: difficultyLevel,
     duration_weeks: 8,
     total_workouts: availableDays * 8,
@@ -433,197 +483,369 @@ function createEnhancedFallbackPlan(userProfile: any) {
   };
 }
 
-function generateWorkoutTemplates(availableDays: number, sessionDuration: number) {
+function generateWorkoutTemplates(availableDays: number, sessionDuration: number, workoutLocation: string) {
   const templates = [];
+  
+  // Exercícios baseados no local
+  const locationExercises = getLocationExercises(workoutLocation);
   
   if (availableDays <= 2) {
     // Full body para 1-2 dias
     templates.push({
-      title: 'Treino Full Body A',
-      exercises: [
-        {
-          name: 'Agachamento Livre',
-          muscle_groups: ['Quadríceps', 'Glúteos', 'Core'],
-          sets: 3,
-          reps: '10-12',
-          rest_seconds: 60,
-          weight_guidance: 'Peso corporal ou halteres',
-          instructions: 'Posição inicial: Pés na largura dos ombros, desça flexionando joelhos e quadril.',
-          form_cues: ['Mantenha o peito ereto', 'Joelhos alinhados com os pés']
-        },
-        {
-          name: 'Flexão de Braço',
-          muscle_groups: ['Peitoral', 'Deltoides', 'Tríceps'],
-          sets: 3,
-          reps: '8-12',
-          rest_seconds: 60,
-          weight_guidance: 'Peso corporal',
-          instructions: 'Mãos no chão, corpo reto, desça peito até quase tocar o solo.',
-          form_cues: ['Corpo reto como prancha', 'Amplitude completa']
-        }
-      ]
+      title: `Treino Full Body A - ${workoutLocation.toUpperCase()}`,
+      exercises: locationExercises.fullBodyA
     });
     
     templates.push({
-      title: 'Treino Full Body B',
-      exercises: [
-        {
-          name: 'Afundo',
-          muscle_groups: ['Quadríceps', 'Glúteos'],
-          sets: 3,
-          reps: '10 cada perna',
-          rest_seconds: 60,
-          weight_guidance: 'Peso corporal',
-          instructions: 'Passo grande à frente, desça flexionando ambos os joelhos.',
-          form_cues: ['Joelho da frente alinhado', 'Descida controlada']
-        },
-        {
-          name: 'Prancha',
-          muscle_groups: ['Core', 'Ombros'],
-          sets: 3,
-          reps: '30-60s',
-          rest_seconds: 45,
-          weight_guidance: 'Peso corporal',
-          instructions: 'Posição de flexão, mantenha corpo reto e estável.',
-          form_cues: ['Core contraído', 'Respiração constante']
-        }
-      ]
+      title: `Treino Full Body B - ${workoutLocation.toUpperCase()}`,
+      exercises: locationExercises.fullBodyB
     });
   } else if (availableDays === 3) {
     // Treino ABC
     templates.push({
-      title: 'Treino A - Pernas e Glúteos',
-      exercises: [
-        {
-          name: 'Agachamento Livre',
-          muscle_groups: ['Quadríceps', 'Glúteos', 'Core'],
-          sets: 4,
-          reps: '12-15',
-          rest_seconds: 90,
-          weight_guidance: 'Peso corporal ou halteres',
-          instructions: 'Desça até os quadris ficarem paralelos ao chão.',
-          form_cues: ['Peito ereto', 'Peso nos calcanhares']
-        },
-        {
-          name: 'Afundo Alternado',
-          muscle_groups: ['Quadríceps', 'Glúteos'],
-          sets: 3,
-          reps: '12 cada perna',
-          rest_seconds: 60,
-          weight_guidance: 'Peso corporal',
-          instructions: 'Alterne as pernas a cada repetição.',
-          form_cues: ['Passos amplos', 'Joelhos alinhados']
-        }
-      ]
+      title: `Treino A - Pernas e Glúteos - ${workoutLocation.toUpperCase()}`,
+      exercises: locationExercises.lowerBody
     });
     
     templates.push({
-      title: 'Treino B - Peito, Ombros e Tríceps',
-      exercises: [
-        {
-          name: 'Flexão de Braço',
-          muscle_groups: ['Peitoral', 'Deltoides', 'Tríceps'],
-          sets: 4,
-          reps: '8-12',
-          rest_seconds: 90,
-          weight_guidance: 'Peso corporal',
-          instructions: 'Descida controlada até o peito quase tocar o chão.',
-          form_cues: ['Corpo reto', 'Cotovelos a 45 graus']
-        },
-        {
-          name: 'Elevação Lateral',
-          muscle_groups: ['Deltoides'],
-          sets: 3,
-          reps: '12-15',
-          rest_seconds: 60,
-          weight_guidance: 'Halteres leves',
-          instructions: 'Eleve os braços lateralmente até a altura dos ombros.',
-          form_cues: ['Movimento controlado', 'Ligeira flexão dos cotovelos']
-        }
-      ]
+      title: `Treino B - Peito, Ombros e Tríceps - ${workoutLocation.toUpperCase()}`,
+      exercises: locationExercises.pushDay
     });
     
     templates.push({
-      title: 'Treino C - Costas e Bíceps',
-      exercises: [
-        {
-          name: 'Remada com Halteres',
-          muscle_groups: ['Latíssimo', 'Romboides', 'Bíceps'],
-          sets: 4,
-          reps: '10-12',
-          rest_seconds: 90,
-          weight_guidance: 'Halteres moderados',
-          instructions: 'Puxe o halter em direção ao abdômen, contraindo as costas.',
-          form_cues: ['Ombros para trás', 'Cotovelos junto ao corpo']
-        },
-        {
-          name: 'Rosca Direta',
-          muscle_groups: ['Bíceps'],
-          sets: 3,
-          reps: '12-15',
-          rest_seconds: 60,
-          weight_guidance: 'Halteres',
-          instructions: 'Flexione os braços elevando os halteres.',
-          form_cues: ['Cotovelos fixos', 'Movimento controlado']
-        }
-      ]
+      title: `Treino C - Costas e Bíceps - ${workoutLocation.toUpperCase()}`,
+      exercises: locationExercises.pullDay
     });
   } else {
     // 4+ dias - Upper/Lower split
     templates.push({
-      title: 'Treino Upper - Membros Superiores',
-      exercises: [
-        {
-          name: 'Flexão de Braço',
-          muscle_groups: ['Peitoral', 'Tríceps', 'Deltoides'],
-          sets: 4,
-          reps: '8-12',
-          rest_seconds: 90,
-          weight_guidance: 'Peso corporal',
-          instructions: 'Flexão tradicional com amplitude completa.',
-          form_cues: ['Corpo alinhado', 'Descida controlada']
-        },
-        {
-          name: 'Remada Invertida',
-          muscle_groups: ['Latíssimo', 'Romboides', 'Bíceps'],
-          sets: 4,
-          reps: '8-12',
-          rest_seconds: 90,
-          weight_guidance: 'Peso corporal',
-          instructions: 'Puxe o corpo em direção à barra.',
-          form_cues: ['Corpo reto', 'Ombros retraídos']
-        }
-      ]
+      title: `Treino Upper - Membros Superiores - ${workoutLocation.toUpperCase()}`,
+      exercises: locationExercises.upperBody
     });
     
     templates.push({
-      title: 'Treino Lower - Membros Inferiores',
-      exercises: [
-        {
-          name: 'Agachamento Profundo',
-          muscle_groups: ['Quadríceps', 'Glúteos', 'Posterior'],
-          sets: 4,
-          reps: '12-15',
-          rest_seconds: 90,
-          weight_guidance: 'Peso corporal ou halteres',
-          instructions: 'Agachamento com maior amplitude de movimento.',
-          form_cues: ['Flexibilidade de tornozelo', 'Core ativo']
-        },
-        {
-          name: 'Stiff',
-          muscle_groups: ['Posterior de coxa', 'Glúteos'],
-          sets: 3,
-          reps: '12-15',
-          rest_seconds: 75,
-          weight_guidance: 'Halteres',
-          instructions: 'Flexione o quadril mantendo pernas estendidas.',
-          form_cues: ['Costas retas', 'Quadril para trás']
-        }
-      ]
+      title: `Treino Lower - Membros Inferiores - ${workoutLocation.toUpperCase()}`,
+      exercises: locationExercises.lowerBody
     });
   }
   
   return templates;
+}
+
+// NOVA FUNÇÃO: Exercícios específicos por local
+function getLocationExercises(location: string) {
+  switch (location) {
+    case 'casa':
+      return {
+        fullBodyA: [
+          {
+            name: 'Agachamento Livre',
+            muscle_groups: ['Quadríceps', 'Glúteos', 'Core'],
+            sets: 3,
+            reps: '12-15',
+            rest_seconds: 60,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Desça até os quadris ficarem paralelos ao chão.',
+            form_cues: ['Peito ereto', 'Peso nos calcanhares']
+          },
+          {
+            name: 'Flexão de Braço',
+            muscle_groups: ['Peitoral', 'Deltoides', 'Tríceps'],
+            sets: 3,
+            reps: '8-12',
+            rest_seconds: 60,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Descida controlada até o peito quase tocar o chão.',
+            form_cues: ['Corpo reto', 'Cotovelos a 45 graus']
+          }
+        ],
+        fullBodyB: [
+          {
+            name: 'Afundo',
+            muscle_groups: ['Quadríceps', 'Glúteos'],
+            sets: 3,
+            reps: '10 cada perna',
+            rest_seconds: 60,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Passo grande à frente, desça flexionando ambos os joelhos.',
+            form_cues: ['Joelho da frente alinhado', 'Descida controlada']
+          },
+          {
+            name: 'Prancha',
+            muscle_groups: ['Core', 'Ombros'],
+            sets: 3,
+            reps: '30-60s',
+            rest_seconds: 45,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Posição de flexão, mantenha corpo reto e estável.',
+            form_cues: ['Core contraído', 'Respiração constante']
+          }
+        ],
+        lowerBody: [
+          {
+            name: 'Agachamento Profundo',
+            muscle_groups: ['Quadríceps', 'Glúteos'],
+            sets: 4,
+            reps: '12-15',
+            rest_seconds: 90,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Agachamento com maior amplitude.',
+            form_cues: ['Flexibilidade de tornozelo', 'Core ativo']
+          }
+        ],
+        pushDay: [
+          {
+            name: 'Flexão de Braço Variações',
+            muscle_groups: ['Peitoral', 'Tríceps'],
+            sets: 4,
+            reps: '8-12',
+            rest_seconds: 90,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Varie entre flexão normal, diamante e inclinada.',
+            form_cues: ['Corpo alinhado', 'Amplitude completa']
+          }
+        ],
+        pullDay: [
+          {
+            name: 'Remada Australiana (mesa)',
+            muscle_groups: ['Latíssimo', 'Romboides'],
+            sets: 4,
+            reps: '8-12',
+            rest_seconds: 90,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Use uma mesa resistente para fazer remada.',
+            form_cues: ['Corpo reto', 'Ombros retraídos']
+          }
+        ],
+        upperBody: [
+          {
+            name: 'Flexão Combinada',
+            muscle_groups: ['Peito', 'Ombros', 'Tríceps'],
+            sets: 4,
+            reps: '8-12',
+            rest_seconds: 90,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Combine diferentes variações de flexão.',
+            form_cues: ['Forma perfeita', 'Controle total']
+          }
+        ]
+      };
+    
+    case 'academia':
+      return {
+        fullBodyA: [
+          {
+            name: 'Agachamento com Barra',
+            muscle_groups: ['Quadríceps', 'Glúteos', 'Core'],
+            sets: 4,
+            reps: '8-12',
+            rest_seconds: 90,
+            weight_guidance: 'Barra + peso progressivo',
+            instructions: 'Agachamento livre com barra nas costas.',
+            form_cues: ['Peito ereto', 'Joelhos alinhados']
+          },
+          {
+            name: 'Supino Reto',
+            muscle_groups: ['Peitoral', 'Tríceps', 'Deltoides'],
+            sets: 4,
+            reps: '8-12',
+            rest_seconds: 90,
+            weight_guidance: 'Barra + anilhas',
+            instructions: 'Supino com barra no banco reto.',
+            form_cues: ['Escápulas retraídas', 'Pegada firme']
+          }
+        ],
+        fullBodyB: [
+          {
+            name: 'Leg Press',
+            muscle_groups: ['Quadríceps', 'Glúteos'],
+            sets: 4,
+            reps: '12-15',
+            rest_seconds: 90,
+            weight_guidance: 'Máquina leg press',
+            instructions: 'Leg press com amplitude completa.',
+            form_cues: ['Pés alinhados', 'Controle na descida']
+          },
+          {
+            name: 'Puxada na Polia',
+            muscle_groups: ['Latíssimo', 'Bíceps'],
+            sets: 4,
+            reps: '10-12',
+            rest_seconds: 90,
+            weight_guidance: 'Polia alta',
+            instructions: 'Puxada frontal na polia.',
+            form_cues: ['Peito estufado', 'Cotovelos para baixo']
+          }
+        ],
+        lowerBody: [
+          {
+            name: 'Agachamento Livre',
+            muscle_groups: ['Quadríceps', 'Glúteos'],
+            sets: 4,
+            reps: '8-12',
+            rest_seconds: 120,
+            weight_guidance: 'Barra + peso',
+            instructions: 'Agachamento livre com barra.',
+            form_cues: ['Técnica perfeita', 'Progressão gradual']
+          }
+        ],
+        pushDay: [
+          {
+            name: 'Supino Inclinado',
+            muscle_groups: ['Peitoral Superior', 'Tríceps'],
+            sets: 4,
+            reps: '8-12',
+            rest_seconds: 90,
+            weight_guidance: 'Halteres ou barra',
+            instructions: 'Supino inclinado para peitoral superior.',
+            form_cues: ['Ângulo de 30-45°', 'Controle total']
+          }
+        ],
+        pullDay: [
+          {
+            name: 'Remada Curvada',
+            muscle_groups: ['Latíssimo', 'Romboides', 'Bíceps'],
+            sets: 4,
+            reps: '8-12',
+            rest_seconds: 90,
+            weight_guidance: 'Barra ou halteres',
+            instructions: 'Remada curvada com barra.',
+            form_cues: ['Costas retas', 'Cotovelos junto ao corpo']
+          }
+        ],
+        upperBody: [
+          {
+            name: 'Desenvolvimento com Halteres',
+            muscle_groups: ['Deltoides', 'Tríceps'],
+            sets: 4,
+            reps: '10-12',
+            rest_seconds: 90,
+            weight_guidance: 'Halteres',
+            instructions: 'Desenvolvimento sentado com halteres.',
+            form_cues: ['Costas apoiadas', 'Amplitude completa']
+          }
+        ]
+      };
+    
+    case 'parque':
+      return {
+        fullBodyA: [
+          {
+            name: 'Agachamento no Parque',
+            muscle_groups: ['Quadríceps', 'Glúteos'],
+            sets: 4,
+            reps: '15-20',
+            rest_seconds: 60,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Agachamento usando banco ou superfície do parque.',
+            form_cues: ['Use o ambiente', 'Aproveite o ar livre']
+          },
+          {
+            name: 'Flexão na Barra',
+            muscle_groups: ['Peitoral', 'Tríceps'],
+            sets: 3,
+            reps: '5-10',
+            rest_seconds: 90,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Flexão inclinada usando barra do parque.',
+            form_cues: ['Corpo alinhado', 'Controle do movimento']
+          }
+        ],
+        fullBodyB: [
+          {
+            name: 'Corrida Intervalada',
+            muscle_groups: ['Cardio', 'Pernas'],
+            sets: 5,
+            reps: '1 min forte / 1 min leve',
+            rest_seconds: 60,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Intercale intensidade na corrida.',
+            form_cues: ['Respire bem', 'Mantenha ritmo']
+          }
+        ],
+        lowerBody: [
+          {
+            name: 'Step-up no Banco',
+            muscle_groups: ['Quadríceps', 'Glúteos'],
+            sets: 4,
+            reps: '12 cada perna',
+            rest_seconds: 75,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Subida no banco alternando pernas.',
+            form_cues: ['Controle na descida', 'Força na subida']
+          }
+        ],
+        pushDay: [
+          {
+            name: 'Mergulho no Banco',
+            muscle_groups: ['Tríceps', 'Peitorais'],
+            sets: 4,
+            reps: '8-15',
+            rest_seconds: 90,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Mergulho usando banco do parque.',
+            form_cues: ['Cotovelos para trás', 'Amplitude controlada']
+          }
+        ],
+        pullDay: [
+          {
+            name: 'Barra Fixa',
+            muscle_groups: ['Latíssimo', 'Bíceps'],
+            sets: 4,
+            reps: '3-8',
+            rest_seconds: 120,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Barra fixa na estrutura do parque.',
+            form_cues: ['Pegada firme', 'Subida controlada']
+          }
+        ],
+        upperBody: [
+          {
+            name: 'Exercícios na Barra',
+            muscle_groups: ['Braços', 'Costas'],
+            sets: 4,
+            reps: 'Máximo possível',
+            rest_seconds: 90,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Combine barra fixa e paralelas.',
+            form_cues: ['Use as estruturas', 'Técnica primeiro']
+          }
+        ]
+      };
+    
+    default:
+      // Fallback para casa
+      return {
+        fullBodyA: [
+          {
+            name: 'Agachamento Livre',
+            muscle_groups: ['Quadríceps', 'Glúteos'],
+            sets: 3,
+            reps: '12-15',
+            rest_seconds: 60,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Agachamento básico em casa.',
+            form_cues: ['Técnica correta', 'Amplitude completa']
+          }
+        ],
+        fullBodyB: [
+          {
+            name: 'Flexão de Braço',
+            muscle_groups: ['Peitoral', 'Tríceps'],
+            sets: 3,
+            reps: '8-12',
+            rest_seconds: 60,
+            weight_guidance: 'Peso corporal',
+            instructions: 'Flexão básica em casa.',
+            form_cues: ['Corpo reto', 'Controle total']
+          }
+        ],
+        lowerBody: [],
+        pushDay: [],
+        pullDay: [],
+        upperBody: []
+      };
+  }
 }
 
 function getWeekFocus(week: number): string {
