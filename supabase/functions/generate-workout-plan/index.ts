@@ -91,33 +91,34 @@ serve(async (req) => {
     const totalWorkouts = workout_days * 8; // 8 semanas
 
     const prompt = `
-You are a professional personal trainer. Create a workout plan in VALID JSON format only.
+Você é um personal trainer profissional brasileiro. Crie um plano de treino APENAS em formato JSON válido.
 
-USER DATA:
-- Age: ${age} years
-- Height: ${height} cm  
-- Weight: ${weight} kg
-- BMI: ${bmi.toFixed(1)} (${bmiCategory})
-- Fitness level: ${fitness_level}
-- Goals: ${fitness_goals}
-- Workout days per week: ${workout_days}
-- Session duration: ${available_time}
-- Location: ${workout_location}
-- Available equipment: ${availableEquipment}
-- Preferred exercises: ${preferred_exercises || 'None specified'}
-- Health conditions: ${health_conditions || 'None reported'}
+DADOS DO USUÁRIO:
+- Idade: ${age} anos
+- Altura: ${height} cm  
+- Peso: ${weight} kg
+- IMC: ${bmi.toFixed(1)} (${bmiCategory})
+- Nível de condicionamento: ${fitness_level}
+- Objetivos: ${fitness_goals}
+- Dias de treino por semana: ${workout_days}
+- Duração da sessão: ${available_time}
+- Local: ${workout_location}
+- Equipamentos disponíveis: ${availableEquipment}
+- Exercícios preferidos: ${preferred_exercises || 'Nenhum especificado'}
+- Condições de saúde: ${health_conditions || 'Nenhuma relatada'}
 
-CRITICAL INSTRUCTIONS:
-1. Return ONLY valid JSON, no text before or after
-2. Create exactly ${totalWorkouts} workouts (${workout_days} per week × 8 weeks)
-3. Each workout must be ${available_time} duration
-4. Use ONLY equipment available at: ${workout_location}
-5. Adapt intensity for age ${age} and BMI ${bmi.toFixed(1)}
+INSTRUÇÕES CRÍTICAS:
+1. Retorne APENAS JSON válido, sem texto antes ou depois
+2. Crie exatamente ${totalWorkouts} treinos (${workout_days} por semana × 8 semanas)
+3. Cada treino deve ter duração de ${available_time}
+4. Use APENAS equipamentos disponíveis em: ${workout_location}
+5. Adapte intensidade para idade ${age} e IMC ${bmi.toFixed(1)}
+6. TODAS as instruções devem estar em português brasileiro
 
-REQUIRED JSON STRUCTURE:
+ESTRUTURA JSON OBRIGATÓRIA:
 {
-  "title": "8-Week Plan - ${fitness_level} (Age ${age})",
-  "description": "Personalized plan for ${bmiCategory}, ${workout_location}, focused on ${fitness_goals}",
+  "title": "Plano 8 Semanas - ${fitness_level} (${age} anos)",
+  "description": "Plano personalizado para ${bmiCategory}, ${workout_location}, focado em ${fitness_goals}",
   "difficulty_level": "${fitness_level}",
   "duration_weeks": 8,
   "total_workouts": ${totalWorkouts},
@@ -125,57 +126,57 @@ REQUIRED JSON STRUCTURE:
     {
       "week": 1,
       "day": 1,
-      "title": "Workout Name",
-      "focus": "Target area",
+      "title": "Nome do Treino",
+      "focus": "Área trabalhada",
       "estimated_duration": ${parseInt(available_time)},
       "warm_up": {
         "duration": 5,
         "exercises": [
           {
-            "name": "Exercise name",
+            "name": "Nome do exercício",
             "duration": 30,
-            "instructions": "How to perform"
+            "instructions": "Como executar em português"
           }
         ]
       },
       "main_exercises": [
         {
-          "name": "Exercise name",
-          "muscle_groups": ["chest", "shoulders"],
+          "name": "Nome do exercício",
+          "muscle_groups": ["peito", "ombros"],
           "sets": 3,
           "reps": "8-12",
           "rest_seconds": 60,
-          "weight_guidance": "Start light",
-          "instructions": "Detailed instructions",
-          "form_cues": ["Keep core tight"],
-          "progression_notes": "Increase weight when ready"
+          "weight_guidance": "Comece leve",
+          "instructions": "Instruções detalhadas em português",
+          "form_cues": ["Mantenha o core contraído"],
+          "progression_notes": "Aumente o peso quando estiver pronto"
         }
       ],
       "cool_down": {
         "duration": 5,
         "exercises": [
           {
-            "name": "Stretch name",
+            "name": "Nome do alongamento",
             "duration": 30,
-            "instructions": "How to stretch"
+            "instructions": "Como alongar em português"
           }
         ]
       }
     }
   ],
   "nutrition_tips": [
-    "Hydration tip for ${available_time} workouts",
-    "Nutrition advice for BMI ${bmi.toFixed(1)} and goal ${fitness_goals}"
+    "Dica de hidratação para treinos de ${available_time}",
+    "Orientação nutricional para IMC ${bmi.toFixed(1)} e objetivo ${fitness_goals}"
   ],
   "progression_schedule": {
-    "week_1_2": "Adaptation phase",
-    "week_3_4": "Progressive overload",
-    "week_5_6": "Intensity increase", 
-    "week_7_8": "Peak performance"
+    "week_1_2": "Fase de adaptação",
+    "week_3_4": "Sobrecarga progressiva",
+    "week_5_6": "Aumento de intensidade", 
+    "week_7_8": "Performance máxima"
   }
 }
 
-Return ONLY the JSON object above, properly formatted and complete with all ${totalWorkouts} workouts.`;
+Retorne APENAS o objeto JSON acima, devidamente formatado e completo com todos os ${totalWorkouts} treinos em português brasileiro.`;
 
     console.log('📤 Enviando requisição para Groq API...');
 
@@ -186,18 +187,18 @@ Return ONLY the JSON object above, properly formatted and complete with all ${to
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
-            content: 'You are a professional personal trainer. You MUST respond with ONLY valid JSON, no additional text or explanations. Start your response with { and end with }.'
+            content: 'Você é um personal trainer brasileiro profissional. Você DEVE responder APENAS com JSON válido, sem texto adicional ou explicações. Todas as instruções devem estar em português brasileiro. Inicie sua resposta com { e termine com }.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 8000
       }),
     });
