@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Sparkles, Target, Clock, Dumbbell, Brain, Apple, MapPin } from 'lucide-react';
+import { Loader2, Sparkles, Target, Clock, Dumbbell, Brain, Apple, MapPin, User as UserIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import WorkoutPlanDisplay from './WorkoutPlanDisplay';
+import ConfirmationDialog from './ConfirmationDialog';
 
 export interface WorkoutPlan {
   title: string;
@@ -45,14 +46,22 @@ const WorkoutPlanGenerator = ({
   const [loading, setLoading] = useState(false);
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
   
-  // Form states
+  // Estados dos modais de confirmação
+  const [showGenerateConfirmation, setShowGenerateConfirmation] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showNewPlanConfirmation, setShowNewPlanConfirmation] = useState(false);
+  
+  // Form states - NOVOS CAMPOS ESSENCIAIS
+  const [age, setAge] = useState('');
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
   const [fitnessLevel, setFitnessLevel] = useState('');
   const [fitnessGoals, setFitnessGoals] = useState('');
   const [availableTime, setAvailableTime] = useState('');
   const [preferredExercises, setPreferredExercises] = useState('');
   const [healthConditions, setHealthConditions] = useState('');
   const [workoutDays, setWorkoutDays] = useState('');
-  const [workoutLocation, setWorkoutLocation] = useState(''); // NOVA PERGUNTA ESSENCIAL
+  const [workoutLocation, setWorkoutLocation] = useState('');
 
   const { toast } = useToast();
 
@@ -130,22 +139,33 @@ const WorkoutPlanGenerator = ({
     }
   };
 
-  const handleGeneratePlan = async () => {
+  // NOVA FUNÇÃO: Verificar se deve mostrar confirmação
+  const handleGeneratePlanRequest = () => {
     if (!user) {
       toast({ title: "Erro", description: "Você precisa estar logado para gerar um plano.", variant: "destructive" });
       return;
     }
 
-    // VALIDAÇÃO CRÍTICA: Verificar todos os campos obrigatórios incluindo local
-    if (!fitnessLevel || !fitnessGoals || !availableTime || !workoutDays || !workoutLocation) {
+    // VALIDAÇÃO CRÍTICA: Verificar todos os campos obrigatórios incluindo novos campos
+    if (!age || !height || !weight || !fitnessLevel || !fitnessGoals || !availableTime || !workoutDays || !workoutLocation) {
       toast({ 
         title: "Campos obrigatórios", 
-        description: "Por favor, preencha todos os campos obrigatórios, incluindo o local de treino.", 
+        description: "Por favor, preencha todos os campos obrigatórios, incluindo idade, altura, peso e local de treino.", 
         variant: "destructive" 
       });
       return;
     }
 
+    // Se já existe um plano, mostrar modal de confirmação
+    if (workoutPlan) {
+      setShowGenerateConfirmation(true);
+    } else {
+      // Se não existe plano, gerar diretamente
+      handleGeneratePlan();
+    }
+  };
+
+  const handleGeneratePlan = async () => {
     setLoading(true);
     
     try {
@@ -154,25 +174,31 @@ const WorkoutPlanGenerator = ({
 
       console.log('📤 Enviando dados para geração:', {
         user_id: user.id,
+        age: parseInt(age),
+        height: parseFloat(height),
+        weight: parseFloat(weight),
         fitness_level: fitnessLevel,
         fitness_goals: fitnessGoals,
         available_time: availableTime,
         preferred_exercises: preferredExercises,
         health_conditions: healthConditions,
         workout_days: parseInt(workoutDays),
-        workout_location: workoutLocation // NOVO CAMPO ESSENCIAL
+        workout_location: workoutLocation
       });
 
       const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
         body: {
           user_id: user.id,
+          age: parseInt(age),
+          height: parseFloat(height),
+          weight: parseFloat(weight),
           fitness_level: fitnessLevel,
           fitness_goals: fitnessGoals,
           available_time: availableTime,
           preferred_exercises: preferredExercises,
           health_conditions: healthConditions,
           workout_days: parseInt(workoutDays),
-          workout_location: workoutLocation // CAMPO ESSENCIAL
+          workout_location: workoutLocation
         }
       });
 
@@ -222,6 +248,7 @@ const WorkoutPlanGenerator = ({
       });
     } finally {
       setLoading(false);
+      setShowGenerateConfirmation(false);
     }
   };
 
@@ -235,6 +262,10 @@ const WorkoutPlanGenerator = ({
     } catch (error) {
       toast({ title: "Erro", description: "Não foi possível copiar o plano.", variant: "destructive" });
     }
+  };
+
+  const handleDeletePlanRequest = () => {
+    setShowDeleteConfirmation(true);
   };
 
   const handleDeletePlan = async () => {
@@ -253,7 +284,13 @@ const WorkoutPlanGenerator = ({
     } catch (error) {
       console.error('Error deleting plan:', error);
       toast({ title: "Erro", description: "Não foi possível excluir o plano.", variant: "destructive" });
+    } finally {
+      setShowDeleteConfirmation(false);
     }
+  };
+
+  const handleGenerateNewRequest = () => {
+    setShowNewPlanConfirmation(true);
   };
 
   const handleGenerateNew = async () => {
@@ -266,8 +303,12 @@ const WorkoutPlanGenerator = ({
       setWorkoutPlan(null);
       setProgressMap(new Map());
       setActiveTab('form');
+      
+      toast({ title: "Plano removido", description: "Agora você pode gerar um novo plano de treino." });
     } catch (error) {
       console.error('Error in handleGenerateNew:', error);
+    } finally {
+      setShowNewPlanConfirmation(false);
     }
   };
 
@@ -288,6 +329,40 @@ const WorkoutPlanGenerator = ({
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
+      {/* Modais de Confirmação */}
+      <ConfirmationDialog
+        open={showGenerateConfirmation}
+        onOpenChange={setShowGenerateConfirmation}
+        title="Substituir Plano Existente"
+        description="Você já possui um plano de treino. Gerar um novo plano irá substituir o atual permanentemente. Deseja continuar?"
+        confirmText="Sim, Substituir"
+        cancelText="Cancelar"
+        onConfirm={handleGeneratePlan}
+        variant="destructive"
+      />
+
+      <ConfirmationDialog
+        open={showDeleteConfirmation}
+        onOpenChange={setShowDeleteConfirmation}
+        title="Excluir Plano de Treino"
+        description="Tem certeza que deseja excluir seu plano de treino? Esta ação não pode ser desfeita."
+        confirmText="Sim, Excluir"
+        cancelText="Cancelar"
+        onConfirm={handleDeletePlan}
+        variant="destructive"
+      />
+
+      <ConfirmationDialog
+        open={showNewPlanConfirmation}
+        onOpenChange={setShowNewPlanConfirmation}
+        title="Gerar Novo Plano"
+        description="Isso irá remover seu plano atual para que você possa criar um novo. Deseja continuar?"
+        confirmText="Sim, Continuar"
+        cancelText="Cancelar"
+        onConfirm={handleGenerateNew}
+        variant="destructive"
+      />
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="form" className="flex items-center gap-2">
@@ -314,14 +389,55 @@ const WorkoutPlanGenerator = ({
           </Card>
 
           <div className="grid md:grid-cols-2 gap-6">
+            {/* SEÇÃO DE DADOS PESSOAIS - NOVA */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Informações Básicas
+                  <UserIcon className="h-5 w-5" />
+                  Dados Pessoais
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="age">Idade (anos) *</Label>
+                  <Input
+                    id="age"
+                    type="number"
+                    placeholder="Ex: 25"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                    min="14"
+                    max="99"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="height">Altura (cm) *</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    placeholder="Ex: 175"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    min="120"
+                    max="250"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="weight">Peso (kg) *</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    placeholder="Ex: 70"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    min="30"
+                    max="300"
+                    step="0.1"
+                  />
+                </div>
+
                 <div>
                   <Label htmlFor="fitness-level">Nível de Condicionamento *</Label>
                   <Select value={fitnessLevel} onValueChange={setFitnessLevel}>
@@ -336,7 +452,17 @@ const WorkoutPlanGenerator = ({
                     </SelectContent>
                   </Select>
                 </div>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Informações de Treino
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="workout-days">Dias de Treino por Semana *</Label>
                   <Select value={workoutDays} onValueChange={setWorkoutDays}>
@@ -369,7 +495,6 @@ const WorkoutPlanGenerator = ({
                   </Select>
                 </div>
 
-                {/* CAMPO ESSENCIAL NOVO: Local de Treino */}
                 <div>
                   <Label htmlFor="workout-location">Local de Treino *</Label>
                   <Select value={workoutLocation} onValueChange={setWorkoutLocation}>
@@ -388,7 +513,7 @@ const WorkoutPlanGenerator = ({
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Apple className="h-5 w-5" />
@@ -407,26 +532,28 @@ const WorkoutPlanGenerator = ({
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="preferred-exercises">Exercícios Preferidos (opcional)</Label>
-                  <Textarea
-                    id="preferred-exercises"
-                    placeholder="Ex: Musculação, funcional, cardio, pilates..."
-                    value={preferredExercises}
-                    onChange={(e) => setPreferredExercises(e.target.value)}
-                    className="min-h-[60px]"
-                  />
-                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="preferred-exercises">Exercícios Preferidos (opcional)</Label>
+                    <Textarea
+                      id="preferred-exercises"
+                      placeholder="Ex: Musculação, funcional, cardio, pilates..."
+                      value={preferredExercises}
+                      onChange={(e) => setPreferredExercises(e.target.value)}
+                      className="min-h-[60px]"
+                    />
+                  </div>
 
-                <div>
-                  <Label htmlFor="health-conditions">Condições de Saúde (opcional)</Label>
-                  <Textarea
-                    id="health-conditions"
-                    placeholder="Ex: Lesões, limitações, problemas articulares..."
-                    value={healthConditions}
-                    onChange={(e) => setHealthConditions(e.target.value)}
-                    className="min-h-[60px]"
-                  />
+                  <div>
+                    <Label htmlFor="health-conditions">Condições de Saúde (opcional)</Label>
+                    <Textarea
+                      id="health-conditions"
+                      placeholder="Ex: Lesões, limitações, problemas articulares..."
+                      value={healthConditions}
+                      onChange={(e) => setHealthConditions(e.target.value)}
+                      className="min-h-[60px]"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -435,7 +562,7 @@ const WorkoutPlanGenerator = ({
           <Card>
             <CardContent className="pt-6">
               <Button 
-                onClick={handleGeneratePlan}
+                onClick={handleGeneratePlanRequest}
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 text-lg"
                 size="lg"
@@ -458,6 +585,9 @@ const WorkoutPlanGenerator = ({
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
                   <p>🔄 Configurações selecionadas:</p>
                   <ul className="mt-2 space-y-1">
+                    <li>• Idade: {age} anos</li>
+                    <li>• Altura: {height} cm</li>
+                    <li>• Peso: {weight} kg</li>
                     <li>• Nível: {fitnessLevel}</li>
                     <li>• Local: {workoutLocation}</li>
                     <li>• Dias por semana: {workoutDays}</li>
@@ -475,8 +605,8 @@ const WorkoutPlanGenerator = ({
             <WorkoutPlanDisplay
               plan={workoutPlan}
               onCopyPlan={handleCopyPlan}
-              onDeletePlan={handleDeletePlan}
-              onGenerateNew={handleGenerateNew}
+              onDeletePlan={handleDeletePlanRequest}
+              onGenerateNew={handleGenerateNewRequest}
               progressMap={progressMap}
               onProgressChange={handleProgressChange}
               onSwitchToAssistant={onSwitchToAssistant}
