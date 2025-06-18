@@ -91,7 +91,7 @@ serve(async (req) => {
     const totalWorkouts = workout_days * 8; // 8 semanas
 
     const prompt = `
-Você é um personal trainer profissional brasileiro. Crie um plano de treino APENAS em formato JSON válido.
+Você é um personal trainer profissional brasileiro com mais de 10 anos de experiência. Crie um plano de treino DETALHADO em formato JSON válido.
 
 DADOS DO USUÁRIO:
 - Idade: ${age} anos
@@ -114,6 +114,10 @@ INSTRUÇÕES CRÍTICAS:
 4. Use APENAS equipamentos disponíveis em: ${workout_location}
 5. Adapte intensidade para idade ${age} e IMC ${bmi.toFixed(1)}
 6. TODAS as instruções devem estar em português brasileiro
+7. As instruções dos exercícios devem ser MUITO DETALHADAS e explicativas
+8. Inclua posicionamento corporal, respiração, amplitude de movimento
+9. Explique como sentir o músculo trabalhando
+10. Inclua variações para iniciantes e avançados quando apropriado
 
 ESTRUTURA JSON OBRIGATÓRIA:
 {
@@ -135,7 +139,7 @@ ESTRUTURA JSON OBRIGATÓRIA:
           {
             "name": "Nome do exercício",
             "duration": 30,
-            "instructions": "Como executar em português"
+            "instructions": "Instruções detalhadas passo a passo em português, incluindo posição inicial, movimento completo, respiração e pontos de atenção"
           }
         ]
       },
@@ -146,10 +150,16 @@ ESTRUTURA JSON OBRIGATÓRIA:
           "sets": 3,
           "reps": "8-12",
           "rest_seconds": 60,
-          "weight_guidance": "Comece leve",
-          "instructions": "Instruções detalhadas em português",
-          "form_cues": ["Mantenha o core contraído"],
-          "progression_notes": "Aumente o peso quando estiver pronto"
+          "weight_guidance": "Comece leve e aumente progressivamente",
+          "instructions": "Instruções MUITO DETALHADAS em português brasileiro: 1) Posição inicial - Detalhe exato de como se posicionar, onde colocar os pés, como segurar o equipamento, postura do tronco. 2) Execução - Descreva o movimento completo, velocidade, amplitude, qual parte do corpo se move primeiro. 3) Respiração - Quando inspirar e quando expirar durante o movimento. 4) Finalização - Como retornar à posição inicial de forma controlada. 5) Sensações - Como deve sentir o músculo trabalhando, onde deve sentir o esforço. 6) Erros comuns - O que evitar durante a execução.",
+          "form_cues": [
+            "Mantenha o core sempre contraído durante todo o movimento",
+            "Controle a velocidade - 2 segundos na descida, 1 segundo na subida",
+            "Foque na conexão mente-músculo, sinta o músculo trabalhando",
+            "Mantenha a respiração fluida, nunca prenda o ar",
+            "Verifique o alinhamento da coluna antes de iniciar cada série"
+          ],
+          "progression_notes": "Semana 1-2: Foque na técnica perfeita com peso leve. Semana 3-4: Aumente o peso em 5-10% quando conseguir fazer todas as repetições com facilidade. Semana 5-6: Continue progressão de carga. Semana 7-8: Teste seus limites mantendo a técnica."
         }
       ],
       "cool_down": {
@@ -158,23 +168,28 @@ ESTRUTURA JSON OBRIGATÓRIA:
           {
             "name": "Nome do alongamento",
             "duration": 30,
-            "instructions": "Como alongar em português"
+            "instructions": "Instruções detalhadas do alongamento em português: posição inicial, como executar, intensidade do alongamento, respiração durante o exercício, benefícios específicos"
           }
         ]
       }
     }
   ],
   "nutrition_tips": [
-    "Dica de hidratação para treinos de ${available_time}",
-    "Orientação nutricional para IMC ${bmi.toFixed(1)} e objetivo ${fitness_goals}"
+    "Hidratação: Beba pelo menos 500ml de água 30 minutos antes do treino de ${available_time}",
+    "Pré-treino: Consuma carboidratos de fácil digestão 1 hora antes (banana, aveia)",
+    "Pós-treino: Proteína + carboidrato até 30min após o treino para recuperação",
+    "Para IMC ${bmi.toFixed(1)} e objetivo ${fitness_goals}: ajuste as porções conforme orientação nutricional",
+    "Durma 7-8 horas por noite para otimizar a recuperação muscular"
   ],
   "progression_schedule": {
-    "week_1_2": "Fase de adaptação",
-    "week_3_4": "Sobrecarga progressiva",
-    "week_5_6": "Aumento de intensidade", 
-    "week_7_8": "Performance máxima"
+    "week_1_2": "Fase de adaptação - Foque na técnica perfeita, cargas leves a moderadas",
+    "week_3_4": "Sobrecarga progressiva - Aumente peso/intensidade quando dominar o movimento",
+    "week_5_6": "Aumento de intensidade - Desafie-se mantendo a forma correta", 
+    "week_7_8": "Performance máxima - Teste seus limites com segurança"
   }
 }
+
+LEMBRE-SE: As instruções dos exercícios devem ser extremamente detalhadas, como se você estivesse pessoalmente orientando o aluno. Inclua detalhes sobre postura, respiração, sensações esperadas e progressão. Seja específico sobre como executar cada movimento de forma segura e eficaz.
 
 Retorne APENAS o objeto JSON acima, devidamente formatado e completo com todos os ${totalWorkouts} treinos em português brasileiro.`;
 
@@ -191,15 +206,15 @@ Retorne APENAS o objeto JSON acima, devidamente formatado e completo com todos o
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer brasileiro profissional. Você DEVE responder APENAS com JSON válido, sem texto adicional ou explicações. Todas as instruções devem estar em português brasileiro. Inicie sua resposta com { e termine com }.'
+            content: 'Você é um personal trainer brasileiro profissional especialista em criar planos de treino detalhados. Você DEVE responder APENAS com JSON válido, sem texto adicional. Todas as instruções devem ser EXTREMAMENTE DETALHADAS em português brasileiro, como se você fosse um personal trainer experiente orientando presencialmente. Inicie sua resposta com { e termine com }.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.2,
-        max_tokens: 8000
+        temperature: 0.1,
+        max_tokens: 16000
       }),
     });
 
