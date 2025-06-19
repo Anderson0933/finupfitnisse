@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -134,17 +133,18 @@ const WorkoutPlanGenerator = ({
         console.error('Error deleting existing progress:', progressError);
       }
 
-      // Deletar itens da fila anterior usando RPC
+      // Deletar itens da fila anterior - usar insert direto em tabela
       try {
-        const { error: queueError } = await (supabase as any).rpc('delete_user_queue_items', {
-          p_user_id: user.id
-        });
+        const { error: queueError } = await supabase
+          .from('workout_plan_queue')
+          .delete()
+          .eq('user_id', user.id);
 
         if (queueError) {
           console.error('Error deleting existing queue items:', queueError);
         }
-      } catch (rpcError) {
-        console.error('RPC error or table does not exist:', rpcError);
+      } catch (queueDeleteError) {
+        console.error('Queue delete error or table does not exist:', queueDeleteError);
         // Continuar mesmo se a tabela não existir ainda
       }
 
@@ -203,33 +203,9 @@ const WorkoutPlanGenerator = ({
 
       console.log('📤 Adicionando à fila:', requestData);
 
-      // Tentar adicionar à fila usando RPC primeiro
+      // Tentar inserção direta na tabela primeiro
       try {
-        const { data: queueData, error: queueError } = await (supabase as any).rpc('add_to_workout_queue', {
-          p_user_id: user!.id,
-          p_request_data: requestData
-        });
-
-        if (queueError) {
-          throw queueError;
-        }
-
-        console.log('✅ Adicionado à fila via RPC:', queueData);
-        
-        // Mostrar status da fila
-        setShowQueueStatus(true);
-        setActiveTab('queue');
-        
-        toast({ 
-          title: "Plano adicionado à fila!", 
-          description: "Seu plano está sendo gerado. Acompanhe o progresso abaixo." 
-        });
-
-      } catch (rpcError) {
-        console.error('RPC failed, trying direct insert:', rpcError);
-        
-        // Fallback para inserção direta
-        const { data: queueData, error: queueError } = await (supabase as any)
+        const { data: queueData, error: queueError } = await supabase
           .from('workout_plan_queue')
           .insert({
             user_id: user!.id,
@@ -249,7 +225,7 @@ const WorkoutPlanGenerator = ({
           return;
         }
 
-        console.log('✅ Adicionado à fila via insert direto:', queueData);
+        console.log('✅ Adicionado à fila:', queueData);
         
         // Mostrar status da fila
         setShowQueueStatus(true);
@@ -259,6 +235,15 @@ const WorkoutPlanGenerator = ({
           title: "Plano adicionado à fila!", 
           description: "Seu plano está sendo gerado. Acompanhe o progresso abaixo." 
         });
+
+      } catch (insertError) {
+        console.error('Insert failed:', insertError);
+        toast({ 
+          title: "Erro na geração", 
+          description: "Não foi possível adicionar à fila de geração. Tente novamente.", 
+          variant: "destructive" 
+        });
+        return;
       }
 
     } catch (error) {
