@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,7 +70,7 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
         },
         (payload) => {
           console.log('Queue update:', payload);
-          if (payload.new) {
+          if (payload.new && typeof payload.new === 'object' && 'status' in payload.new) {
             setQueueItem(payload.new as QueueItem);
             
             // If completed, fetch the plan
