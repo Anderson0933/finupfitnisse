@@ -1,4 +1,5 @@
-import { Facebook, Instagram, Youtube, Twitter } from 'lucide-react';
+
+import { Dumbbell, Facebook, Instagram, Youtube, Twitter } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -7,13 +8,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo and description */}
           <div className="md:col-span-2">
-            <div className="flex items-center space-x-3 mb-4">
+            <div className="flex items-center space-x-2 mb-4">
               <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-                <img 
-                  src="/lovable-uploads/1c518ad5-0db6-46ef-9fa4-244eacccc6a5.png" 
-                  alt="FitAI Pro Logo"
-                  className="h-8 w-8 object-contain rounded-full"
-                />
+                <Dumbbell className="h-6 w-6 text-white" />
               </div>
               <span className="text-xl font-bold">FitAI Pro</span>
             </div>
