@@ -14,7 +14,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import WorkoutPlanDisplay from './WorkoutPlanDisplay';
 import ConfirmationDialog from './ConfirmationDialog';
-import QueueStatus from './QueueStatus';
 
 export interface WorkoutPlan {
   title: string;
@@ -46,7 +45,6 @@ const WorkoutPlanGenerator = ({
   const [activeTab, setActiveTab] = useState(initialActiveTab);
   const [loading, setLoading] = useState(false);
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
-  const [showQueueStatus, setShowQueueStatus] = useState(false);
   
   // Estados dos modais de confirmação
   const [showGenerateConfirmation, setShowGenerateConfirmation] = useState(false);
@@ -67,6 +65,7 @@ const WorkoutPlanGenerator = ({
 
   const { toast } = useToast();
 
+  // Carregar progresso do banco de dados
   useEffect(() => {
     const loadProgress = async () => {
       if (!user || !workoutPlan) return;
@@ -101,7 +100,6 @@ const WorkoutPlanGenerator = ({
   useEffect(() => {
     if (workoutPlan) {
       setActiveTab('plan');
-      setShowQueueStatus(false);
     }
   }, [workoutPlan]);
 
@@ -122,6 +120,7 @@ const WorkoutPlanGenerator = ({
 
       if (deleteError) {
         console.error('Error deleting existing plan:', deleteError);
+        // Continuar mesmo com erro de deleção para não bloquear criação
       }
 
       // Deletar progresso anterior
@@ -132,21 +131,6 @@ const WorkoutPlanGenerator = ({
 
       if (progressError) {
         console.error('Error deleting existing progress:', progressError);
-      }
-
-      // Deletar itens da fila anterior - usar insert direto em tabela
-      try {
-        const { error: queueError } = await (supabase as any)
-          .from('workout_plan_queue')
-          .delete()
-          .eq('user_id', user.id);
-
-        if (queueError) {
-          console.error('Error deleting existing queue items:', queueError);
-        }
-      } catch (queueDeleteError) {
-        console.error('Queue delete error or table does not exist:', queueDeleteError);
-        // Continuar mesmo se a tabela não existir ainda
       }
 
       console.log('✅ Plano anterior deletado com sucesso');
@@ -188,8 +172,8 @@ const WorkoutPlanGenerator = ({
       // CRÍTICO: Deletar plano anterior ANTES de criar novo
       await deleteExistingPlan();
 
-      const requestData = {
-        user_id: user!.id,
+      console.log('📤 Enviando dados para geração:', {
+        user_id: user.id,
         age: parseInt(age),
         height: parseFloat(height),
         weight: parseFloat(weight),
@@ -200,53 +184,61 @@ const WorkoutPlanGenerator = ({
         health_conditions: healthConditions,
         workout_days: parseInt(workoutDays),
         workout_location: workoutLocation
-      };
+      });
 
-      console.log('📤 Adicionando à fila:', requestData);
-
-      // Tentar inserção direta na tabela primeiro
-      try {
-        const { data: queueData, error: queueError } = await (supabase as any)
-          .from('workout_plan_queue')
-          .insert({
-            user_id: user!.id,
-            request_data: requestData,
-            status: 'pending'
-          })
-          .select()
-          .single();
-
-        if (queueError) {
-          console.error('Error adding to queue:', queueError);
-          toast({ 
-            title: "Erro na geração", 
-            description: `Não foi possível adicionar à fila: ${queueError.message}`, 
-            variant: "destructive" 
-          });
-          return;
+      const { data, error } = await supabase.functions.invoke('generate-workout-plan', {
+        body: {
+          user_id: user.id,
+          age: parseInt(age),
+          height: parseFloat(height),
+          weight: parseFloat(weight),
+          fitness_level: fitnessLevel,
+          fitness_goals: fitnessGoals,
+          available_time: availableTime,
+          preferred_exercises: preferredExercises,
+          health_conditions: healthConditions,
+          workout_days: parseInt(workoutDays),
+          workout_location: workoutLocation
         }
+      });
 
-        console.log('✅ Adicionado à fila:', queueData);
-        
-        // Mostrar status da fila
-        setShowQueueStatus(true);
-        setActiveTab('queue');
-        
+      if (error) {
+        console.error('Error generating workout plan:', error);
         toast({ 
-          title: "Plano adicionado à fila!", 
-          description: "Seu plano está sendo gerado. Acompanhe o progresso abaixo." 
-        });
-
-      } catch (insertError) {
-        console.error('Insert failed:', insertError);
-        toast({ 
-          title: "Erro na geração", 
-          description: "Não foi possível adicionar à fila de geração. Tente novamente.", 
+          title: "Erro ao gerar plano", 
+          description: "Houve um problema ao gerar seu plano. Tente novamente.", 
           variant: "destructive" 
         });
         return;
       }
 
+      if (data && data.plan) {
+        console.log('✅ Plano gerado com sucesso:', data.plan);
+        
+        // Verificar se o plano tem o número correto de treinos
+        const expectedWorkouts = parseInt(workoutDays) * 8;
+        if (data.plan.workouts && data.plan.workouts.length !== expectedWorkouts) {
+          console.warn(`⚠️ Plano gerado com ${data.plan.workouts.length} treinos, esperado ${expectedWorkouts}`);
+        }
+        
+        setWorkoutPlan(data.plan);
+        setActiveTab('plan');
+        
+        // Resetar progresso para o novo plano
+        setProgressMap(new Map());
+        
+        toast({ 
+          title: "Plano gerado com sucesso!", 
+          description: `Seu plano personalizado para ${workoutLocation} está pronto com ${data.plan.workouts?.length || 0} treinos.` 
+        });
+      } else {
+        console.error('No plan data received:', data);
+        toast({ 
+          title: "Erro", 
+          description: "Nenhum plano foi gerado. Tente novamente.", 
+          variant: "destructive" 
+        });
+      }
     } catch (error) {
       console.error('Error in handleGeneratePlan:', error);
       toast({ 
@@ -258,15 +250,6 @@ const WorkoutPlanGenerator = ({
       setLoading(false);
       setShowGenerateConfirmation(false);
     }
-  };
-
-  const handlePlanReady = (plan: WorkoutPlan) => {
-    setWorkoutPlan(plan);
-    setShowQueueStatus(false);
-    setActiveTab('plan');
-    
-    // Resetar progresso para o novo plano
-    setProgressMap(new Map());
   };
 
   const handleCopyPlan = async () => {
@@ -295,7 +278,6 @@ const WorkoutPlanGenerator = ({
       // Limpar estado local
       setWorkoutPlan(null);
       setProgressMap(new Map());
-      setShowQueueStatus(false);
       setActiveTab('form');
       
       toast({ title: "Plano excluído", description: "Seu plano de treino foi removido." });
@@ -320,7 +302,6 @@ const WorkoutPlanGenerator = ({
       
       setWorkoutPlan(null);
       setProgressMap(new Map());
-      setShowQueueStatus(false);
       setActiveTab('form');
       
       toast({ title: "Plano removido", description: "Agora você pode gerar um novo plano de treino." });
@@ -383,17 +364,10 @@ const WorkoutPlanGenerator = ({
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger 
-            value="form" 
-            className="flex items-center gap-2"
-          >
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="form" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             Gerar Plano
-          </TabsTrigger>
-          <TabsTrigger value="queue" disabled={!showQueueStatus} className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Fila
           </TabsTrigger>
           <TabsTrigger value="plan" disabled={!workoutPlan} className="flex items-center gap-2">
             <Dumbbell className="h-4 w-4" />
@@ -596,7 +570,7 @@ const WorkoutPlanGenerator = ({
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Adicionando à fila...
+                    Gerando seu plano personalizado...
                   </>
                 ) : (
                   <>
@@ -605,14 +579,25 @@ const WorkoutPlanGenerator = ({
                   </>
                 )}
               </Button>
+              
+              {/* Debug info quando carregando */}
+              {loading && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+                  <p>🔄 Configurações selecionadas:</p>
+                  <ul className="mt-2 space-y-1">
+                    <li>• Idade: {age} anos</li>
+                    <li>• Altura: {height} cm</li>
+                    <li>• Peso: {weight} kg</li>
+                    <li>• Nível: {fitnessLevel}</li>
+                    <li>• Local: {workoutLocation}</li>
+                    <li>• Dias por semana: {workoutDays}</li>
+                    <li>• Tempo por treino: {availableTime}</li>
+                    <li>• Total de treinos esperados: {workoutDays ? parseInt(workoutDays) * 8 : 0}</li>
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="queue">
-          {showQueueStatus && (
-            <QueueStatus user={user} onPlanReady={handlePlanReady} />
-          )}
         </TabsContent>
 
         <TabsContent value="plan">
