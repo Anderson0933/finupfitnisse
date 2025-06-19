@@ -91,7 +91,7 @@ serve(async (req) => {
     const totalWorkouts = workout_days * 8; // 8 semanas
 
     const prompt = `
-Você é um personal trainer profissional brasileiro com mais de 10 anos de experiência. Crie um plano de treino DETALHADO em formato JSON válido.
+Você é um personal trainer profissional brasileiro com mais de 15 anos de experiência. Crie um plano de treino EXTREMAMENTE DETALHADO em formato JSON válido.
 
 DADOS DO USUÁRIO:
 - Idade: ${age} anos
@@ -113,11 +113,11 @@ INSTRUÇÕES CRÍTICAS:
 3. Cada treino deve ter duração de ${available_time}
 4. Use APENAS equipamentos disponíveis em: ${workout_location}
 5. Adapte intensidade para idade ${age} e IMC ${bmi.toFixed(1)}
-6. TODAS as instruções devem estar em português brasileiro
-7. As instruções dos exercícios devem ser MUITO DETALHADAS e explicativas
-8. Inclua posicionamento corporal, respiração, amplitude de movimento
-9. Explique como sentir o músculo trabalhando
-10. Inclua variações para iniciantes e avançados quando apropriado
+6. TODAS as instruções devem estar em português brasileiro claro e detalhado
+7. As instruções dos exercícios devem ser MUITO EXPLICATIVAS, como se você fosse um personal experiente orientando presencialmente
+8. Inclua detalhes sobre posicionamento corporal, respiração, amplitude de movimento e sensações esperadas
+9. Explique PASSO A PASSO como executar cada exercício
+10. Inclua dicas de segurança e erros comuns a evitar
 
 ESTRUTURA JSON OBRIGATÓRIA:
 {
@@ -131,35 +131,35 @@ ESTRUTURA JSON OBRIGATÓRIA:
       "week": 1,
       "day": 1,
       "title": "Nome do Treino",
-      "focus": "Área trabalhada",
+      "focus": "Grupos musculares trabalhados",
       "estimated_duration": ${parseInt(available_time)},
       "warm_up": {
         "duration": 5,
         "exercises": [
           {
-            "name": "Nome do exercício",
-            "duration": 30,
-            "instructions": "Instruções detalhadas passo a passo em português, incluindo posição inicial, movimento completo, respiração e pontos de atenção"
+            "name": "Nome do aquecimento",
+            "duration": 60,
+            "instructions": "Instruções detalhadas em português: Comece na posição inicial [descrever posição exata], execute o movimento [descrever movimento completo], mantenha a respiração [quando inspirar/expirar], foque em [sensações esperadas]. Este aquecimento prepara [músculos específicos] para o treino."
           }
         ]
       },
       "main_exercises": [
         {
           "name": "Nome do exercício",
-          "muscle_groups": ["peito", "ombros"],
+          "muscle_groups": ["grupo1", "grupo2"],
           "sets": 3,
           "reps": "8-12",
           "rest_seconds": 60,
-          "weight_guidance": "Comece leve e aumente progressivamente",
-          "instructions": "Instruções MUITO DETALHADAS em português brasileiro: 1) Posição inicial - Detalhe exato de como se posicionar, onde colocar os pés, como segurar o equipamento, postura do tronco. 2) Execução - Descreva o movimento completo, velocidade, amplitude, qual parte do corpo se move primeiro. 3) Respiração - Quando inspirar e quando expirar durante o movimento. 4) Finalização - Como retornar à posição inicial de forma controlada. 5) Sensações - Como deve sentir o músculo trabalhando, onde deve sentir o esforço. 6) Erros comuns - O que evitar durante a execução.",
+          "weight_guidance": "Orientação específica sobre carga baseada no nível ${fitness_level}",
+          "instructions": "INSTRUÇÕES ULTRA DETALHADAS EM PORTUGUÊS BRASILEIRO: PASSO 1 - POSIÇÃO INICIAL: [Descrever exatamente como se posicionar, onde colocar os pés, como segurar o equipamento, postura do tronco, alinhamento da coluna]. PASSO 2 - EXECUÇÃO DO MOVIMENTO: [Descrever o movimento completo, qual parte do corpo se move primeiro, direção do movimento, amplitude completa, velocidade de execução]. PASSO 3 - RESPIRAÇÃO: [Quando inspirar profundamente, quando expirar com força, como manter o ritmo respiratório]. PASSO 4 - FINALIZAÇÃO: [Como retornar à posição inicial de forma controlada, como finalizar cada repetição]. PASSO 5 - SENSAÇÕES ESPERADAS: [Onde deve sentir o músculo trabalhando, como saber se está executando corretamente, sensações normais vs. sinais de alerta]. PASSO 6 - DICAS DE SEGURANÇA: [Erros mais comuns a evitar, sinais de má execução, como proteger articulações].",
           "form_cues": [
-            "Mantenha o core sempre contraído durante todo o movimento",
-            "Controle a velocidade - 2 segundos na descida, 1 segundo na subida",
-            "Foque na conexão mente-músculo, sinta o músculo trabalhando",
-            "Mantenha a respiração fluida, nunca prenda o ar",
-            "Verifique o alinhamento da coluna antes de iniciar cada série"
+            "Mantenha o core sempre contraído durante todo o movimento para proteger a coluna",
+            "Controle rigorosamente a velocidade - 2 segundos na fase excêntrica (descida), 1 segundo na fase concêntrica (subida)",
+            "Foque intensamente na conexão mente-músculo, visualize o músculo trabalhando a cada repetição",
+            "Mantenha a respiração fluida e controlada, nunca prenda o ar durante o esforço",
+            "Verifique constantemente o alinhamento da coluna e postura antes de iniciar cada série"
           ],
-          "progression_notes": "Semana 1-2: Foque na técnica perfeita com peso leve. Semana 3-4: Aumente o peso em 5-10% quando conseguir fazer todas as repetições com facilidade. Semana 5-6: Continue progressão de carga. Semana 7-8: Teste seus limites mantendo a técnica."
+          "progression_notes": "PROGRESSÃO SEMANAL DETALHADA: Semana 1-2 (Adaptação): Foque exclusivamente na técnica perfeita com peso leve a moderado, domine o padrão de movimento. Semana 3-4 (Sobrecarga): Aumente o peso em 5-10% quando conseguir completar todas as repetições com 2 repetições de reserva. Semana 5-6 (Intensificação): Continue a progressão de carga, reduza o descanso em 10-15 segundos. Semana 7-8 (Pico): Teste seus limites mantendo sempre a técnica perfeita, aumente a densidade do treino."
         }
       ],
       "cool_down": {
@@ -167,31 +167,32 @@ ESTRUTURA JSON OBRIGATÓRIA:
         "exercises": [
           {
             "name": "Nome do alongamento",
-            "duration": 30,
-            "instructions": "Instruções detalhadas do alongamento em português: posição inicial, como executar, intensidade do alongamento, respiração durante o exercício, benefícios específicos"
+            "duration": 45,
+            "instructions": "Instruções detalhadas do alongamento em português: Posicione-se [posição inicial detalhada], execute o alongamento [como fazer o movimento], mantenha [intensidade adequada], respire [padrão respiratório], sinta [benefícios específicos]. Este alongamento ajuda na recuperação de [músculos específicos] e previne [problemas comuns]."
           }
         ]
       }
     }
   ],
   "nutrition_tips": [
-    "Hidratação: Beba pelo menos 500ml de água 30 minutos antes do treino de ${available_time}",
-    "Pré-treino: Consuma carboidratos de fácil digestão 1 hora antes (banana, aveia)",
-    "Pós-treino: Proteína + carboidrato até 30min após o treino para recuperação",
-    "Para IMC ${bmi.toFixed(1)} e objetivo ${fitness_goals}: ajuste as porções conforme orientação nutricional",
-    "Durma 7-8 horas por noite para otimizar a recuperação muscular"
+    "HIDRATAÇÃO: Beba pelo menos 500ml de água pura 30-45 minutos antes do treino de ${available_time} para otimizar a performance",
+    "PRÉ-TREINO: Consuma carboidratos de fácil digestão 60-90 minutos antes (banana com aveia, torrada com mel) para energia sustentada",
+    "PÓS-TREINO: Consuma proteína de alta qualidade + carboidrato até 30 minutos após o treino para maximizar a recuperação muscular",
+    "PARA SEU PERFIL (IMC ${bmi.toFixed(1)}, objetivo ${fitness_goals}): Ajuste as porções conforme orientação nutricional individualizada",
+    "SONO E RECUPERAÇÃO: Durma 7-9 horas por noite para otimizar a recuperação muscular e síntese proteica",
+    "ALIMENTAÇÃO BALANCEADA: Inclua proteínas magras, carboidratos complexos e gorduras boas em cada refeição"
   ],
   "progression_schedule": {
-    "week_1_2": "Fase de adaptação - Foque na técnica perfeita, cargas leves a moderadas",
-    "week_3_4": "Sobrecarga progressiva - Aumente peso/intensidade quando dominar o movimento",
-    "week_5_6": "Aumento de intensidade - Desafie-se mantendo a forma correta", 
-    "week_7_8": "Performance máxima - Teste seus limites com segurança"
+    "week_1_2": "FASE DE ADAPTAÇÃO (Semanas 1-2): Foque na aprendizagem motora e técnica perfeita, use cargas leves a moderadas, priorize a forma correta sobre o peso",
+    "week_3_4": "FASE DE SOBRECARGA (Semanas 3-4): Implemente sobrecarga progressiva aumentando peso/intensidade quando dominar completamente o movimento",
+    "week_5_6": "FASE DE INTENSIFICAÇÃO (Semanas 5-6): Aumente a densidade do treino, reduza descansos, desafie-se mantendo sempre a forma correta", 
+    "week_7_8": "FASE DE PICO (Semanas 7-8): Teste seus limites com segurança, maximize a performance conquistada, prepare para novo ciclo"
   }
 }
 
-LEMBRE-SE: As instruções dos exercícios devem ser extremamente detalhadas, como se você estivesse pessoalmente orientando o aluno. Inclua detalhes sobre postura, respiração, sensações esperadas e progressão. Seja específico sobre como executar cada movimento de forma segura e eficaz.
+IMPORTANTE: Crie TODOS os ${totalWorkouts} treinos completos. Cada treino deve ter instruções EXTREMAMENTE detalhadas em português brasileiro, como se você fosse um personal trainer experiente orientando pessoalmente o aluno. Seja específico sobre técnica, respiração, sensações e progressão.
 
-Retorne APENAS o objeto JSON acima, devidamente formatado e completo com todos os ${totalWorkouts} treinos em português brasileiro.`;
+Retorne APENAS o objeto JSON válido, completo e bem formatado.`;
 
     console.log('📤 Enviando requisição para Groq API...');
 
@@ -206,7 +207,7 @@ Retorne APENAS o objeto JSON acima, devidamente formatado e completo com todos o
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer brasileiro profissional especialista em criar planos de treino detalhados. Você DEVE responder APENAS com JSON válido, sem texto adicional. Todas as instruções devem ser EXTREMAMENTE DETALHADAS em português brasileiro, como se você fosse um personal trainer experiente orientando presencialmente. Inicie sua resposta com { e termine com }.'
+            content: 'Você é um personal trainer brasileiro profissional e experiente. Você DEVE responder APENAS com JSON válido, sem texto adicional. Todas as instruções devem ser EXTREMAMENTE DETALHADAS em português brasileiro, como se você fosse um personal trainer experiente orientando presencialmente. Inicie sua resposta com { e termine com }. NUNCA adicione texto antes ou depois do JSON.'
           },
           {
             role: 'user',
@@ -214,14 +215,17 @@ Retorne APENAS o objeto JSON acima, devidamente formatado e completo com todos o
           }
         ],
         temperature: 0.1,
-        max_tokens: 16000
+        max_tokens: 20000,
+        top_p: 0.9
       }),
     });
 
     console.log('📊 Status da resposta Groq:', response.status);
 
     if (!response.ok) {
-      throw new Error(`Erro na API Groq: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ Erro na API Groq:', response.status, errorText);
+      throw new Error(`Erro na API Groq: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -229,50 +233,67 @@ Retorne APENAS o objeto JSON acima, devidamente formatado e completo com todos o
 
     let workoutPlan;
     try {
-      const content = data.choices[0].message.content;
-      console.log('🔍 Conteúdo recebido:', content.substring(0, 200) + '...');
+      let content = data.choices[0].message.content;
+      console.log('🔍 Conteúdo recebido (primeiros 500 chars):', content.substring(0, 500) + '...');
       
-      // Limpar o conteúdo para garantir que seja JSON válido
-      let cleanContent = content.trim();
+      // Limpeza mais robusta do conteúdo
+      content = content.trim();
       
-      // Remover texto antes do JSON se existir
-      const jsonStart = cleanContent.indexOf('{');
-      if (jsonStart > 0) {
-        cleanContent = cleanContent.substring(jsonStart);
+      // Remover qualquer texto antes da primeira chave
+      const jsonStartIndex = content.indexOf('{');
+      if (jsonStartIndex > 0) {
+        content = content.substring(jsonStartIndex);
+        console.log('🧹 Removido texto antes do JSON');
       }
       
-      // Remover texto depois do JSON se existir
-      const jsonEnd = cleanContent.lastIndexOf('}');
-      if (jsonEnd < cleanContent.length - 1) {
-        cleanContent = cleanContent.substring(0, jsonEnd + 1);
+      // Encontrar a última chave fechando
+      const jsonEndIndex = content.lastIndexOf('}');
+      if (jsonEndIndex !== content.length - 1 && jsonEndIndex > 0) {
+        content = content.substring(0, jsonEndIndex + 1);
+        console.log('🧹 Removido texto após o JSON');
       }
       
-      workoutPlan = JSON.parse(cleanContent);
+      // Verificar se o JSON está completo
+      if (!content.startsWith('{') || !content.endsWith('}')) {
+        console.error('❌ JSON malformado - não inicia com { ou não termina com }');
+        throw new Error('Resposta da API não é um JSON válido - formato incorreto');
+      }
+      
+      workoutPlan = JSON.parse(content);
       console.log('✅ JSON parseado com sucesso');
+      console.log('📋 Plano criado:', {
+        title: workoutPlan.title,
+        total_workouts: workoutPlan.total_workouts,
+        workouts_count: workoutPlan.workouts?.length || 0
+      });
       
     } catch (parseError) {
       console.error('❌ Erro ao parsear JSON:', parseError);
-      console.error('❌ Conteúdo original:', data.choices[0].message.content);
-      throw new Error('Resposta da API não é um JSON válido');
+      console.error('❌ Conteúdo que causou erro:', data.choices[0].message.content);
+      throw new Error(`Erro ao processar resposta da IA: ${parseError.message}`);
     }
 
     // Validação do plano gerado
     if (!workoutPlan.workouts || workoutPlan.workouts.length !== totalWorkouts) {
       console.warn(`⚠️ Plano gerado com ${workoutPlan.workouts?.length || 0} treinos, esperado ${totalWorkouts}`);
       
-      // Corrigir número de treinos se necessário
+      // Se temos pelo menos alguns treinos, tentar completar
       if (workoutPlan.workouts && workoutPlan.workouts.length > 0) {
         while (workoutPlan.workouts.length < totalWorkouts) {
           const baseWorkout = workoutPlan.workouts[workoutPlan.workouts.length % workout_days];
+          const newWeek = Math.floor(workoutPlan.workouts.length / workout_days) + 1;
+          const newDay = (workoutPlan.workouts.length % workout_days) + 1;
+          
           const newWorkout = {
             ...baseWorkout,
-            week: Math.floor(workoutPlan.workouts.length / workout_days) + 1,
-            day: (workoutPlan.workouts.length % workout_days) + 1
+            week: newWeek,
+            day: newDay,
+            title: `${baseWorkout.title} - Semana ${newWeek}`
           };
           workoutPlan.workouts.push(newWorkout);
         }
         workoutPlan.total_workouts = totalWorkouts;
-        console.log('✅ Número de treinos corrigido');
+        console.log('✅ Número de treinos corrigido automaticamente');
       }
     }
 
