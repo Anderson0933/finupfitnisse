@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Dumbbell, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -9,8 +9,12 @@ const Header = () => {
   return (
     <header className="fixed top-0 w-full z-50 bg-black/20 backdrop-blur-sm border-b border-white/10">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Dumbbell className="h-8 w-8 text-white" />
+        <div className="flex items-center space-x-3">
+          <img 
+            src="/lovable-uploads/1c518ad5-0db6-46ef-9fa4-244eacccc6a5.png" 
+            alt="FitAI Pro Logo"
+            className="h-12 w-12 object-contain"
+          />
           <span className="text-2xl font-bold text-white">FitAI Pro</span>
         </div>
         
