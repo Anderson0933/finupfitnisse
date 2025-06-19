@@ -183,11 +183,11 @@ serve(async (req) => {
         break;
     }
 
-    // Calcular total de treinos para 8 semanas (VOLTANDO PARA 8 SEMANAS)
-    const totalWorkouts = workout_days * 8;
+    // Calcular total de treinos para 6 semanas
+    const totalWorkouts = workout_days * 6;
 
     const prompt = `
-Você é um personal trainer brasileiro profissional. Crie um plano de treino personalizado em JSON válido.
+Você é um personal trainer brasileiro experiente e detalhista. Crie um plano de treino personalizado COMPLETO em JSON válido com instruções muito detalhadas.
 
 DADOS DO CLIENTE:
 - ${age} anos, ${height}cm, ${weight}kg (IMC: ${bmi.toFixed(1)} - ${bmiCategory})
@@ -199,68 +199,95 @@ DADOS DO CLIENTE:
 
 IMPORTANTE: Retorne APENAS JSON válido, sem formatação markdown, começando com { e terminando com }.
 
-Estrutura obrigatória:
+Estrutura obrigatória com instruções MUITO DETALHADAS:
 {
   "title": "Plano ${workout_days}x/semana - ${fitness_level}",
-  "description": "Plano personalizado para ${fitness_goals} em ${workout_location}",
+  "description": "Plano personalizado completo para ${fitness_goals} em ${workout_location} durante 6 semanas",
   "difficulty_level": "${fitness_level}",
-  "duration_weeks": 8,
+  "duration_weeks": 6,
   "total_workouts": ${totalWorkouts},
   "workouts": [
     {
       "week": 1,
       "day": 1,
-      "title": "Nome do Treino",
-      "focus": "Grupos musculares trabalhados",
+      "title": "Nome Específico do Treino",
+      "focus": "Grupos musculares detalhados trabalhados",
       "estimated_duration": ${parseInt(available_time)},
       "warm_up": {
-        "duration": 5,
+        "duration": 8,
         "exercises": [
           {
-            "name": "Exercício de aquecimento",
-            "duration": 60,
-            "instructions": "Instruções claras do movimento."
+            "name": "Exercício de aquecimento específico",
+            "duration": 90,
+            "instructions": "Instruções muito detalhadas: posição inicial, movimento completo, respiração, ritmo, cuidados especiais e objetivos do aquecimento."
           }
         ]
       },
       "main_exercises": [
         {
-          "name": "Nome do exercício",
-          "muscle_groups": ["grupo1", "grupo2"],
+          "name": "Nome completo do exercício",
+          "muscle_groups": ["grupo_primário", "grupo_secundário", "grupo_estabilizador"],
           "sets": 3,
           "reps": "8-12",
           "rest_seconds": 60,
-          "weight_guidance": "Orientação de carga",
-          "instructions": "Instruções detalhadas de execução, posição corporal e respiração.",
-          "form_cues": ["Dica importante 1", "Dica importante 2"],
-          "progression_notes": "Como progredir na carga ou dificuldade."
+          "weight_guidance": "Orientação específica de carga baseada no nível e objetivo",
+          "instructions": "Instruções extremamente detalhadas: 1) Posição inicial exata (pés, mãos, coluna, core); 2) Fase concêntrica completa (movimento, músculos ativados, respiração); 3) Fase excêntrica controlada (tempo, controle, tensão); 4) Pontos de atenção críticos; 5) Variações para diferentes níveis; 6) Sinais de execução correta.",
+          "form_cues": [
+            "Dica técnica específica 1 com detalhes anatômicos",
+            "Dica técnica específica 2 com foco na segurança",
+            "Dica técnica específica 3 para otimizar resultados",
+            "Erro comum a evitar com explicação detalhada"
+          ],
+          "progression_notes": "Como progredir especificamente: semana a semana, aumento de carga, variações de dificuldade, sinais para progressão.",
+          "safety_tips": "Cuidados específicos, contraindicações, quando parar, adaptações para lesões.",
+          "breathing_pattern": "Padrão respiratório detalhado para cada fase do movimento."
         }
       ],
       "cool_down": {
-        "duration": 5,
+        "duration": 7,
         "exercises": [
           {
-            "name": "Alongamento",
-            "duration": 45,
-            "instructions": "Instruções do alongamento."
+            "name": "Alongamento específico",
+            "duration": 60,
+            "instructions": "Instruções detalhadas: posição, amplitude, respiração, tempo de manutenção, sensações esperadas, músculos alvos."
           }
         ]
-      }
+      },
+      "workout_tips": [
+        "Dica específica para este treino baseada no objetivo",
+        "Orientação nutricional pré/pós treino",
+        "Hidratação específica para a intensidade"
+      ]
     }
   ],
   "nutrition_tips": [
-    "Hidrate-se bem durante o treino",
-    "Consuma proteína após o treino"
+    "Hidratação específica: quantidade por peso corporal e atividade",
+    "Proteína pós-treino: timing ideal, quantidade e fontes recomendadas",
+    "Carboidratos pré-treino: tipos, timing e quantidades",
+    "Suplementação básica se necessária para o objetivo específico",
+    "Alimentação para recuperação muscular baseada no treino"
   ],
   "progression_schedule": {
-    "week_1_2": "Foco na adaptação e técnica",
-    "week_3_4": "Aumento progressivo da intensidade",
-    "week_5_6": "Intensificação do treinamento",
-    "week_7_8": "Máxima intensidade e consolidação"
+    "week_1_2": "Adaptação neural e técnica: foco na forma perfeita, cargas moderadas, estabelecimento de padrões de movimento",
+    "week_3_4": "Intensificação controlada: aumento progressivo de cargas, maior volume, refinamento técnico",
+    "week_5_6": "Máxima adaptação: cargas elevadas, técnicas avançadas, preparação para novo ciclo"
+  },
+  "recovery_guidelines": {
+    "sleep": "Orientações específicas de sono para recuperação muscular",
+    "rest_days": "Como aproveitar dias de descanso para otimizar resultados",
+    "signs_of_overtraining": "Sinais importantes para reconhecer e prevenir overtraining"
   }
 }
 
-Crie TODOS os ${totalWorkouts} treinos variados e completos para 8 SEMANAS. Use apenas equipamentos disponíveis para ${workout_location}.`;
+INSTRUÇÕES CRÍTICAS:
+- Crie TODOS os ${totalWorkouts} treinos únicos e variados para 6 SEMANAS COMPLETAS
+- Cada exercício deve ter instruções EXTREMAMENTE detalhadas (mínimo 3-4 frases por instrução)
+- Inclua variações e progressões específicas para cada exercício
+- Use apenas equipamentos disponíveis para ${workout_location}
+- Adapte intensidade e complexidade para nível ${fitness_level}
+- Foque no objetivo específico: ${fitness_goals}
+- Considere limitações: ${health_conditions || 'Nenhuma'}
+- Mantenha português brasileiro em todas as instruções`;
 
     console.log('📤 Enviando requisição para Groq API...');
 
@@ -275,7 +302,7 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos para 8 SEMANAS. Use 
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer brasileiro experiente. Responda APENAS com JSON válido, sem formatação markdown. Inicie com { e termine com }. Seja detalhado nas instruções dos exercícios.'
+            content: 'Você é um personal trainer brasileiro extremamente experiente e detalhista. Responda APENAS com JSON válido, sem formatação markdown. Inicie com { e termine com }. Seja MUITO detalhado nas instruções dos exercícios, incluindo anatomia, biomecânica, respiração e progressões específicas.'
           },
           {
             role: 'user',
@@ -283,7 +310,7 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos para 8 SEMANAS. Use 
           }
         ],
         temperature: 0.1,
-        max_tokens: 20000,
+        max_tokens: 25000,
         top_p: 0.9
       }),
     });
@@ -327,8 +354,8 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos para 8 SEMANAS. Use 
       throw new Error('Plano gerado sem treinos válidos');
     }
 
-    // Garantir que temos 8 semanas e o número correto de treinos
-    workoutPlan.duration_weeks = 8;
+    // Garantir que temos 6 semanas e o número correto de treinos
+    workoutPlan.duration_weeks = 6;
     
     // Garantir que temos o número correto de treinos
     if (workoutPlan.workouts.length !== totalWorkouts) {
@@ -356,7 +383,7 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos para 8 SEMANAS. Use 
       }
       
       workoutPlan.total_workouts = totalWorkouts;
-      console.log('✅ Número de treinos corrigido para 8 semanas');
+      console.log('✅ Número de treinos corrigido para 6 semanas');
     }
 
     // Salvar no banco de dados
@@ -378,7 +405,7 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos para 8 SEMANAS. Use 
       console.log('✅ Plano salvo no banco de dados');
     }
 
-    console.log('🎉 Plano gerado com sucesso - completo com', workoutPlan.workouts.length, 'treinos para 8 semanas');
+    console.log('🎉 Plano gerado com sucesso - completo com', workoutPlan.workouts.length, 'treinos detalhados para 6 semanas');
 
     return new Response(JSON.stringify({ plan: workoutPlan }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
