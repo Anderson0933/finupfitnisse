@@ -87,104 +87,71 @@ serve(async (req) => {
         break;
     }
 
-    // Calcular total exato de treinos
-    const totalWorkouts = workout_days * 8; // 8 semanas
+    // Calcular total exato de treinos - REDUZIDO para evitar JSON muito grande
+    const totalWorkouts = Math.min(workout_days * 4, 16); // Máximo 16 treinos (4 semanas)
 
     const prompt = `
-Você é um personal trainer profissional brasileiro com mais de 15 anos de experiência. Crie um plano de treino CONCISO em formato JSON válido.
+Você é um personal trainer brasileiro profissional. Crie um plano CONCISO em JSON válido com EXATAMENTE ${totalWorkouts} treinos.
 
-DADOS DO USUÁRIO:
-- Idade: ${age} anos
-- Altura: ${height} cm  
-- Peso: ${weight} kg
-- IMC: ${bmi.toFixed(1)} (${bmiCategory})
-- Nível de condicionamento: ${fitness_level}
-- Objetivos: ${fitness_goals}
-- Dias de treino por semana: ${workout_days}
-- Duração da sessão: ${available_time}
-- Local: ${workout_location}
-- Equipamentos disponíveis: ${availableEquipment}
-- Exercícios preferidos: ${preferred_exercises || 'Nenhum especificado'}
-- Condições de saúde: ${health_conditions || 'Nenhuma relatada'}
+DADOS:
+- ${age} anos, ${height}cm, ${weight}kg (IMC: ${bmi.toFixed(1)} - ${bmiCategory})
+- Nível: ${fitness_level}
+- Objetivo: ${fitness_goals}
+- Local: ${workout_location} - ${availableEquipment}
+- ${workout_days} dias/semana, ${available_time} por treino
+- Condições: ${health_conditions || 'Nenhuma'}
 
-INSTRUÇÕES CRÍTICAS:
-1. Retorne APENAS JSON válido, sem texto antes ou depois
-2. Crie exatamente ${totalWorkouts} treinos (${workout_days} por semana × 8 semanas)
-3. Cada treino deve ter duração de ${available_time}
-4. Use APENAS equipamentos disponíveis em: ${workout_location}
-5. Adapte intensidade para idade ${age} e IMC ${bmi.toFixed(1)}
-6. TODAS as instruções devem estar em português brasileiro
-7. Mantenha as instruções CONCISAS mas claras
-8. Foque no essencial, evite textos muito longos
-9. Máximo 3-4 exercícios principais por treino
+REGRAS CRÍTICAS:
+1. Retorne APENAS JSON válido
+2. MÁXIMO 2 exercícios principais por treino
+3. Instruções MUITO BREVES (máx 15 palavras)
+4. Use APENAS equipamentos de: ${workout_location}
 
-ESTRUTURA JSON OBRIGATÓRIA:
+JSON OBRIGATÓRIO:
 {
-  "title": "Plano 8 Semanas - ${fitness_level} (${age} anos)",
-  "description": "Plano personalizado para ${bmiCategory}, ${workout_location}, focado em ${fitness_goals}",
+  "title": "Plano ${workout_days}x/semana - ${fitness_level}",
+  "description": "Plano para ${fitness_goals} em ${workout_location}",
   "difficulty_level": "${fitness_level}",
-  "duration_weeks": 8,
+  "duration_weeks": 4,
   "total_workouts": ${totalWorkouts},
   "workouts": [
     {
       "week": 1,
       "day": 1,
       "title": "Nome do Treino",
-      "focus": "Grupos musculares trabalhados",
+      "focus": "Grupos trabalhados",
       "estimated_duration": ${parseInt(available_time)},
       "warm_up": {
         "duration": 5,
-        "exercises": [
-          {
-            "name": "Nome do aquecimento",
-            "duration": 60,
-            "instructions": "Instruções concisas em português: posição inicial, movimento, respiração."
-          }
-        ]
+        "exercises": [{"name": "Aquecimento", "duration": 60, "instructions": "Descrição breve."}]
       },
       "main_exercises": [
         {
-          "name": "Nome do exercício",
-          "muscle_groups": ["grupo1", "grupo2"],
+          "name": "Exercício 1",
+          "muscle_groups": ["grupo1"],
           "sets": 3,
           "reps": "8-12",
           "rest_seconds": 60,
-          "weight_guidance": "Orientação sobre carga",
-          "instructions": "INSTRUÇÕES CONCISAS: Posição inicial, execução, respiração, finalização.",
-          "form_cues": [
-            "Core contraído",
-            "Movimento controlado",
-            "Respiração fluida"
-          ],
-          "progression_notes": "Como progredir semanalmente."
+          "weight_guidance": "Orientação breve",
+          "instructions": "Instrução muito breve: posição, movimento, respiração.",
+          "form_cues": ["Dica 1", "Dica 2"],
+          "progression_notes": "Como progredir."
         }
       ],
       "cool_down": {
         "duration": 5,
-        "exercises": [
-          {
-            "name": "Nome do alongamento",
-            "duration": 45,
-            "instructions": "Instruções concisas do alongamento."
-          }
-        ]
+        "exercises": [{"name": "Alongamento", "duration": 45, "instructions": "Alongue suavemente."}]
       }
     }
   ],
-  "nutrition_tips": [
-    "Hidratação: 500ml de água 30min antes do treino",
-    "Pré-treino: carboidratos 60-90min antes",
-    "Pós-treino: proteína + carboidrato até 30min após"
-  ],
+  "nutrition_tips": ["Hidrate-se bem", "Proteína pós-treino"],
   "progression_schedule": {
-    "week_1_2": "Adaptação: foque na técnica",
-    "week_3_4": "Sobrecarga: aumente peso/intensidade",
-    "week_5_6": "Intensificação: reduza descansos",
-    "week_7_8": "Pico: teste limites com segurança"
+    "week_1_2": "Adaptação técnica",
+    "week_3_4": "Aumento progressivo"
   }
 }
 
-IMPORTANTE: Crie TODOS os ${totalWorkouts} treinos. Mantenha as instruções CONCISAS para evitar problemas de parsing. Retorne APENAS o JSON válido.`;
+Crie TODOS os ${totalWorkouts} treinos. Seja MUITO CONCISO. Máximo 2 exercícios principais por treino.`;
 
     console.log('📤 Enviando requisição para Groq API...');
 
@@ -199,7 +166,7 @@ IMPORTANTE: Crie TODOS os ${totalWorkouts} treinos. Mantenha as instruções CON
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer brasileiro profissional. Responda APENAS com JSON válido e conciso. Inicie com { e termine com }. Mantenha instruções curtas mas claras.'
+            content: 'Você é um personal trainer brasileiro. Responda APENAS com JSON válido e conciso. Inicie com { e termine com }. Instruções muito breves.'
           },
           {
             role: 'user',
@@ -207,7 +174,7 @@ IMPORTANTE: Crie TODOS os ${totalWorkouts} treinos. Mantenha as instruções CON
           }
         ],
         temperature: 0.1,
-        max_tokens: 15000, // Reduzido para evitar respostas muito longas
+        max_tokens: 8000, // Reduzido drasticamente
         top_p: 0.9
       }),
     });
@@ -225,53 +192,28 @@ IMPORTANTE: Crie TODOS os ${totalWorkouts} treinos. Mantenha as instruções CON
 
     let workoutPlan;
     try {
-      let content = data.choices[0].message.content;
-      console.log('🔍 Tamanho do conteúdo recebido:', content.length, 'caracteres');
+      let content = data.choices[0].message.content.trim();
+      console.log('🔍 Tamanho do conteúdo:', content.length, 'caracteres');
       
-      // Limpeza mais robusta do conteúdo
-      content = content.trim();
+      // Limpeza mais agressiva do conteúdo
+      const jsonStart = content.indexOf('{');
+      const jsonEnd = content.lastIndexOf('}');
       
-      // Remover qualquer texto antes da primeira chave
-      const jsonStartIndex = content.indexOf('{');
-      if (jsonStartIndex > 0) {
-        content = content.substring(jsonStartIndex);
-        console.log('🧹 Removido texto antes do JSON');
+      if (jsonStart === -1 || jsonEnd === -1 || jsonStart >= jsonEnd) {
+        console.error('❌ JSON inválido - marcadores não encontrados');
+        throw new Error('Resposta não contém JSON válido');
       }
       
-      // Encontrar a última chave fechando válida
-      let braceCount = 0;
-      let lastValidIndex = -1;
+      content = content.substring(jsonStart, jsonEnd + 1);
+      console.log('🧹 JSON extraído, tamanho final:', content.length);
       
-      for (let i = 0; i < content.length; i++) {
-        if (content[i] === '{') {
-          braceCount++;
-        } else if (content[i] === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            lastValidIndex = i;
-            break;
-          }
-        }
-      }
+      // Validação de balanceamento de chaves
+      const openBraces = (content.match(/{/g) || []).length;
+      const closeBraces = (content.match(/}/g) || []).length;
       
-      if (lastValidIndex > 0 && lastValidIndex < content.length - 1) {
-        content = content.substring(0, lastValidIndex + 1);
-        console.log('🧹 Removido texto após o JSON válido');
-      }
-      
-      // Verificar se o JSON está completo
-      if (!content.startsWith('{') || !content.endsWith('}')) {
-        console.error('❌ JSON malformado - não inicia com { ou não termina com }');
-        throw new Error('Resposta da API não é um JSON válido - formato incorreto');
-      }
-      
-      // Tentar validar se é um JSON bem formado antes do parse
-      const braceCheck = (content.match(/{/g) || []).length;
-      const closeBraceCheck = (content.match(/}/g) || []).length;
-      
-      if (braceCheck !== closeBraceCheck) {
-        console.error('❌ JSON malformado - chaves não balanceadas:', { braceCheck, closeBraceCheck });
-        throw new Error('JSON malformado - chaves não balanceadas');
+      if (openBraces !== closeBraces) {
+        console.error('❌ Chaves desbalanceadas:', { openBraces, closeBraces });
+        throw new Error(`Chaves desbalanceadas: ${openBraces} aberturas, ${closeBraces} fechamentos`);
       }
       
       workoutPlan = JSON.parse(content);
@@ -284,32 +226,43 @@ IMPORTANTE: Crie TODOS os ${totalWorkouts} treinos. Mantenha as instruções CON
       
     } catch (parseError) {
       console.error('❌ Erro ao parsear JSON:', parseError);
-      console.error('❌ Primeiros 1000 chars do conteúdo:', data.choices[0].message.content.substring(0, 1000));
+      console.error('❌ Conteúdo problemático (primeiros 500 chars):', data.choices[0].message.content.substring(0, 500));
       throw new Error(`Erro ao processar resposta da IA: ${parseError.message}`);
     }
 
-    // Validação do plano gerado
-    if (!workoutPlan.workouts || workoutPlan.workouts.length !== totalWorkouts) {
-      console.warn(`⚠️ Plano gerado com ${workoutPlan.workouts?.length || 0} treinos, esperado ${totalWorkouts}`);
+    // Validação e correção do plano
+    if (!workoutPlan.workouts || workoutPlan.workouts.length === 0) {
+      console.error('❌ Nenhum treino encontrado no plano');
+      throw new Error('Plano gerado sem treinos válidos');
+    }
+
+    // Garantir que temos o número correto de treinos
+    if (workoutPlan.workouts.length !== totalWorkouts) {
+      console.warn(`⚠️ Ajustando número de treinos: ${workoutPlan.workouts.length} → ${totalWorkouts}`);
       
-      // Se temos pelo menos alguns treinos, tentar completar
-      if (workoutPlan.workouts && workoutPlan.workouts.length > 0) {
-        while (workoutPlan.workouts.length < totalWorkouts) {
-          const baseWorkout = workoutPlan.workouts[workoutPlan.workouts.length % workout_days];
-          const newWeek = Math.floor(workoutPlan.workouts.length / workout_days) + 1;
-          const newDay = (workoutPlan.workouts.length % workout_days) + 1;
-          
-          const newWorkout = {
-            ...baseWorkout,
-            week: newWeek,
-            day: newDay,
-            title: `${baseWorkout.title} - Semana ${newWeek}`
-          };
-          workoutPlan.workouts.push(newWorkout);
-        }
-        workoutPlan.total_workouts = totalWorkouts;
-        console.log('✅ Número de treinos corrigido automaticamente');
+      // Se temos poucos treinos, duplicar os existentes
+      while (workoutPlan.workouts.length < totalWorkouts) {
+        const baseIndex = workoutPlan.workouts.length % (workoutPlan.workouts.length || 1);
+        const baseWorkout = workoutPlan.workouts[baseIndex];
+        const newWeek = Math.floor(workoutPlan.workouts.length / workout_days) + 1;
+        const newDay = (workoutPlan.workouts.length % workout_days) + 1;
+        
+        const newWorkout = {
+          ...baseWorkout,
+          week: newWeek,
+          day: newDay,
+          title: `${baseWorkout.title} - S${newWeek}D${newDay}`
+        };
+        workoutPlan.workouts.push(newWorkout);
       }
+      
+      // Se temos muitos treinos, cortar
+      if (workoutPlan.workouts.length > totalWorkouts) {
+        workoutPlan.workouts = workoutPlan.workouts.slice(0, totalWorkouts);
+      }
+      
+      workoutPlan.total_workouts = totalWorkouts;
+      console.log('✅ Número de treinos corrigido');
     }
 
     // Salvar no banco de dados
