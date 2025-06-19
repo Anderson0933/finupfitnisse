@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -133,14 +134,18 @@ const WorkoutPlanGenerator = ({
         console.error('Error deleting existing progress:', progressError);
       }
 
-      // Deletar itens da fila anterior usando type assertion
-      const { error: queueError } = await (supabase as any)
-        .from('workout_plan_queue')
-        .delete()
-        .eq('user_id', user.id);
+      // Deletar itens da fila anterior usando RPC
+      try {
+        const { error: queueError } = await supabase.rpc('delete_user_queue_items', {
+          p_user_id: user.id
+        });
 
-      if (queueError) {
-        console.error('Error deleting existing queue items:', queueError);
+        if (queueError) {
+          console.error('Error deleting existing queue items:', queueError);
+        }
+      } catch (rpcError) {
+        console.error('RPC error or table does not exist:', rpcError);
+        // Continuar mesmo se a tabela não existir ainda
       }
 
       console.log('✅ Plano anterior deletado com sucesso');
@@ -198,37 +203,63 @@ const WorkoutPlanGenerator = ({
 
       console.log('📤 Adicionando à fila:', requestData);
 
-      // Adicionar à fila usando type assertion
-      const { data: queueData, error: queueError } = await (supabase as any)
-        .from('workout_plan_queue')
-        .insert({
-          user_id: user!.id,
-          request_data: requestData,
-          status: 'pending'
-        })
-        .select()
-        .single();
-
-      if (queueError) {
-        console.error('Error adding to queue:', queueError);
-        toast({ 
-          title: "Erro", 
-          description: "Não foi possível adicionar à fila de geração.", 
-          variant: "destructive" 
+      // Tentar adicionar à fila usando RPC primeiro
+      try {
+        const { data: queueData, error: queueError } = await supabase.rpc('add_to_workout_queue', {
+          p_user_id: user!.id,
+          p_request_data: requestData
         });
-        return;
-      }
 
-      console.log('✅ Adicionado à fila:', queueData);
-      
-      // Mostrar status da fila
-      setShowQueueStatus(true);
-      setActiveTab('queue');
-      
-      toast({ 
-        title: "Plano adicionado à fila!", 
-        description: "Seu plano está sendo gerado. Acompanhe o progresso abaixo." 
-      });
+        if (queueError) {
+          throw queueError;
+        }
+
+        console.log('✅ Adicionado à fila via RPC:', queueData);
+        
+        // Mostrar status da fila
+        setShowQueueStatus(true);
+        setActiveTab('queue');
+        
+        toast({ 
+          title: "Plano adicionado à fila!", 
+          description: "Seu plano está sendo gerado. Acompanhe o progresso abaixo." 
+        });
+
+      } catch (rpcError) {
+        console.error('RPC failed, trying direct insert:', rpcError);
+        
+        // Fallback para inserção direta
+        const { data: queueData, error: queueError } = await supabase
+          .from('workout_plan_queue')
+          .insert({
+            user_id: user!.id,
+            request_data: requestData,
+            status: 'pending'
+          })
+          .select()
+          .single();
+
+        if (queueError) {
+          console.error('Error adding to queue:', queueError);
+          toast({ 
+            title: "Erro na geração", 
+            description: `Não foi possível adicionar à fila: ${queueError.message}`, 
+            variant: "destructive" 
+          });
+          return;
+        }
+
+        console.log('✅ Adicionado à fila via insert direto:', queueData);
+        
+        // Mostrar status da fila
+        setShowQueueStatus(true);
+        setActiveTab('queue');
+        
+        toast({ 
+          title: "Plano adicionado à fila!", 
+          description: "Seu plano está sendo gerado. Acompanhe o progresso abaixo." 
+        });
+      }
 
     } catch (error) {
       console.error('Error in handleGeneratePlan:', error);
