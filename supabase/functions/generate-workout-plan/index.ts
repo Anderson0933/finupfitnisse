@@ -8,6 +8,102 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Função para limpar e validar JSON de forma mais robusta
+function cleanAndParseJSON(content: string): any {
+  console.log('🧹 Iniciando limpeza do JSON...');
+  
+  // Remover possíveis caracteres de markdown ou formatação
+  let cleanContent = content
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .replace(/^\s*json\s*/i, '')
+    .trim();
+
+  // Encontrar o início e fim do JSON principal
+  const jsonStart = cleanContent.indexOf('{');
+  const jsonEnd = cleanContent.lastIndexOf('}');
+  
+  if (jsonStart === -1 || jsonEnd === -1 || jsonStart >= jsonEnd) {
+    throw new Error('Não foi possível encontrar JSON válido na resposta');
+  }
+  
+  cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
+  
+  // Validar balanceamento de chaves e colchetes
+  const openBraces = (cleanContent.match(/{/g) || []).length;
+  const closeBraces = (cleanContent.match(/}/g) || []).length;
+  const openBrackets = (cleanContent.match(/\[/g) || []).length;
+  const closeBrackets = (cleanContent.match(/\]/g) || []).length;
+  
+  console.log('🔍 Validação de estrutura:', { 
+    openBraces, closeBraces, openBrackets, closeBrackets,
+    tamanho: cleanContent.length 
+  });
+  
+  if (openBraces !== closeBraces) {
+    console.error('❌ Chaves desbalanceadas, tentando corrigir...');
+    
+    // Tentar corrigir chaves faltantes
+    const diff = openBraces - closeBraces;
+    if (diff > 0) {
+      cleanContent += '}}'.repeat(diff);
+    }
+  }
+  
+  if (openBrackets !== closeBrackets) {
+    console.error('❌ Colchetes desbalanceados, tentando corrigir...');
+    
+    // Tentar corrigir colchetes faltantes  
+    const diff = openBrackets - closeBrackets;
+    if (diff > 0) {
+      cleanContent += ']'.repeat(diff);
+    }
+  }
+  
+  // Tentar parsing com diferentes estratégias
+  let parsed;
+  
+  try {
+    // Primeira tentativa - JSON direto
+    parsed = JSON.parse(cleanContent);
+    console.log('✅ JSON parseado com sucesso na primeira tentativa');
+    return parsed;
+  } catch (firstError) {
+    console.warn('⚠️ Primeira tentativa falhou:', firstError.message);
+    
+    try {
+      // Segunda tentativa - remover vírgulas extras
+      const noExtraCommas = cleanContent
+        .replace(/,(\s*[}\]])/g, '$1')  // Remove vírgulas antes de } e ]
+        .replace(/,+/g, ',');          // Remove vírgulas duplicadas
+      
+      parsed = JSON.parse(noExtraCommas);
+      console.log('✅ JSON parseado com sucesso na segunda tentativa (vírgulas)');
+      return parsed;
+    } catch (secondError) {
+      console.warn('⚠️ Segunda tentativa falhou:', secondError.message);
+      
+      try {
+        // Terceira tentativa - corrigir aspas
+        const fixedQuotes = cleanContent
+          .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')  // Adicionar aspas em chaves
+          .replace(/:\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*([,}])/g, ': "$1"$2'); // Adicionar aspas em valores string
+        
+        parsed = JSON.parse(fixedQuotes);
+        console.log('✅ JSON parseado com sucesso na terceira tentativa (aspas)');
+        return parsed;
+      } catch (thirdError) {
+        console.error('❌ Todas as tentativas de parsing falharam');
+        console.error('Erro original:', firstError.message);
+        console.error('Conteúdo problemático (primeiros 1000 chars):', cleanContent.substring(0, 1000));
+        
+        // Como último recurso, tentar extrair partes válidas
+        throw new Error(`Erro ao processar JSON: ${firstError.message}`);
+      }
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -87,13 +183,13 @@ serve(async (req) => {
         break;
     }
 
-    // Calcular total exato de treinos - REDUZIDO para evitar JSON muito grande
-    const totalWorkouts = Math.min(workout_days * 4, 16); // Máximo 16 treinos (4 semanas)
+    // Calcular total de treinos para 4 semanas
+    const totalWorkouts = workout_days * 4;
 
     const prompt = `
-Você é um personal trainer brasileiro profissional. Crie um plano CONCISO em JSON válido com EXATAMENTE ${totalWorkouts} treinos.
+Você é um personal trainer brasileiro profissional. Crie um plano de treino personalizado em JSON válido.
 
-DADOS:
+DADOS DO CLIENTE:
 - ${age} anos, ${height}cm, ${weight}kg (IMC: ${bmi.toFixed(1)} - ${bmiCategory})
 - Nível: ${fitness_level}
 - Objetivo: ${fitness_goals}
@@ -101,16 +197,12 @@ DADOS:
 - ${workout_days} dias/semana, ${available_time} por treino
 - Condições: ${health_conditions || 'Nenhuma'}
 
-REGRAS CRÍTICAS:
-1. Retorne APENAS JSON válido
-2. MÁXIMO 2 exercícios principais por treino
-3. Instruções MUITO BREVES (máx 15 palavras)
-4. Use APENAS equipamentos de: ${workout_location}
+IMPORTANTE: Retorne APENAS JSON válido, sem formatação markdown, começando com { e terminando com }.
 
-JSON OBRIGATÓRIO:
+Estrutura obrigatória:
 {
   "title": "Plano ${workout_days}x/semana - ${fitness_level}",
-  "description": "Plano para ${fitness_goals} em ${workout_location}",
+  "description": "Plano personalizado para ${fitness_goals} em ${workout_location}",
   "difficulty_level": "${fitness_level}",
   "duration_weeks": 4,
   "total_workouts": ${totalWorkouts},
@@ -119,39 +211,54 @@ JSON OBRIGATÓRIO:
       "week": 1,
       "day": 1,
       "title": "Nome do Treino",
-      "focus": "Grupos trabalhados",
+      "focus": "Grupos musculares trabalhados",
       "estimated_duration": ${parseInt(available_time)},
       "warm_up": {
         "duration": 5,
-        "exercises": [{"name": "Aquecimento", "duration": 60, "instructions": "Descrição breve."}]
+        "exercises": [
+          {
+            "name": "Exercício de aquecimento",
+            "duration": 60,
+            "instructions": "Instruções claras do movimento."
+          }
+        ]
       },
       "main_exercises": [
         {
-          "name": "Exercício 1",
-          "muscle_groups": ["grupo1"],
+          "name": "Nome do exercício",
+          "muscle_groups": ["grupo1", "grupo2"],
           "sets": 3,
           "reps": "8-12",
           "rest_seconds": 60,
-          "weight_guidance": "Orientação breve",
-          "instructions": "Instrução muito breve: posição, movimento, respiração.",
-          "form_cues": ["Dica 1", "Dica 2"],
-          "progression_notes": "Como progredir."
+          "weight_guidance": "Orientação de carga",
+          "instructions": "Instruções detalhadas de execução, posição corporal e respiração.",
+          "form_cues": ["Dica importante 1", "Dica importante 2"],
+          "progression_notes": "Como progredir na carga ou dificuldade."
         }
       ],
       "cool_down": {
         "duration": 5,
-        "exercises": [{"name": "Alongamento", "duration": 45, "instructions": "Alongue suavemente."}]
+        "exercises": [
+          {
+            "name": "Alongamento",
+            "duration": 45,
+            "instructions": "Instruções do alongamento."
+          }
+        ]
       }
     }
   ],
-  "nutrition_tips": ["Hidrate-se bem", "Proteína pós-treino"],
+  "nutrition_tips": [
+    "Hidrate-se bem durante o treino",
+    "Consuma proteína após o treino"
+  ],
   "progression_schedule": {
-    "week_1_2": "Adaptação técnica",
-    "week_3_4": "Aumento progressivo"
+    "week_1_2": "Foco na adaptação e técnica",
+    "week_3_4": "Aumento progressivo da intensidade"
   }
 }
 
-Crie TODOS os ${totalWorkouts} treinos. Seja MUITO CONCISO. Máximo 2 exercícios principais por treino.`;
+Crie TODOS os ${totalWorkouts} treinos variados e completos. Use apenas equipamentos disponíveis para ${workout_location}.`;
 
     console.log('📤 Enviando requisição para Groq API...');
 
@@ -166,7 +273,7 @@ Crie TODOS os ${totalWorkouts} treinos. Seja MUITO CONCISO. Máximo 2 exercício
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer brasileiro. Responda APENAS com JSON válido e conciso. Inicie com { e termine com }. Instruções muito breves.'
+            content: 'Você é um personal trainer brasileiro experiente. Responda APENAS com JSON válido, sem formatação markdown. Inicie com { e termine com }. Seja detalhado nas instruções dos exercícios.'
           },
           {
             role: 'user',
@@ -174,7 +281,7 @@ Crie TODOS os ${totalWorkouts} treinos. Seja MUITO CONCISO. Máximo 2 exercício
           }
         ],
         temperature: 0.1,
-        max_tokens: 8000, // Reduzido drasticamente
+        max_tokens: 20000, // VOLTANDO PARA 20000 COMO SOLICITADO
         top_p: 0.9
       }),
     });
@@ -192,31 +299,12 @@ Crie TODOS os ${totalWorkouts} treinos. Seja MUITO CONCISO. Máximo 2 exercício
 
     let workoutPlan;
     try {
-      let content = data.choices[0].message.content.trim();
-      console.log('🔍 Tamanho do conteúdo:', content.length, 'caracteres');
+      const content = data.choices[0].message.content.trim();
+      console.log('🔍 Tamanho do conteúdo recebido:', content.length, 'caracteres');
       
-      // Limpeza mais agressiva do conteúdo
-      const jsonStart = content.indexOf('{');
-      const jsonEnd = content.lastIndexOf('}');
+      // Usar nossa função robusta de limpeza e parsing
+      workoutPlan = cleanAndParseJSON(content);
       
-      if (jsonStart === -1 || jsonEnd === -1 || jsonStart >= jsonEnd) {
-        console.error('❌ JSON inválido - marcadores não encontrados');
-        throw new Error('Resposta não contém JSON válido');
-      }
-      
-      content = content.substring(jsonStart, jsonEnd + 1);
-      console.log('🧹 JSON extraído, tamanho final:', content.length);
-      
-      // Validação de balanceamento de chaves
-      const openBraces = (content.match(/{/g) || []).length;
-      const closeBraces = (content.match(/}/g) || []).length;
-      
-      if (openBraces !== closeBraces) {
-        console.error('❌ Chaves desbalanceadas:', { openBraces, closeBraces });
-        throw new Error(`Chaves desbalanceadas: ${openBraces} aberturas, ${closeBraces} fechamentos`);
-      }
-      
-      workoutPlan = JSON.parse(content);
       console.log('✅ JSON parseado com sucesso');
       console.log('📋 Plano criado:', {
         title: workoutPlan.title,
@@ -226,7 +314,7 @@ Crie TODOS os ${totalWorkouts} treinos. Seja MUITO CONCISO. Máximo 2 exercício
       
     } catch (parseError) {
       console.error('❌ Erro ao parsear JSON:', parseError);
-      console.error('❌ Conteúdo problemático (primeiros 500 chars):', data.choices[0].message.content.substring(0, 500));
+      console.error('❌ Conteúdo problemático (primeiros 1500 chars):', data.choices[0].message.content.substring(0, 1500));
       throw new Error(`Erro ao processar resposta da IA: ${parseError.message}`);
     }
 
@@ -284,7 +372,7 @@ Crie TODOS os ${totalWorkouts} treinos. Seja MUITO CONCISO. Máximo 2 exercício
       console.log('✅ Plano salvo no banco de dados');
     }
 
-    console.log('🎉 Plano gerado com sucesso');
+    console.log('🎉 Plano gerado com sucesso - completo com', workoutPlan.workouts.length, 'treinos');
 
     return new Response(JSON.stringify({ plan: workoutPlan }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
