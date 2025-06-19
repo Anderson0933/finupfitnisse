@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trophy, Target, Flame, Star, Award, Clock } from 'lucide-react';
+import { Trophy, Target, Flame, Star, Clock } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ChallengeCard from './challenges/ChallengeCard';
+import ChallengeHistory from './challenges/ChallengeHistory';
 import AchievementCard from './challenges/AchievementCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -511,7 +512,7 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
         </CardContent>
       </Card>
 
-      {/* Tabs principais - removido ranking */}
+      {/* Tabs principais */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="challenges" className="flex items-center gap-2">
@@ -577,31 +578,13 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
             </CardContent>
           </Card>
 
-          {/* Desafios Concluídos */}
-          {completedChallenges.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-green-500" />
-                  Desafios Concluídos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {completedChallenges.map((challenge) => (
-                    <ChallengeCard
-                      key={challenge.id}
-                      challenge={challenge}
-                      onUpdateProgress={updateChallengeProgress}
-                      getDifficultyColor={getDifficultyColor}
-                      completed
-                      disabled={updating}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Histórico de Desafios Concluídos - Componente Melhorado */}
+          <ChallengeHistory
+            completedChallenges={completedChallenges}
+            onUpdateProgress={updateChallengeProgress}
+            getDifficultyColor={getDifficultyColor}
+            disabled={updating}
+          />
         </TabsContent>
 
         {/* Conquistas */}
