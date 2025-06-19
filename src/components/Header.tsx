@@ -13,7 +13,7 @@ const Header = () => {
           <img 
             src="/lovable-uploads/1c518ad5-0db6-46ef-9fa4-244eacccc6a5.png" 
             alt="FitAI Pro Logo"
-            className="h-12 w-12 object-contain"
+            className="h-12 w-12 object-contain rounded-full"
           />
           <span className="text-2xl font-bold text-white">FitAI Pro</span>
         </div>

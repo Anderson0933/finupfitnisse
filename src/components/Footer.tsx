@@ -1,4 +1,3 @@
-
 import { Facebook, Instagram, Youtube, Twitter } from 'lucide-react';
 
 const Footer = () => {
@@ -13,7 +12,7 @@ const Footer = () => {
                 <img 
                   src="/lovable-uploads/1c518ad5-0db6-46ef-9fa4-244eacccc6a5.png" 
                   alt="FitAI Pro Logo"
-                  className="h-8 w-8 object-contain"
+                  className="h-8 w-8 object-contain rounded-full"
                 />
               </div>
               <span className="text-xl font-bold">FitAI Pro</span>
