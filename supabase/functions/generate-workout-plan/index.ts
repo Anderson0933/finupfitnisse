@@ -183,8 +183,8 @@ serve(async (req) => {
         break;
     }
 
-    // Calcular total de treinos para 4 semanas
-    const totalWorkouts = workout_days * 4;
+    // Calcular total de treinos para 8 semanas (VOLTANDO PARA 8 SEMANAS)
+    const totalWorkouts = workout_days * 8;
 
     const prompt = `
 Você é um personal trainer brasileiro profissional. Crie um plano de treino personalizado em JSON válido.
@@ -204,7 +204,7 @@ Estrutura obrigatória:
   "title": "Plano ${workout_days}x/semana - ${fitness_level}",
   "description": "Plano personalizado para ${fitness_goals} em ${workout_location}",
   "difficulty_level": "${fitness_level}",
-  "duration_weeks": 4,
+  "duration_weeks": 8,
   "total_workouts": ${totalWorkouts},
   "workouts": [
     {
@@ -254,11 +254,13 @@ Estrutura obrigatória:
   ],
   "progression_schedule": {
     "week_1_2": "Foco na adaptação e técnica",
-    "week_3_4": "Aumento progressivo da intensidade"
+    "week_3_4": "Aumento progressivo da intensidade",
+    "week_5_6": "Intensificação do treinamento",
+    "week_7_8": "Máxima intensidade e consolidação"
   }
 }
 
-Crie TODOS os ${totalWorkouts} treinos variados e completos. Use apenas equipamentos disponíveis para ${workout_location}.`;
+Crie TODOS os ${totalWorkouts} treinos variados e completos para 8 SEMANAS. Use apenas equipamentos disponíveis para ${workout_location}.`;
 
     console.log('📤 Enviando requisição para Groq API...');
 
@@ -281,7 +283,7 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos. Use apenas equipame
           }
         ],
         temperature: 0.1,
-        max_tokens: 20000, // VOLTANDO PARA 20000 COMO SOLICITADO
+        max_tokens: 20000,
         top_p: 0.9
       }),
     });
@@ -309,7 +311,8 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos. Use apenas equipame
       console.log('📋 Plano criado:', {
         title: workoutPlan.title,
         total_workouts: workoutPlan.total_workouts,
-        workouts_count: workoutPlan.workouts?.length || 0
+        workouts_count: workoutPlan.workouts?.length || 0,
+        duration_weeks: workoutPlan.duration_weeks
       });
       
     } catch (parseError) {
@@ -324,6 +327,9 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos. Use apenas equipame
       throw new Error('Plano gerado sem treinos válidos');
     }
 
+    // Garantir que temos 8 semanas e o número correto de treinos
+    workoutPlan.duration_weeks = 8;
+    
     // Garantir que temos o número correto de treinos
     if (workoutPlan.workouts.length !== totalWorkouts) {
       console.warn(`⚠️ Ajustando número de treinos: ${workoutPlan.workouts.length} → ${totalWorkouts}`);
@@ -350,7 +356,7 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos. Use apenas equipame
       }
       
       workoutPlan.total_workouts = totalWorkouts;
-      console.log('✅ Número de treinos corrigido');
+      console.log('✅ Número de treinos corrigido para 8 semanas');
     }
 
     // Salvar no banco de dados
@@ -372,7 +378,7 @@ Crie TODOS os ${totalWorkouts} treinos variados e completos. Use apenas equipame
       console.log('✅ Plano salvo no banco de dados');
     }
 
-    console.log('🎉 Plano gerado com sucesso - completo com', workoutPlan.workouts.length, 'treinos');
+    console.log('🎉 Plano gerado com sucesso - completo com', workoutPlan.workouts.length, 'treinos para 8 semanas');
 
     return new Response(JSON.stringify({ plan: workoutPlan }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
