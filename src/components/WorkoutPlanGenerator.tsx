@@ -66,7 +66,6 @@ const WorkoutPlanGenerator = ({
 
   const { toast } = useToast();
 
-  // Carregar progresso do banco de dados
   useEffect(() => {
     const loadProgress = async () => {
       if (!user || !workoutPlan) return;
@@ -134,8 +133,8 @@ const WorkoutPlanGenerator = ({
         console.error('Error deleting existing progress:', progressError);
       }
 
-      // Deletar itens da fila anterior
-      const { error: queueError } = await supabase
+      // Deletar itens da fila anterior usando type assertion
+      const { error: queueError } = await (supabase as any)
         .from('workout_plan_queue')
         .delete()
         .eq('user_id', user.id);
@@ -199,8 +198,8 @@ const WorkoutPlanGenerator = ({
 
       console.log('📤 Adicionando à fila:', requestData);
 
-      // Adicionar à fila
-      const { data: queueData, error: queueError } = await supabase
+      // Adicionar à fila usando type assertion
+      const { data: queueData, error: queueError } = await (supabase as any)
         .from('workout_plan_queue')
         .insert({
           user_id: user!.id,

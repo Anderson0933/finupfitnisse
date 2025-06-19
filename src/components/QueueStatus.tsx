@@ -34,7 +34,8 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
 
     const loadQueueStatus = async () => {
       try {
-        const { data, error } = await supabase
+        // Using type assertion for the new table
+        const { data, error } = await (supabase as any)
           .from('workout_plan_queue')
           .select('*')
           .eq('user_id', user.id)
@@ -57,7 +58,7 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
 
     loadQueueStatus();
 
-    // Configurar realtime para atualizações
+    // Configure realtime for updates
     const channel = supabase
       .channel('queue-updates')
       .on(
@@ -70,33 +71,35 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
         },
         (payload) => {
           console.log('Queue update:', payload);
-          setQueueItem(payload.new as QueueItem);
-          
-          // Se foi completado, buscar o plano
-          if (payload.new?.status === 'completed') {
-            setTimeout(async () => {
-              const { data: planData } = await supabase
-                .from('user_workout_plans')
-                .select('plan_data')
-                .eq('user_id', user.id)
-                .single();
-              
-              if (planData && onPlanReady) {
-                onPlanReady(planData.plan_data);
-                toast({ 
-                  title: "Plano pronto!", 
-                  description: "Seu plano de treino foi gerado com sucesso!" 
-                });
-              }
-            }, 1000);
-          }
-          
-          if (payload.new?.status === 'failed') {
-            toast({ 
-              title: "Erro na geração", 
-              description: "Houve um problema ao gerar seu plano. Tente novamente.", 
-              variant: "destructive" 
-            });
+          if (payload.new) {
+            setQueueItem(payload.new as QueueItem);
+            
+            // If completed, fetch the plan
+            if (payload.new.status === 'completed') {
+              setTimeout(async () => {
+                const { data: planData } = await supabase
+                  .from('user_workout_plans')
+                  .select('plan_data')
+                  .eq('user_id', user.id)
+                  .single();
+                
+                if (planData && onPlanReady) {
+                  onPlanReady(planData.plan_data);
+                  toast({ 
+                    title: "Plano pronto!", 
+                    description: "Seu plano de treino foi gerado com sucesso!" 
+                  });
+                }
+              }, 1000);
+            }
+            
+            if (payload.new.status === 'failed') {
+              toast({ 
+                title: "Erro na geração", 
+                description: "Houve um problema ao gerar seu plano. Tente novamente.", 
+                variant: "destructive" 
+              });
+            }
           }
         }
       )
