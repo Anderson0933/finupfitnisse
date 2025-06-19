@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -135,7 +136,7 @@ const WorkoutPlanGenerator = ({
 
       // Deletar itens da fila anterior - usar insert direto em tabela
       try {
-        const { error: queueError } = await supabase
+        const { error: queueError } = await (supabase as any)
           .from('workout_plan_queue')
           .delete()
           .eq('user_id', user.id);
@@ -205,7 +206,7 @@ const WorkoutPlanGenerator = ({
 
       // Tentar inserção direta na tabela primeiro
       try {
-        const { data: queueData, error: queueError } = await supabase
+        const { data: queueData, error: queueError } = await (supabase as any)
           .from('workout_plan_queue')
           .insert({
             user_id: user!.id,
@@ -383,7 +384,10 @@ const WorkoutPlanGenerator = ({
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="form" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="form" 
+            className="flex items-center gap-2"
+          >
             <Sparkles className="h-4 w-4" />
             Gerar Plano
           </TabsTrigger>
