@@ -136,7 +136,7 @@ const WorkoutPlanGenerator = ({
 
       // Deletar itens da fila anterior usando RPC
       try {
-        const { error: queueError } = await supabase.rpc('delete_user_queue_items', {
+        const { error: queueError } = await (supabase as any).rpc('delete_user_queue_items', {
           p_user_id: user.id
         });
 
@@ -205,7 +205,7 @@ const WorkoutPlanGenerator = ({
 
       // Tentar adicionar à fila usando RPC primeiro
       try {
-        const { data: queueData, error: queueError } = await supabase.rpc('add_to_workout_queue', {
+        const { data: queueData, error: queueError } = await (supabase as any).rpc('add_to_workout_queue', {
           p_user_id: user!.id,
           p_request_data: requestData
         });
@@ -229,7 +229,7 @@ const WorkoutPlanGenerator = ({
         console.error('RPC failed, trying direct insert:', rpcError);
         
         // Fallback para inserção direta
-        const { data: queueData, error: queueError } = await supabase
+        const { data: queueData, error: queueError } = await (supabase as any)
           .from('workout_plan_queue')
           .insert({
             user_id: user!.id,
