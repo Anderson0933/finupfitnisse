@@ -894,6 +894,10 @@ export type Database = {
           position_in_queue: number
         }[]
       }
+      delete_user_queue_items: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       generate_affiliate_code: {
         Args: Record<PropertyKey, never>
         Returns: string

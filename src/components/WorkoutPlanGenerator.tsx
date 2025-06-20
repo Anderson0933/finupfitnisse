@@ -145,7 +145,7 @@ const WorkoutPlanGenerator = ({
         }
       } catch (queueDeleteError) {
         console.error('Queue delete error:', queueDeleteError);
-        // Continuar mesmo se houver erro
+        // Continuar mesmo se houver erro na limpeza da fila
       }
 
       console.log('✅ Plano anterior deletado com sucesso');
