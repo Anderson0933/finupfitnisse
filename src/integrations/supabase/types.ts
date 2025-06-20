@@ -800,6 +800,48 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_plan_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          estimated_completion_time: string | null
+          id: string
+          position_in_queue: number | null
+          request_data: Json
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          estimated_completion_time?: string | null
+          id?: string
+          position_in_queue?: number | null
+          request_data: Json
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          estimated_completion_time?: string | null
+          id?: string
+          position_in_queue?: number | null
+          request_data?: Json
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       workout_plans: {
         Row: {
           created_at: string | null
@@ -844,6 +886,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_to_workout_queue: {
+        Args: { p_user_id: string; p_request_data: Json }
+        Returns: {
+          id: string
+          status: string
+          position_in_queue: number
+        }[]
+      }
       generate_affiliate_code: {
         Args: Record<PropertyKey, never>
         Returns: string

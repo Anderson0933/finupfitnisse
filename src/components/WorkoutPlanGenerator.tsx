@@ -134,19 +134,18 @@ const WorkoutPlanGenerator = ({
         console.error('Error deleting existing progress:', progressError);
       }
 
-      // Deletar itens da fila anterior - usar insert direto em tabela
+      // Deletar itens da fila anterior usando a função do banco
       try {
-        const { error: queueError } = await (supabase as any)
-          .from('workout_plan_queue')
-          .delete()
-          .eq('user_id', user.id);
+        const { error: queueError } = await supabase.rpc('delete_user_queue_items', {
+          p_user_id: user.id
+        });
 
         if (queueError) {
           console.error('Error deleting existing queue items:', queueError);
         }
       } catch (queueDeleteError) {
-        console.error('Queue delete error or table does not exist:', queueDeleteError);
-        // Continuar mesmo se a tabela não existir ainda
+        console.error('Queue delete error:', queueDeleteError);
+        // Continuar mesmo se houver erro
       }
 
       console.log('✅ Plano anterior deletado com sucesso');
@@ -202,50 +201,34 @@ const WorkoutPlanGenerator = ({
         workout_location: workoutLocation
       };
 
-      console.log('📤 Adicionando à fila:', requestData);
+      console.log('📤 Adicionando à fila usando função do banco:', requestData);
 
-      // Tentar inserção direta na tabela primeiro
-      try {
-        const { data: queueData, error: queueError } = await (supabase as any)
-          .from('workout_plan_queue')
-          .insert({
-            user_id: user!.id,
-            request_data: requestData,
-            status: 'pending'
-          })
-          .select()
-          .single();
+      // Usar a função do banco para adicionar à fila
+      const { data: queueData, error: queueError } = await supabase.rpc('add_to_workout_queue', {
+        p_user_id: user!.id,
+        p_request_data: requestData
+      });
 
-        if (queueError) {
-          console.error('Error adding to queue:', queueError);
-          toast({ 
-            title: "Erro na geração", 
-            description: `Não foi possível adicionar à fila: ${queueError.message}`, 
-            variant: "destructive" 
-          });
-          return;
-        }
-
-        console.log('✅ Adicionado à fila:', queueData);
-        
-        // Mostrar status da fila
-        setShowQueueStatus(true);
-        setActiveTab('queue');
-        
-        toast({ 
-          title: "Plano adicionado à fila!", 
-          description: "Seu plano está sendo gerado. Acompanhe o progresso abaixo." 
-        });
-
-      } catch (insertError) {
-        console.error('Insert failed:', insertError);
+      if (queueError) {
+        console.error('Error adding to queue:', queueError);
         toast({ 
           title: "Erro na geração", 
-          description: "Não foi possível adicionar à fila de geração. Tente novamente.", 
+          description: `Não foi possível adicionar à fila: ${queueError.message}`, 
           variant: "destructive" 
         });
         return;
       }
+
+      console.log('✅ Adicionado à fila:', queueData);
+      
+      // Mostrar status da fila
+      setShowQueueStatus(true);
+      setActiveTab('queue');
+      
+      toast({ 
+        title: "Plano adicionado à fila!", 
+        description: "Seu plano está sendo gerado. Acompanhe o progresso abaixo." 
+      });
 
     } catch (error) {
       console.error('Error in handleGeneratePlan:', error);
