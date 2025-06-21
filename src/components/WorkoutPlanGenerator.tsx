@@ -67,18 +67,57 @@ const WorkoutPlanGenerator = ({
 
   const { toast } = useToast();
 
-  // Função para processar a fila automaticamente
-  const processQueue = async () => {
-    if (processingQueue) return;
+  // Função melhorada para verificar se existe plano pronto
+  const checkExistingPlan = async () => {
+    if (!user) return;
+
+    try {
+      const { data: existingPlan, error } = await supabase
+        .from('user_workout_plans')
+        .select('plan_data')
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingPlan && existingPlan.plan_data && !error) {
+        console.log('✅ Plano existente encontrado');
+        setWorkoutPlan(existingPlan.plan_data);
+        setHasQueueItem(false);
+        setActiveTab('plan');
+        return true;
+      }
+    } catch (error) {
+      console.log('Nenhum plano existente encontrado');
+    }
+    return false;
+  };
+
+  // Função para processar a fila com timeout e retry
+  const processQueue = async (retryCount = 0) => {
+    if (processingQueue || retryCount > 3) return;
     
     try {
       setProcessingQueue(true);
-      console.log('🔄 Tentando processar fila...');
+      console.log(`🔄 Tentativa ${retryCount + 1} de processar fila...`);
       
       const { data, error } = await supabase.functions.invoke('process-workout-queue');
       
       if (error) {
         console.error('❌ Erro ao processar fila:', error);
+        
+        // Se não há item na fila, verificar se existe plano
+        if (error.message?.includes('Nenhum item na fila')) {
+          const hasPlan = await checkExistingPlan();
+          if (!hasPlan) {
+            setHasQueueItem(false);
+            setActiveTab('form');
+          }
+          return;
+        }
+        
+        // Retry em caso de erro temporário
+        if (retryCount < 3) {
+          setTimeout(() => processQueue(retryCount + 1), 5000);
+        }
         return;
       }
       
@@ -92,22 +131,35 @@ const WorkoutPlanGenerator = ({
           title: "Plano pronto!", 
           description: "Seu plano de treino foi gerado com sucesso!" 
         });
+      } else {
+        // Se não retornou plano, verificar se existe um plano salvo
+        setTimeout(() => checkExistingPlan(), 2000);
       }
     } catch (error) {
       console.error('❌ Erro no processamento da fila:', error);
+      if (retryCount < 3) {
+        setTimeout(() => processQueue(retryCount + 1), 5000);
+      }
     } finally {
       setProcessingQueue(false);
     }
   };
 
-  // Verificar se existe item na fila e processar automaticamente
+  // Verificar status da fila e processar automaticamente
   useEffect(() => {
     if (!user) return;
 
     let interval: NodeJS.Timeout;
+    let mounted = true;
 
     const checkQueueAndProcess = async () => {
+      if (!mounted) return;
+      
       try {
+        // Primeiro verificar se já existe um plano pronto
+        const hasPlan = await checkExistingPlan();
+        if (hasPlan) return;
+
         const { data: queueItem } = await supabase
           .from('workout_plan_queue')
           .select('*')
@@ -117,21 +169,22 @@ const WorkoutPlanGenerator = ({
           .limit(1)
           .maybeSingle();
 
-        if (queueItem) {
+        if (queueItem && mounted) {
           console.log('📋 Item encontrado na fila:', queueItem.status);
           setHasQueueItem(true);
-          setActiveTab('queue');
-          
-          // Se está pendente, tentar processar
-          if (queueItem.status === 'pending') {
-            console.log('⏳ Processando item pendente...');
-            await processQueue();
+          if (activeTab !== 'queue') {
+            setActiveTab('queue');
           }
-        } else {
-          // Se não há item na fila, garantir que o estado está limpo
+          
+          // Processar automaticamente
+          if (queueItem.status === 'pending' || queueItem.status === 'processing') {
+            processQueue();
+          }
+        } else if (mounted) {
+          // Se não há item na fila e não há plano, voltar para form
           setHasQueueItem(false);
           if (activeTab === 'queue') {
-            setActiveTab(workoutPlan ? 'plan' : 'form');
+            setActiveTab('form');
           }
         }
       } catch (error) {
@@ -142,15 +195,16 @@ const WorkoutPlanGenerator = ({
     // Verificar imediatamente
     checkQueueAndProcess();
 
-    // Verificar a cada 10 segundos apenas se não tem plano
+    // Verificar periodicamente apenas se não tem plano
     if (!workoutPlan) {
-      interval = setInterval(checkQueueAndProcess, 10000);
+      interval = setInterval(checkQueueAndProcess, 8000);
     }
 
     return () => {
+      mounted = false;
       if (interval) clearInterval(interval);
     };
-  }, [user, workoutPlan]);
+  }, [user, workoutPlan, activeTab]);
 
   useEffect(() => {
     const loadProgress = async () => {
@@ -194,7 +248,6 @@ const WorkoutPlanGenerator = ({
     setProgressMap(prev => new Map(prev.set(itemId, completed)));
   };
 
-  // FUNÇÃO CRÍTICA: Deletar plano anterior antes de criar novo
   const deleteExistingPlan = async () => {
     if (!user) return;
 
@@ -239,7 +292,6 @@ const WorkoutPlanGenerator = ({
     }
   };
 
-  // NOVA FUNÇÃO: Verificar se deve mostrar confirmação
   const handleGeneratePlanRequest = () => {
     if (!user) {
       toast({ title: "Erro", description: "Você precisa estar logado para gerar um plano.", variant: "destructive" });
@@ -315,10 +367,10 @@ const WorkoutPlanGenerator = ({
         description: "Seu plano está sendo criado. Aguarde alguns instantes..." 
       });
 
-      // Processar imediatamente
+      // Processar após 3 segundos
       setTimeout(() => {
         processQueue();
-      }, 2000);
+      }, 3000);
 
     } catch (error) {
       console.error('Error in handleGeneratePlan:', error);

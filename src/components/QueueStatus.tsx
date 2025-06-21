@@ -31,13 +31,15 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
   useEffect(() => {
     if (!user) return;
 
+    let mounted = true;
+
     const loadQueueStatus = async () => {
       try {
-        // Using type assertion for the new table
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from('workout_plan_queue')
           .select('*')
           .eq('user_id', user.id)
+          .in('status', ['pending', 'processing', 'completed', 'failed'])
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -47,17 +49,40 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
           return;
         }
 
-        setQueueItem(data);
+        if (mounted) {
+          setQueueItem(data);
+          
+          // Se completado, tentar buscar o plano
+          if (data?.status === 'completed') {
+            setTimeout(async () => {
+              const { data: planData } = await supabase
+                .from('user_workout_plans')
+                .select('plan_data')
+                .eq('user_id', user.id)
+                .single();
+              
+              if (planData && onPlanReady && mounted) {
+                onPlanReady(planData.plan_data);
+                toast({ 
+                  title: "Plano pronto!", 
+                  description: "Seu plano de treino foi gerado com sucesso!" 
+                });
+              }
+            }, 1000);
+          }
+        }
       } catch (error) {
         console.error('Error in loadQueueStatus:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     loadQueueStatus();
 
-    // Configure realtime for updates
+    // Configurar realtime para atualizações
     const channel = supabase
       .channel('queue-updates')
       .on(
@@ -70,10 +95,10 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
         },
         (payload) => {
           console.log('Queue update:', payload);
-          if (payload.new && typeof payload.new === 'object' && 'status' in payload.new) {
+          if (payload.new && typeof payload.new === 'object' && 'status' in payload.new && mounted) {
             setQueueItem(payload.new as QueueItem);
             
-            // If completed, fetch the plan
+            // Se completado, buscar o plano
             if (payload.new.status === 'completed') {
               setTimeout(async () => {
                 const { data: planData } = await supabase
@@ -82,7 +107,7 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
                   .eq('user_id', user.id)
                   .single();
                 
-                if (planData && onPlanReady) {
+                if (planData && onPlanReady && mounted) {
                   onPlanReady(planData.plan_data);
                   toast({ 
                     title: "Plano pronto!", 
@@ -105,6 +130,7 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
       .subscribe();
 
     return () => {
+      mounted = false;
       supabase.removeChannel(channel);
     };
   }, [user, onPlanReady, toast]);
@@ -137,7 +163,7 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
   const getStatusText = () => {
     switch (queueItem.status) {
       case 'pending':
-        return `Posição ${queueItem.position_in_queue} na fila`;
+        return `Posição ${queueItem.position_in_queue || 1} na fila`;
       case 'processing':
         return 'Gerando seu plano...';
       case 'completed':
