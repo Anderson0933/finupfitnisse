@@ -30,68 +30,12 @@ function cleanAndParseJSON(content: string): any {
   cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
   
   try {
-    // Primeira tentativa - JSON direto
     const parsed = JSON.parse(cleanContent);
     console.log('✅ JSON parseado com sucesso');
     return parsed;
   } catch (parseError) {
-    console.warn('⚠️ Primeira tentativa falhou, tentando correções...');
-    
-    try {
-      // Segunda tentativa - corrigir vírgulas extras e problemas comuns
-      let fixedContent = cleanContent
-        // Remover vírgulas antes de } e ]
-        .replace(/,(\s*[}\]])/g, '$1')
-        // Remover vírgulas duplicadas
-        .replace(/,+/g, ',')
-        // Corrigir aspas quebradas em strings
-        .replace(/([^"]),\s*"([^"]*)"([^,:}\]]*)/g, '$1, "$2$3"')
-        // Remover quebras de linha problemáticas dentro de strings
-        .replace(/"([^"]*)\n([^"]*)"/g, '"$1 $2"');
-
-      const parsed = JSON.parse(fixedContent);
-      console.log('✅ JSON parseado na segunda tentativa');
-      return parsed;
-    } catch (secondError) {
-      console.error('❌ Erro crítico no parsing:', secondError.message);
-      
-      // Como último recurso, tentar extrair e criar um plano básico válido
-      try {
-        // Extrair informações básicas que conseguimos encontrar
-        const titleMatch = cleanContent.match(/"title"\s*:\s*"([^"]+)"/);
-        const descMatch = cleanContent.match(/"description"\s*:\s*"([^"]+)"/);
-        const levelMatch = cleanContent.match(/"difficulty_level"\s*:\s*"([^"]+)"/);
-        
-        if (titleMatch && descMatch && levelMatch) {
-          console.warn('⚠️ Criando plano básico a partir de fragmentos...');
-          return {
-            title: titleMatch[1],
-            description: descMatch[1],
-            difficulty_level: levelMatch[1],
-            duration_weeks: 6,
-            total_workouts: 18,
-            workouts: [], // Será preenchido depois
-            nutrition_tips: [
-              "Mantenha-se hidratado bebendo pelo menos 2-3 litros de água por dia",
-              "Consuma proteína após o treino para recuperação muscular",
-              "Inclua carboidratos complexos antes do treino para energia",
-              "Mantenha uma alimentação equilibrada rica em nutrientes",
-              "Evite alimentos processados e priorize alimentos naturais"
-            ],
-            progression_schedule: {
-              week_1_2: "Adaptação e aprendizado dos movimentos básicos",
-              week_3_4: "Aumento gradual da intensidade e carga",
-              week_5_6: "Consolidação e preparação para próximo nível"
-            }
-          };
-        }
-        
-        throw new Error('Não foi possível extrair informações básicas do JSON');
-      } catch (fallbackError) {
-        console.error('❌ Falha em todas as tentativas de parsing');
-        throw new Error(`Erro ao processar JSON: ${parseError.message}`);
-      }
-    }
+    console.error('❌ Erro ao parsear JSON:', parseError);
+    throw new Error(`Erro ao processar JSON: ${parseError.message}`);
   }
 }
 
@@ -291,133 +235,31 @@ INSTRUÇÕES CRÍTICAS:
     const data = await response.json();
     const content = data.choices[0].message.content.trim();
     
-    let workoutPlan;
-    try {
-      workoutPlan = cleanAndParseJSON(content);
-    } catch (parseError) {
-      console.error('❌ Falha no parsing, criando plano de emergência...');
-      
-      // Criar um plano básico funcional
-      workoutPlan = {
-        title: `Plano ${requestData.workout_days}x/semana - ${requestData.fitness_level}`,
-        description: `Plano personalizado para ${requestData.fitness_goals} em ${requestData.workout_location}`,
-        difficulty_level: requestData.fitness_level,
-        duration_weeks: 6,
-        total_workouts: totalWorkouts,
-        workouts: [],
-        nutrition_tips: [
-          "Mantenha-se hidratado bebendo pelo menos 2-3 litros de água por dia",
-          "Consuma proteína após o treino para recuperação muscular",
-          "Inclua carboidratos complexos antes do treino para energia",
-          "Mantenha uma alimentação equilibrada rica em nutrientes",
-          "Evite alimentos processados e priorize alimentos naturais"
-        ],
-        progression_schedule: {
-          week_1_2: "Adaptação e aprendizado dos movimentos básicos",
-          week_3_4: "Aumento gradual da intensidade e carga",
-          week_5_6: "Consolidação e preparação para próximo nível"
-        }
-      };
-      
-      // Gerar treinos básicos
-      for (let week = 1; week <= 6; week++) {
-        for (let day = 1; day <= requestData.workout_days; day++) {
-          const workout = {
-            week,
-            day,
-            title: `Treino ${day} - Semana ${week}`,
-            focus: "Treino completo de corpo inteiro",
-            estimated_duration: parseInt(requestData.available_time) || 45,
-            warm_up: {
-              duration: 10,
-              exercises: [{
-                name: "Aquecimento Geral",
-                duration: 600,
-                instructions: "Realize movimentos articulares suaves e cardio leve para preparar o corpo."
-              }]
-            },
-            main_exercises: [{
-              name: "Exercício Principal",
-              muscle_groups: ["corpo_inteiro"],
-              sets: 3,
-              reps: "10-15",
-              rest_seconds: 60,
-              weight_guidance: "Use carga adequada ao seu nível",
-              instructions: "Execute com boa técnica, focando na forma correta.",
-              form_cues: ["Mantenha postura alinhada", "Respire corretamente", "Execute movimento controlado"],
-              progression_notes: "Aumente gradualmente a intensidade conforme evolui.",
-              safety_tips: "Pare se sentir dor ou desconforto.",
-              breathing_pattern: "Expire no esforço, inspire no relaxamento."
-            }],
-            cool_down: {
-              duration: 10,
-              exercises: [{
-                name: "Alongamento Geral",
-                duration: 600,
-                instructions: "Alongue os principais grupos musculares trabalhados."
-              }]
-            },
-            workout_tips: [
-              "Mantenha boa hidratação durante o treino",
-              "Foque na qualidade dos movimentos",
-              "Respeite seus limites"
-            ]
-          };
-          workoutPlan.workouts.push(workout);
-        }
-      }
-    }
+    const workoutPlan = cleanAndParseJSON(content);
     
     // Garantir que temos 6 semanas e o número correto de treinos
     workoutPlan.duration_weeks = 6;
     
-    if (!workoutPlan.workouts || workoutPlan.workouts.length !== totalWorkouts) {
-      console.warn(`⚠️ Ajustando número de treinos para ${totalWorkouts}`);
-      
-      if (!workoutPlan.workouts) workoutPlan.workouts = [];
+    if (workoutPlan.workouts.length !== totalWorkouts) {
+      console.warn(`⚠️ Ajustando número de treinos: ${workoutPlan.workouts.length} → ${totalWorkouts}`);
       
       while (workoutPlan.workouts.length < totalWorkouts) {
-        const week = Math.floor(workoutPlan.workouts.length / requestData.workout_days) + 1;
-        const day = (workoutPlan.workouts.length % requestData.workout_days) + 1;
+        const baseIndex = workoutPlan.workouts.length % (workoutPlan.workouts.length || 1);
+        const baseWorkout = workoutPlan.workouts[baseIndex];
+        const newWeek = Math.floor(workoutPlan.workouts.length / requestData.workout_days) + 1;
+        const newDay = (workoutPlan.workouts.length % requestData.workout_days) + 1;
         
-        const workout = {
-          week,
-          day,
-          title: `Treino ${day} - Semana ${week}`,
-          focus: "Treino completo",
-          estimated_duration: parseInt(requestData.available_time) || 45,
-          warm_up: {
-            duration: 10,
-            exercises: [{
-              name: "Aquecimento",
-              duration: 600,
-              instructions: "Aquecimento adequado para preparar o corpo."
-            }]
-          },
-          main_exercises: [{
-            name: "Exercício Principal",
-            muscle_groups: ["geral"],
-            sets: 3,
-            reps: "10-15",
-            rest_seconds: 60,
-            weight_guidance: "Carga adequada",
-            instructions: "Execute com boa técnica.",
-            form_cues: ["Boa postura", "Respiração correta"],
-            progression_notes: "Progrida gradualmente.",
-            safety_tips: "Execute com segurança.",
-            breathing_pattern: "Respiração controlada."
-          }],
-          cool_down: {
-            duration: 10,
-            exercises: [{
-              name: "Alongamento",
-              duration: 600,
-              instructions: "Alongamento final."
-            }]
-          },
-          workout_tips: ["Hidrate-se bem", "Mantenha boa forma"]
+        const newWorkout = {
+          ...baseWorkout,
+          week: newWeek,
+          day: newDay,
+          title: `${baseWorkout.title} - S${newWeek}D${newDay}`
         };
-        workoutPlan.workouts.push(workout);
+        workoutPlan.workouts.push(newWorkout);
+      }
+      
+      if (workoutPlan.workouts.length > totalWorkouts) {
+        workoutPlan.workouts = workoutPlan.workouts.slice(0, totalWorkouts);
       }
       
       workoutPlan.total_workouts = totalWorkouts;

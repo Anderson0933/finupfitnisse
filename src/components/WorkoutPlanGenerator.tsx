@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,7 +45,7 @@ const WorkoutPlanGenerator = ({
   const [activeTab, setActiveTab] = useState(initialActiveTab);
   const [loading, setLoading] = useState(false);
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
-  const [hasQueueItem, setHasQueueItem] = useState(false);
+  const [showQueueStatus, setShowQueueStatus] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
   
   // Estados dos modais de confirmação
@@ -68,110 +67,47 @@ const WorkoutPlanGenerator = ({
 
   const { toast } = useToast();
 
-  // Função para validar se um objeto é um WorkoutPlan válido
-  const isValidWorkoutPlan = (obj: any): obj is WorkoutPlan => {
-    return obj && 
-           typeof obj === 'object' && 
-           typeof obj.title === 'string' && 
-           typeof obj.description === 'string' && 
-           typeof obj.difficulty_level === 'string' && 
-           typeof obj.duration_weeks === 'number';
-  };
-
-  // Função melhorada para verificar se existe plano pronto
-  const checkExistingPlan = async () => {
-    if (!user) return;
-
-    try {
-      const { data: existingPlan, error } = await supabase
-        .from('user_workout_plans')
-        .select('plan_data')
-        .eq('user_id', user.id)
-        .single();
-
-      if (existingPlan && existingPlan.plan_data && !error) {
-        console.log('✅ Plano existente encontrado');
-        // Validar se plan_data é um objeto WorkoutPlan válido
-        if (isValidWorkoutPlan(existingPlan.plan_data)) {
-          setWorkoutPlan(existingPlan.plan_data as WorkoutPlan);
-          setHasQueueItem(false);
-          setActiveTab('plan');
-          return true;
-        }
-      }
-    } catch (error) {
-      console.log('Nenhum plano existente encontrado');
-    }
-    return false;
-  };
-
-  const processQueue = async (retryCount = 0) => {
-    if (processingQueue || retryCount > 3) return;
+  // Função para processar a fila automaticamente
+  const processQueue = async () => {
+    if (processingQueue) return;
     
     try {
       setProcessingQueue(true);
-      console.log(`🔄 Tentativa ${retryCount + 1} de processar fila...`);
+      console.log('🔄 Tentando processar fila...');
       
       const { data, error } = await supabase.functions.invoke('process-workout-queue');
       
       if (error) {
         console.error('❌ Erro ao processar fila:', error);
-        
-        // Se não há item na fila, verificar se existe plano
-        if (error.message?.includes('Nenhum item na fila')) {
-          const hasPlan = await checkExistingPlan();
-          if (!hasPlan) {
-            setHasQueueItem(false);
-            setActiveTab('form');
-          }
-          return;
-        }
-        
-        // Retry em caso de erro temporário
-        if (retryCount < 3) {
-          setTimeout(() => processQueue(retryCount + 1), 5000);
-        }
         return;
       }
       
       console.log('✅ Resposta do processamento:', data);
       
-      if (data?.success && data?.plan && isValidWorkoutPlan(data.plan)) {
-        setWorkoutPlan(data.plan as WorkoutPlan);
-        setHasQueueItem(false);
+      if (data?.success && data?.plan) {
+        setWorkoutPlan(data.plan);
+        setShowQueueStatus(false);
         setActiveTab('plan');
         toast({ 
           title: "Plano pronto!", 
           description: "Seu plano de treino foi gerado com sucesso!" 
         });
-      } else {
-        // Se não retornou plano, verificar se existe um plano salvo
-        setTimeout(() => checkExistingPlan(), 2000);
       }
     } catch (error) {
       console.error('❌ Erro no processamento da fila:', error);
-      if (retryCount < 3) {
-        setTimeout(() => processQueue(retryCount + 1), 5000);
-      }
     } finally {
       setProcessingQueue(false);
     }
   };
 
+  // Verificar se existe item na fila e processar automaticamente
   useEffect(() => {
     if (!user) return;
 
     let interval: NodeJS.Timeout;
-    let mounted = true;
 
     const checkQueueAndProcess = async () => {
-      if (!mounted) return;
-      
       try {
-        // Primeiro verificar se já existe um plano pronto
-        const hasPlan = await checkExistingPlan();
-        if (hasPlan) return;
-
         const { data: queueItem } = await supabase
           .from('workout_plan_queue')
           .select('*')
@@ -181,22 +117,15 @@ const WorkoutPlanGenerator = ({
           .limit(1)
           .maybeSingle();
 
-        if (queueItem && mounted) {
+        if (queueItem) {
           console.log('📋 Item encontrado na fila:', queueItem.status);
-          setHasQueueItem(true);
-          if (activeTab !== 'queue') {
-            setActiveTab('queue');
-          }
+          setShowQueueStatus(true);
+          setActiveTab('queue');
           
-          // Processar automaticamente
-          if (queueItem.status === 'pending' || queueItem.status === 'processing') {
-            processQueue();
-          }
-        } else if (mounted) {
-          // Se não há item na fila e não há plano, voltar para form
-          setHasQueueItem(false);
-          if (activeTab === 'queue') {
-            setActiveTab('form');
+          // Se está pendente, tentar processar
+          if (queueItem.status === 'pending') {
+            console.log('⏳ Processando item pendente...');
+            await processQueue();
           }
         }
       } catch (error) {
@@ -207,16 +136,13 @@ const WorkoutPlanGenerator = ({
     // Verificar imediatamente
     checkQueueAndProcess();
 
-    // Verificar periodicamente apenas se não tem plano
-    if (!workoutPlan) {
-      interval = setInterval(checkQueueAndProcess, 8000);
-    }
+    // Verificar a cada 10 segundos
+    interval = setInterval(checkQueueAndProcess, 10000);
 
     return () => {
-      mounted = false;
       if (interval) clearInterval(interval);
     };
-  }, [user, workoutPlan, activeTab]);
+  }, [user]);
 
   useEffect(() => {
     const loadProgress = async () => {
@@ -252,7 +178,7 @@ const WorkoutPlanGenerator = ({
   useEffect(() => {
     if (workoutPlan) {
       setActiveTab('plan');
-      setHasQueueItem(false);
+      setShowQueueStatus(false);
     }
   }, [workoutPlan]);
 
@@ -260,6 +186,7 @@ const WorkoutPlanGenerator = ({
     setProgressMap(prev => new Map(prev.set(itemId, completed)));
   };
 
+  // FUNÇÃO CRÍTICA: Deletar plano anterior antes de criar novo
   const deleteExistingPlan = async () => {
     if (!user) return;
 
@@ -304,6 +231,7 @@ const WorkoutPlanGenerator = ({
     }
   };
 
+  // NOVA FUNÇÃO: Verificar se deve mostrar confirmação
   const handleGeneratePlanRequest = () => {
     if (!user) {
       toast({ title: "Erro", description: "Você precisa estar logado para gerar um plano.", variant: "destructive" });
@@ -371,7 +299,7 @@ const WorkoutPlanGenerator = ({
       console.log('✅ Adicionado à fila:', queueData);
       
       // Mostrar status da fila
-      setHasQueueItem(true);
+      setShowQueueStatus(true);
       setActiveTab('queue');
       
       toast({ 
@@ -379,10 +307,10 @@ const WorkoutPlanGenerator = ({
         description: "Seu plano está sendo criado. Aguarde alguns instantes..." 
       });
 
-      // Processar após 3 segundos
+      // Processar imediatamente
       setTimeout(() => {
         processQueue();
-      }, 3000);
+      }, 2000);
 
     } catch (error) {
       console.error('Error in handleGeneratePlan:', error);
@@ -397,16 +325,13 @@ const WorkoutPlanGenerator = ({
     }
   };
 
-  const handlePlanReady = (plan: any) => {
-    // Verificar se o plano é um objeto WorkoutPlan válido
-    if (isValidWorkoutPlan(plan)) {
-      setWorkoutPlan(plan as WorkoutPlan);
-      setHasQueueItem(false);
-      setActiveTab('plan');
-      
-      // Resetar progresso para o novo plano
-      setProgressMap(new Map());
-    }
+  const handlePlanReady = (plan: WorkoutPlan) => {
+    setWorkoutPlan(plan);
+    setShowQueueStatus(false);
+    setActiveTab('plan');
+    
+    // Resetar progresso para o novo plano
+    setProgressMap(new Map());
   };
 
   const handleCopyPlan = async () => {
@@ -435,7 +360,7 @@ const WorkoutPlanGenerator = ({
       // Limpar estado local
       setWorkoutPlan(null);
       setProgressMap(new Map());
-      setHasQueueItem(false);
+      setShowQueueStatus(false);
       setActiveTab('form');
       
       toast({ title: "Plano excluído", description: "Seu plano de treino foi removido." });
@@ -460,7 +385,7 @@ const WorkoutPlanGenerator = ({
       
       setWorkoutPlan(null);
       setProgressMap(new Map());
-      setHasQueueItem(false);
+      setShowQueueStatus(false);
       setActiveTab('form');
       
       toast({ title: "Plano removido", description: "Agora você pode gerar um novo plano de treino." });
@@ -531,9 +456,9 @@ const WorkoutPlanGenerator = ({
             <Sparkles className="h-4 w-4" />
             Gerar Plano
           </TabsTrigger>
-          <TabsTrigger value="queue" className="flex items-center gap-2" disabled={!hasQueueItem}>
+          <TabsTrigger value="queue" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            {hasQueueItem ? 'Processando...' : 'Fila'}
+            {showQueueStatus ? 'Processando...' : 'Fila'}
             {processingQueue && <Loader2 className="h-3 w-3 animate-spin ml-1" />}
           </TabsTrigger>
           <TabsTrigger value="plan" disabled={!workoutPlan} className="flex items-center gap-2">
@@ -751,50 +676,39 @@ const WorkoutPlanGenerator = ({
         </TabsContent>
 
         <TabsContent value="queue">
-          {hasQueueItem ? (
-            <div className="space-y-4">
-              <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-red-50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-orange-800">
-                    <Clock className="h-6 w-6" />
-                    Gerando seu plano personalizado
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
-                    <div>
-                      <p className="text-orange-700 font-medium">
-                        Estamos criando seu plano de treino personalizado...
-                      </p>
-                      <p className="text-orange-600 text-sm">
-                        Este processo pode levar até 2 minutos. Não feche esta página.
-                      </p>
-                    </div>
+          <div className="space-y-4">
+            <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-red-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-orange-800">
+                  <Clock className="h-6 w-6" />
+                  Gerando seu plano personalizado
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+                  <div>
+                    <p className="text-orange-700 font-medium">
+                      Estamos criando seu plano de treino personalizado...
+                    </p>
+                    <p className="text-orange-600 text-sm">
+                      Este processo pode levar até 2 minutos. Não feche esta página.
+                    </p>
                   </div>
-                  
-                  {processingQueue && (
-                    <div className="mt-4 p-3 bg-orange-100 rounded-lg">
-                      <p className="text-orange-800 text-sm font-medium">
-                        🔄 Processando agora... Aguarde alguns instantes.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <QueueStatus user={user} onPlanReady={handlePlanReady} />
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="text-center py-12">
-                <p className="text-gray-500 mb-4">Nenhum plano sendo processado no momento.</p>
-                <Button onClick={() => setActiveTab('form')}>
-                  Gerar Novo Plano
-                </Button>
+                </div>
+                
+                {processingQueue && (
+                  <div className="mt-4 p-3 bg-orange-100 rounded-lg">
+                    <p className="text-orange-800 text-sm font-medium">
+                      🔄 Processando agora... Aguarde alguns instantes.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
+            
+            <QueueStatus user={user} onPlanReady={handlePlanReady} />
+          </div>
         </TabsContent>
 
         <TabsContent value="plan">
