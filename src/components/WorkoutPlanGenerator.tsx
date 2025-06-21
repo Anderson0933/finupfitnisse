@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +46,7 @@ const WorkoutPlanGenerator = ({
   const [loading, setLoading] = useState(false);
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
   const [showQueueStatus, setShowQueueStatus] = useState(false);
+  const [processingQueue, setProcessingQueue] = useState(false);
   
   // Estados dos modais de confirmação
   const [showGenerateConfirmation, setShowGenerateConfirmation] = useState(false);
@@ -66,6 +66,83 @@ const WorkoutPlanGenerator = ({
   const [workoutLocation, setWorkoutLocation] = useState('');
 
   const { toast } = useToast();
+
+  // Função para processar a fila automaticamente
+  const processQueue = async () => {
+    if (processingQueue) return;
+    
+    try {
+      setProcessingQueue(true);
+      console.log('🔄 Tentando processar fila...');
+      
+      const { data, error } = await supabase.functions.invoke('process-workout-queue');
+      
+      if (error) {
+        console.error('❌ Erro ao processar fila:', error);
+        return;
+      }
+      
+      console.log('✅ Resposta do processamento:', data);
+      
+      if (data?.success && data?.plan) {
+        setWorkoutPlan(data.plan);
+        setShowQueueStatus(false);
+        setActiveTab('plan');
+        toast({ 
+          title: "Plano pronto!", 
+          description: "Seu plano de treino foi gerado com sucesso!" 
+        });
+      }
+    } catch (error) {
+      console.error('❌ Erro no processamento da fila:', error);
+    } finally {
+      setProcessingQueue(false);
+    }
+  };
+
+  // Verificar se existe item na fila e processar automaticamente
+  useEffect(() => {
+    if (!user) return;
+
+    let interval: NodeJS.Timeout;
+
+    const checkQueueAndProcess = async () => {
+      try {
+        const { data: queueItem } = await supabase
+          .from('workout_plan_queue')
+          .select('*')
+          .eq('user_id', user.id)
+          .in('status', ['pending', 'processing'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (queueItem) {
+          console.log('📋 Item encontrado na fila:', queueItem.status);
+          setShowQueueStatus(true);
+          setActiveTab('queue');
+          
+          // Se está pendente, tentar processar
+          if (queueItem.status === 'pending') {
+            console.log('⏳ Processando item pendente...');
+            await processQueue();
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erro ao verificar fila:', error);
+      }
+    };
+
+    // Verificar imediatamente
+    checkQueueAndProcess();
+
+    // Verificar a cada 10 segundos
+    interval = setInterval(checkQueueAndProcess, 10000);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [user]);
 
   useEffect(() => {
     const loadProgress = async () => {
@@ -226,9 +303,14 @@ const WorkoutPlanGenerator = ({
       setActiveTab('queue');
       
       toast({ 
-        title: "Plano adicionado à fila!", 
-        description: "Seu plano está sendo gerado. Acompanhe o progresso abaixo." 
+        title: "Gerando seu plano!", 
+        description: "Seu plano está sendo criado. Aguarde alguns instantes..." 
       });
+
+      // Processar imediatamente
+      setTimeout(() => {
+        processQueue();
+      }, 2000);
 
     } catch (error) {
       console.error('Error in handleGeneratePlan:', error);
@@ -374,9 +456,10 @@ const WorkoutPlanGenerator = ({
             <Sparkles className="h-4 w-4" />
             Gerar Plano
           </TabsTrigger>
-          <TabsTrigger value="queue" disabled={!showQueueStatus} className="flex items-center gap-2">
+          <TabsTrigger value="queue" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Fila
+            {showQueueStatus ? 'Processando...' : 'Fila'}
+            {processingQueue && <Loader2 className="h-3 w-3 animate-spin ml-1" />}
           </TabsTrigger>
           <TabsTrigger value="plan" disabled={!workoutPlan} className="flex items-center gap-2">
             <Dumbbell className="h-4 w-4" />
@@ -579,7 +662,7 @@ const WorkoutPlanGenerator = ({
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Adicionando à fila...
+                    Gerando plano...
                   </>
                 ) : (
                   <>
@@ -593,9 +676,39 @@ const WorkoutPlanGenerator = ({
         </TabsContent>
 
         <TabsContent value="queue">
-          {showQueueStatus && (
+          <div className="space-y-4">
+            <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-red-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-orange-800">
+                  <Clock className="h-6 w-6" />
+                  Gerando seu plano personalizado
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+                  <div>
+                    <p className="text-orange-700 font-medium">
+                      Estamos criando seu plano de treino personalizado...
+                    </p>
+                    <p className="text-orange-600 text-sm">
+                      Este processo pode levar até 2 minutos. Não feche esta página.
+                    </p>
+                  </div>
+                </div>
+                
+                {processingQueue && (
+                  <div className="mt-4 p-3 bg-orange-100 rounded-lg">
+                    <p className="text-orange-800 text-sm font-medium">
+                      🔄 Processando agora... Aguarde alguns instantes.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
             <QueueStatus user={user} onPlanReady={handlePlanReady} />
-          )}
+          </div>
         </TabsContent>
 
         <TabsContent value="plan">
