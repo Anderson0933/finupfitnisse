@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,6 +68,16 @@ const WorkoutPlanGenerator = ({
 
   const { toast } = useToast();
 
+  // Função para validar se um objeto é um WorkoutPlan válido
+  const isValidWorkoutPlan = (obj: any): obj is WorkoutPlan => {
+    return obj && 
+           typeof obj === 'object' && 
+           typeof obj.title === 'string' && 
+           typeof obj.description === 'string' && 
+           typeof obj.difficulty_level === 'string' && 
+           typeof obj.duration_weeks === 'number';
+  };
+
   // Função melhorada para verificar se existe plano pronto
   const checkExistingPlan = async () => {
     if (!user) return;
@@ -80,9 +91,8 @@ const WorkoutPlanGenerator = ({
 
       if (existingPlan && existingPlan.plan_data && !error) {
         console.log('✅ Plano existente encontrado');
-        // Verificar se plan_data é um objeto WorkoutPlan válido
-        if (typeof existingPlan.plan_data === 'object' && existingPlan.plan_data !== null && 
-            'title' in existingPlan.plan_data && 'description' in existingPlan.plan_data) {
+        // Validar se plan_data é um objeto WorkoutPlan válido
+        if (isValidWorkoutPlan(existingPlan.plan_data)) {
           setWorkoutPlan(existingPlan.plan_data as WorkoutPlan);
           setHasQueueItem(false);
           setActiveTab('plan');
@@ -126,7 +136,7 @@ const WorkoutPlanGenerator = ({
       
       console.log('✅ Resposta do processamento:', data);
       
-      if (data?.success && data?.plan && typeof data.plan === 'object') {
+      if (data?.success && data?.plan && isValidWorkoutPlan(data.plan)) {
         setWorkoutPlan(data.plan as WorkoutPlan);
         setHasQueueItem(false);
         setActiveTab('plan');
@@ -389,7 +399,7 @@ const WorkoutPlanGenerator = ({
 
   const handlePlanReady = (plan: any) => {
     // Verificar se o plano é um objeto WorkoutPlan válido
-    if (typeof plan === 'object' && plan !== null && 'title' in plan && 'description' in plan) {
+    if (isValidWorkoutPlan(plan)) {
       setWorkoutPlan(plan as WorkoutPlan);
       setHasQueueItem(false);
       setActiveTab('plan');
