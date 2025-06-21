@@ -49,11 +49,18 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
           return;
         }
 
-        if (mounted) {
-          setQueueItem(data);
+        if (mounted && data) {
+          // Type assertion para garantir que o status é válido
+          const validStatuses = ['pending', 'processing', 'completed', 'failed'];
+          const queueData = {
+            ...data,
+            status: validStatuses.includes(data.status) ? data.status as QueueItem['status'] : 'pending'
+          };
+          
+          setQueueItem(queueData);
           
           // Se completado, tentar buscar o plano
-          if (data?.status === 'completed') {
+          if (queueData.status === 'completed') {
             setTimeout(async () => {
               const { data: planData } = await supabase
                 .from('user_workout_plans')
@@ -70,6 +77,8 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
               }
             }, 1000);
           }
+        } else if (mounted) {
+          setQueueItem(null);
         }
       } catch (error) {
         console.error('Error in loadQueueStatus:', error);
@@ -96,10 +105,17 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
         (payload) => {
           console.log('Queue update:', payload);
           if (payload.new && typeof payload.new === 'object' && 'status' in payload.new && mounted) {
-            setQueueItem(payload.new as QueueItem);
+            const validStatuses = ['pending', 'processing', 'completed', 'failed'];
+            const newData = {
+              ...payload.new,
+              status: validStatuses.includes(payload.new.status as string) ? 
+                payload.new.status as QueueItem['status'] : 'pending'
+            } as QueueItem;
+            
+            setQueueItem(newData);
             
             // Se completado, buscar o plano
-            if (payload.new.status === 'completed') {
+            if (newData.status === 'completed') {
               setTimeout(async () => {
                 const { data: planData } = await supabase
                   .from('user_workout_plans')
@@ -117,7 +133,7 @@ const QueueStatus = ({ user, onPlanReady }: QueueStatusProps) => {
               }, 1000);
             }
             
-            if (payload.new.status === 'failed') {
+            if (newData.status === 'failed') {
               toast({ 
                 title: "Erro na geração", 
                 description: "Houve um problema ao gerar seu plano. Tente novamente.", 

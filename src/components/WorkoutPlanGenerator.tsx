@@ -80,10 +80,14 @@ const WorkoutPlanGenerator = ({
 
       if (existingPlan && existingPlan.plan_data && !error) {
         console.log('✅ Plano existente encontrado');
-        setWorkoutPlan(existingPlan.plan_data);
-        setHasQueueItem(false);
-        setActiveTab('plan');
-        return true;
+        // Verificar se plan_data é um objeto WorkoutPlan válido
+        if (typeof existingPlan.plan_data === 'object' && existingPlan.plan_data !== null && 
+            'title' in existingPlan.plan_data && 'description' in existingPlan.plan_data) {
+          setWorkoutPlan(existingPlan.plan_data as WorkoutPlan);
+          setHasQueueItem(false);
+          setActiveTab('plan');
+          return true;
+        }
       }
     } catch (error) {
       console.log('Nenhum plano existente encontrado');
@@ -91,7 +95,6 @@ const WorkoutPlanGenerator = ({
     return false;
   };
 
-  // Função para processar a fila com timeout e retry
   const processQueue = async (retryCount = 0) => {
     if (processingQueue || retryCount > 3) return;
     
@@ -123,8 +126,8 @@ const WorkoutPlanGenerator = ({
       
       console.log('✅ Resposta do processamento:', data);
       
-      if (data?.success && data?.plan) {
-        setWorkoutPlan(data.plan);
+      if (data?.success && data?.plan && typeof data.plan === 'object') {
+        setWorkoutPlan(data.plan as WorkoutPlan);
         setHasQueueItem(false);
         setActiveTab('plan');
         toast({ 
@@ -145,7 +148,6 @@ const WorkoutPlanGenerator = ({
     }
   };
 
-  // Verificar status da fila e processar automaticamente
   useEffect(() => {
     if (!user) return;
 
@@ -385,13 +387,16 @@ const WorkoutPlanGenerator = ({
     }
   };
 
-  const handlePlanReady = (plan: WorkoutPlan) => {
-    setWorkoutPlan(plan);
-    setHasQueueItem(false);
-    setActiveTab('plan');
-    
-    // Resetar progresso para o novo plano
-    setProgressMap(new Map());
+  const handlePlanReady = (plan: any) => {
+    // Verificar se o plano é um objeto WorkoutPlan válido
+    if (typeof plan === 'object' && plan !== null && 'title' in plan && 'description' in plan) {
+      setWorkoutPlan(plan as WorkoutPlan);
+      setHasQueueItem(false);
+      setActiveTab('plan');
+      
+      // Resetar progresso para o novo plano
+      setProgressMap(new Map());
+    }
   };
 
   const handleCopyPlan = async () => {
