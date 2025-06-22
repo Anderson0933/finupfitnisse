@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -127,6 +128,9 @@ const WorkoutPlanGenerator = ({
             console.log('⏳ Processando item pendente...');
             await processQueue();
           }
+        } else {
+          // Se não há itens na fila, esconder status da fila
+          setShowQueueStatus(false);
         }
       } catch (error) {
         console.error('❌ Erro ao verificar fila:', error);
@@ -175,12 +179,17 @@ const WorkoutPlanGenerator = ({
     loadProgress();
   }, [user, workoutPlan]);
 
+  // Redirecionar automaticamente quando plano estiver pronto
   useEffect(() => {
-    if (workoutPlan) {
-      setActiveTab('plan');
+    if (workoutPlan && showQueueStatus) {
+      // Se existe plano e estava mostrando a fila, redirecionar para aba plan
       setShowQueueStatus(false);
+      setActiveTab('plan');
+    } else if (workoutPlan && !showQueueStatus) {
+      // Se existe plano e não está na fila, mostrar aba plan
+      setActiveTab('plan');
     }
-  }, [workoutPlan]);
+  }, [workoutPlan, showQueueStatus]);
 
   const handleProgressChange = (itemId: string, completed: boolean) => {
     setProgressMap(prev => new Map(prev.set(itemId, completed)));
@@ -411,6 +420,10 @@ const WorkoutPlanGenerator = ({
     );
   }
 
+  // Determinar quais abas mostrar
+  const shouldShowQueueTab = showQueueStatus && !workoutPlan;
+  const tabsToShow = shouldShowQueueTab ? 3 : 2;
+
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
       {/* Modais de Confirmação */}
@@ -448,7 +461,7 @@ const WorkoutPlanGenerator = ({
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full grid-cols-${tabsToShow}`}>
           <TabsTrigger 
             value="form" 
             className="flex items-center gap-2"
@@ -456,11 +469,15 @@ const WorkoutPlanGenerator = ({
             <Sparkles className="h-4 w-4" />
             Gerar Plano
           </TabsTrigger>
-          <TabsTrigger value="queue" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            {showQueueStatus ? 'Processando...' : 'Fila'}
-            {processingQueue && <Loader2 className="h-3 w-3 animate-spin ml-1" />}
-          </TabsTrigger>
+          
+          {shouldShowQueueTab && (
+            <TabsTrigger value="queue" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Processando...
+              {processingQueue && <Loader2 className="h-3 w-3 animate-spin ml-1" />}
+            </TabsTrigger>
+          )}
+          
           <TabsTrigger value="plan" disabled={!workoutPlan} className="flex items-center gap-2">
             <Dumbbell className="h-4 w-4" />
             Meu Plano
@@ -675,41 +692,43 @@ const WorkoutPlanGenerator = ({
           </Card>
         </TabsContent>
 
-        <TabsContent value="queue">
-          <div className="space-y-4">
-            <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-red-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-orange-800">
-                  <Clock className="h-6 w-6" />
-                  Gerando seu plano personalizado
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
-                  <div>
-                    <p className="text-orange-700 font-medium">
-                      Estamos criando seu plano de treino personalizado...
-                    </p>
-                    <p className="text-orange-600 text-sm">
-                      Este processo pode levar até 2 minutos. Não feche esta página.
-                    </p>
+        {shouldShowQueueTab && (
+          <TabsContent value="queue">
+            <div className="space-y-4">
+              <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-red-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-orange-800">
+                    <Clock className="h-6 w-6" />
+                    Gerando seu plano personalizado
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+                    <div>
+                      <p className="text-orange-700 font-medium">
+                        Estamos criando seu plano de treino personalizado...
+                      </p>
+                      <p className="text-orange-600 text-sm">
+                        Este processo pode levar até 2 minutos. Não feche esta página.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                
-                {processingQueue && (
-                  <div className="mt-4 p-3 bg-orange-100 rounded-lg">
-                    <p className="text-orange-800 text-sm font-medium">
-                      🔄 Processando agora... Aguarde alguns instantes.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <QueueStatus user={user} onPlanReady={handlePlanReady} />
-          </div>
-        </TabsContent>
+                  
+                  {processingQueue && (
+                    <div className="mt-4 p-3 bg-orange-100 rounded-lg">
+                      <p className="text-orange-800 text-sm font-medium">
+                        🔄 Processando agora... Aguarde alguns instantes.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <QueueStatus user={user} onPlanReady={handlePlanReady} />
+            </div>
+          </TabsContent>
+        )}
 
         <TabsContent value="plan">
           {workoutPlan ? (
