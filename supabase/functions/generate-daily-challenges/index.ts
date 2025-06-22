@@ -63,13 +63,22 @@ serve(async (req) => {
           continue
         }
 
-        // Buscar desafios ativos do usuário
+        // Buscar desafios ativos do usuário (incluindo progresso)
         const { data: activeChallenges, error: challengesError } = await supabaseClient
           .from('challenges')
           .select(`
             id,
             title,
-            user_challenge_progress!inner(is_completed)
+            description,
+            type,
+            category,
+            target_value,
+            target_unit,
+            xp_reward,
+            difficulty,
+            is_active,
+            created_for_user,
+            user_challenge_progress(is_completed, current_progress)
           `)
           .eq('is_active', true)
           .or(`created_for_user.is.null,created_for_user.eq.${user.user_id}`)
@@ -79,10 +88,18 @@ serve(async (req) => {
           continue
         }
 
-        // Verificar se há desafios não completados
-        const incompleteChallenges = activeChallenges?.filter(challenge => 
-          !challenge.user_challenge_progress?.some(progress => progress.is_completed)
-        ) || []
+        // Verificar se há desafios não completados para este usuário
+        const incompleteChallenges = activeChallenges?.filter(challenge => {
+          // Se é um desafio global (created_for_user é null), verificar se tem progresso não completado
+          // Se é um desafio específico para o usuário, verificar se não está completado
+          if (!challenge.created_for_user) {
+            // Desafio global - verificar se tem progresso não completado
+            return !challenge.user_challenge_progress?.some(progress => progress.is_completed)
+          } else {
+            // Desafio específico - verificar se não está completado
+            return !challenge.user_challenge_progress?.some(progress => progress.is_completed)
+          }
+        }) || []
 
         if (incompleteChallenges.length > 0) {
           console.log(`⏸️ Usuário ${user.user_id} ainda tem ${incompleteChallenges.length} desafios não completados`)
@@ -91,8 +108,21 @@ serve(async (req) => {
 
         console.log(`✅ Usuário ${user.user_id} elegível para novos desafios`)
 
-        // Gerar novos desafios personalizados
-        const challenges = generateChallengesForUser(user.fitness_category || 'iniciante')
+        // Primeiro remover desafios antigos específicos do usuário (para evitar duplicatas)
+        const { error: deleteError } = await supabaseClient
+          .from('challenges')
+          .delete()
+          .eq('created_for_user', user.user_id)
+          .eq('is_active', true)
+
+        if (deleteError) {
+          console.error(`❌ Erro ao limpar desafios antigos do usuário ${user.user_id}:`, deleteError)
+        } else {
+          console.log(`🧹 Desafios antigos do usuário ${user.user_id} removidos`)
+        }
+
+        // Gerar novos desafios personalizados (sem duplicatas)
+        const challenges = generateUniqueChallengesToUser(user.fitness_category || 'iniciante')
 
         // Inserir novos desafios no banco
         const challengesToInsert = challenges.map(challenge => ({
@@ -124,7 +154,7 @@ serve(async (req) => {
           console.error(`❌ Erro ao atualizar data de última solicitação para usuário ${user.user_id}:`, updateError)
         }
 
-        console.log(`🎯 ${challenges.length} novos desafios criados para usuário ${user.user_id}`)
+        console.log(`🎯 ${challenges.length} novos desafios únicos criados para usuário ${user.user_id}`)
         usersWithNewChallenges++
 
       } catch (error) {
@@ -164,7 +194,7 @@ serve(async (req) => {
   }
 })
 
-function generateChallengesForUser(fitnessCategory: string) {
+function generateUniqueChallengesToUser(fitnessCategory: string) {
   const challengePool = {
     iniciante: [
       {
@@ -195,6 +225,26 @@ function generateChallengesForUser(fitnessCategory: string) {
         target_value: 6,
         target_unit: "copos",
         xp_reward: 12,
+        difficulty: "easy"
+      },
+      {
+        title: "Alongamento Básico",
+        description: "Faça 10 minutos de alongamento corporal",
+        type: "daily",
+        category: "workout",
+        target_value: 1,
+        target_unit: "sessão",
+        xp_reward: 8,
+        difficulty: "easy"
+      },
+      {
+        title: "Postura Consciente",
+        description: "Mantenha boa postura por 2 horas consecutivas",
+        type: "daily",
+        category: "general",
+        target_value: 2,
+        target_unit: "horas",
+        xp_reward: 10,
         difficulty: "easy"
       }
     ],
@@ -228,6 +278,26 @@ function generateChallengesForUser(fitnessCategory: string) {
         target_unit: "refeições",
         xp_reward: 20,
         difficulty: "medium"
+      },
+      {
+        title: "Agachamentos Completos",
+        description: "Faça 30 agachamentos com boa forma",
+        type: "daily",
+        category: "workout",
+        target_value: 30,
+        target_unit: "repetições",
+        xp_reward: 22,
+        difficulty: "medium"
+      },
+      {
+        title: "Cardio Moderado",
+        description: "Faça 20 minutos de exercício cardiovascular",
+        type: "daily",
+        category: "workout",
+        target_value: 20,
+        target_unit: "minutos",
+        xp_reward: 28,
+        difficulty: "medium"
       }
     ],
     avancado: [
@@ -260,13 +330,46 @@ function generateChallengesForUser(fitnessCategory: string) {
         target_unit: "registro",
         xp_reward: 25,
         difficulty: "hard"
+      },
+      {
+        title: "Treino de Resistência",
+        description: "Complete 45 minutos de treino de resistência",
+        type: "daily",
+        category: "workout",
+        target_value: 45,
+        target_unit: "minutos",
+        xp_reward: 45,
+        difficulty: "hard"
+      },
+      {
+        title: "Supersérie Intensa",
+        description: "Complete 3 superséries de exercícios compostos",
+        type: "daily",
+        category: "workout",
+        target_value: 3,
+        target_unit: "superséries",
+        xp_reward: 38,
+        difficulty: "hard"
       }
     ]
   }
 
   const challenges = challengePool[fitnessCategory] || challengePool.iniciante
   
-  // Selecionar 2-3 desafios aleatórios
-  const shuffled = challenges.sort(() => 0.5 - Math.random())
-  return shuffled.slice(0, Math.floor(Math.random() * 2) + 2) // 2 ou 3 desafios
+  // Embaralhar e selecionar 2-3 desafios únicos
+  const shuffled = [...challenges].sort(() => 0.5 - Math.random())
+  const numberOfChallenges = Math.floor(Math.random() * 2) + 2 // 2 ou 3 desafios
+  
+  // Garantir que não há duplicatas por título
+  const uniqueChallenges = []
+  const usedTitles = new Set()
+  
+  for (const challenge of shuffled) {
+    if (!usedTitles.has(challenge.title) && uniqueChallenges.length < numberOfChallenges) {
+      uniqueChallenges.push(challenge)
+      usedTitles.add(challenge.title)
+    }
+  }
+  
+  return uniqueChallenges
 }

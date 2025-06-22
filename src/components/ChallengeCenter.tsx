@@ -153,7 +153,7 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
       if (progressError) throw progressError;
 
       // Combinar desafios com progresso e garantir tipos corretos
-      const challengesWithProgress: Challenge[] = challengesData?.map(challenge => ({
+      let challengesWithProgress: Challenge[] = challengesData?.map(challenge => ({
         ...challenge,
         type: challenge.type as 'daily' | 'weekly' | 'monthly',
         category: challenge.category as 'workout' | 'nutrition' | 'general',
@@ -164,7 +164,25 @@ const ChallengeCenter = ({ user }: ChallengeCenterProps) => {
         }
       })) || [];
 
-      setChallenges(challengesWithProgress);
+      // Filtrar duplicatas por título e categoria (manter o mais recente)
+      const uniqueChallenges = challengesWithProgress.reduce((acc, current) => {
+        const key = `${current.title}-${current.category}`;
+        const existing = acc.find(item => `${item.title}-${item.category}` === key);
+        
+        if (!existing) {
+          acc.push(current);
+        } else {
+          // Se já existe, manter o mais recente
+          if (new Date(current.created_at) > new Date(existing.created_at)) {
+            const index = acc.findIndex(item => `${item.title}-${item.category}` === key);
+            acc[index] = current;
+          }
+        }
+        
+        return acc;
+      }, [] as Challenge[]);
+
+      setChallenges(uniqueChallenges);
 
       // Carregar conquistas
       const { data: achievementsData, error: achievementsError } = await supabase
