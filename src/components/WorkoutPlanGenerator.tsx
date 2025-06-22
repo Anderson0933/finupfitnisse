@@ -42,11 +42,8 @@ const WorkoutPlanGenerator = ({
   initialActiveTab = 'form',
   onSwitchToAssistant 
 }: WorkoutPlanGeneratorProps) => {
-  // Determinar aba ativa baseado na presença do plano
-  const [activeTab, setActiveTab] = useState(() => {
-    if (workoutPlan) return 'plan';
-    return 'form';
-  });
+  // Estado da aba ativa - simplificado
+  const [activeTab, setActiveTab] = useState('form');
   
   const [loading, setLoading] = useState(false);
   const [progressMap, setProgressMap] = useState<Map<string, boolean>>(new Map());
@@ -90,6 +87,7 @@ const WorkoutPlanGenerator = ({
       console.log('✅ Resposta do processamento:', data);
       
       if (data?.success && data?.plan) {
+        console.log('🎉 Plano gerado com sucesso, atualizando estado...');
         setWorkoutPlan(data.plan);
         setShowQueueStatus(false);
         setActiveTab('plan');
@@ -135,6 +133,10 @@ const WorkoutPlanGenerator = ({
         } else {
           // Se não há itens na fila, esconder status da fila
           setShowQueueStatus(false);
+          // Se não tem plano e não tem fila, ir para form
+          if (!workoutPlan) {
+            setActiveTab('form');
+          }
         }
       } catch (error) {
         console.error('❌ Erro ao verificar fila:', error);
@@ -150,7 +152,24 @@ const WorkoutPlanGenerator = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [user]);
+  }, [user, workoutPlan]);
+
+  // Controlar aba baseado no estado do plano
+  useEffect(() => {
+    console.log('🔄 Controlando aba - workoutPlan existe:', !!workoutPlan, 'showQueueStatus:', showQueueStatus);
+    
+    if (workoutPlan) {
+      // Se tem plano, mostrar aba plan
+      setActiveTab('plan');
+      setShowQueueStatus(false);
+    } else if (showQueueStatus) {
+      // Se não tem plano mas está processando, mostrar queue
+      setActiveTab('queue');
+    } else {
+      // Se não tem plano e não está processando, mostrar form
+      setActiveTab('form');
+    }
+  }, [workoutPlan, showQueueStatus]);
 
   useEffect(() => {
     const loadProgress = async () => {
@@ -182,21 +201,6 @@ const WorkoutPlanGenerator = ({
 
     loadProgress();
   }, [user, workoutPlan]);
-
-  // Redirecionar automaticamente quando plano estiver pronto
-  useEffect(() => {
-    if (workoutPlan && showQueueStatus) {
-      // Se existe plano e estava mostrando a fila, redirecionar para aba plan
-      setShowQueueStatus(false);
-      setActiveTab('plan');
-    } else if (workoutPlan && !showQueueStatus) {
-      // Se existe plano e não está na fila, mostrar aba plan
-      setActiveTab('plan');
-    } else if (!workoutPlan && !showQueueStatus) {
-      // Se não existe plano e não está processando, mostrar aba form
-      setActiveTab('form');
-    }
-  }, [workoutPlan, showQueueStatus]);
 
   const handleProgressChange = (itemId: string, completed: boolean) => {
     setProgressMap(prev => new Map(prev.set(itemId, completed)));
@@ -280,6 +284,10 @@ const WorkoutPlanGenerator = ({
       // CRÍTICO: Deletar plano anterior ANTES de criar novo
       await deleteExistingPlan();
 
+      // Limpar estado local primeiro
+      setWorkoutPlan(null);
+      setProgressMap(new Map());
+
       const requestData = {
         user_id: user!.id,
         age: parseInt(age),
@@ -342,6 +350,7 @@ const WorkoutPlanGenerator = ({
   };
 
   const handlePlanReady = (plan: WorkoutPlan) => {
+    console.log('🎉 Plano pronto recebido via callback:', plan.title);
     setWorkoutPlan(plan);
     setShowQueueStatus(false);
     setActiveTab('plan');
@@ -427,16 +436,32 @@ const WorkoutPlanGenerator = ({
     );
   }
 
-  // Determinar quais abas mostrar
+  // Determinar quais abas mostrar baseado no estado
   const showFormTab = !workoutPlan && !showQueueStatus;
   const shouldShowQueueTab = showQueueStatus && !workoutPlan;
   const showPlanTab = !!workoutPlan;
 
+  console.log('🎯 Estados das abas:', { showFormTab, shouldShowQueueTab, showPlanTab, activeTab });
+
   // Calcular número de colunas do grid
-  let gridCols = 1;
+  let gridCols = 0;
   if (showFormTab) gridCols++;
   if (shouldShowQueueTab) gridCols++;
   if (showPlanTab) gridCols++;
+
+  // Se não há abas para mostrar, forçar form
+  if (gridCols === 0) {
+    console.log('⚠️ Nenhuma aba disponível, forçando form');
+    return (
+      <div className="w-full max-w-6xl mx-auto space-y-6">
+        <Card>
+          <CardContent className="text-center py-12">
+            <p className="text-gray-500 mb-4">Carregando...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
@@ -504,6 +529,7 @@ const WorkoutPlanGenerator = ({
 
         {showFormTab && (
           <TabsContent value="form" className="space-y-6">
+            
             <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-blue-800">
