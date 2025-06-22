@@ -26,6 +26,7 @@ interface Challenge {
   start_date: string;
   end_date: string;
   is_active: boolean;
+  created_at: string;
   progress?: {
     current_progress: number;
     is_completed: boolean;
