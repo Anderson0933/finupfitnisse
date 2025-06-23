@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Clock, Target, Trophy, Play, Copy, Trash2, MessageCircle, Dumbbell } from 'lucide-react';
 import WorkoutSession from './workout/WorkoutSession';
-import PDFGenerator from './PDFGenerator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -67,7 +66,6 @@ interface WorkoutPlanDisplayProps {
   onProgressChange: (itemId: string, completed: boolean) => void;
   onSwitchToAssistant?: () => void;
   user?: User | null;
-  hasAccess?: boolean;
 }
 
 const WorkoutPlanDisplay = ({
@@ -78,8 +76,7 @@ const WorkoutPlanDisplay = ({
   progressMap,
   onProgressChange,
   onSwitchToAssistant,
-  user,
-  hasAccess = false
+  user
 }: WorkoutPlanDisplayProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
@@ -237,11 +234,6 @@ const WorkoutPlanDisplay = ({
           <Copy className="h-4 w-4" />
           Copiar Plano
         </Button>
-        <PDFGenerator 
-          plan={plan} 
-          userName={user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'} 
-          hasAccess={hasAccess || false}
-        />
         <Button onClick={onDeletePlan} variant="destructive" className="flex items-center gap-2">
           <Trash2 className="h-4 w-4" />
           Excluir

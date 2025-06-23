@@ -431,7 +431,6 @@ const Dashboard = () => {
                 setWorkoutPlan={setWorkoutPlan} 
                 initialActiveTab={workoutPlan ? 'plan' : 'form'}
                 onSwitchToAssistant={switchToAssistant}
-                hasAccess={hasAccess}
               />
             </LockedFeature>
           </TabsContent>
