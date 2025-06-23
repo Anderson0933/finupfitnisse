@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Copy, CheckCircle, RefreshCcw, Loader2 } from 'lucide-react';
+import { Copy, CheckCircle, RefreshCcw, Loader2, Dumbbell } from 'lucide-react';
 import WorkoutPlanDisplay from './WorkoutPlanDisplay';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
