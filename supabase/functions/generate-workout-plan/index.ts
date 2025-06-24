@@ -183,8 +183,32 @@ serve(async (req) => {
         break;
     }
 
+    // Calcular múltiplos treinos por dia baseado no tempo disponível e nível
+    const workoutTimeMinutes = parseInt(available_time);
+    let workoutsPerDay = 1;
+    let sessionDuration = workoutTimeMinutes;
+    
+    // Se tem muito tempo disponível (mais de 90 min) e é intermediário/avançado, dividir em 2 sessões
+    if (workoutTimeMinutes >= 90 && (fitness_level === 'intermediario' || fitness_level === 'avancado')) {
+      workoutsPerDay = 2;
+      sessionDuration = Math.floor(workoutTimeMinutes / 2);
+    }
+    
+    // Se tem mais de 120 min e é avançado, pode fazer até 3 sessões
+    if (workoutTimeMinutes >= 120 && fitness_level === 'avancado') {
+      workoutsPerDay = Math.min(3, Math.floor(workoutTimeMinutes / 45));
+      sessionDuration = Math.floor(workoutTimeMinutes / workoutsPerDay);
+    }
+
     // Calcular total de treinos para 6 semanas
-    const totalWorkouts = workout_days * 6;
+    const totalWorkouts = workout_days * 6 * workoutsPerDay;
+
+    console.log('📊 Configuração de treinos:', {
+      workoutsPerDay,
+      sessionDuration,
+      totalWorkouts,
+      workoutDays: workout_days
+    });
 
     const prompt = `
 Você é um personal trainer brasileiro experiente e detalhista. Crie um plano de treino personalizado COMPLETO em JSON válido com instruções muito detalhadas.
@@ -194,31 +218,49 @@ DADOS DO CLIENTE:
 - Nível: ${fitness_level}
 - Objetivo: ${fitness_goals}
 - Local: ${workout_location} - ${availableEquipment}
-- ${workout_days} dias/semana, ${available_time} por treino
+- ${workout_days} dias/semana, ${workoutsPerDay} treino(s) por dia de ${sessionDuration} min cada
+- Tempo total diário: ${available_time} minutos
 - Condições: ${health_conditions || 'Nenhuma'}
 
 IMPORTANTE: Retorne APENAS JSON válido, sem formatação markdown, começando com { e terminando com }.
 
+ESTRUTURA DE MÚLTIPLOS TREINOS POR DIA:
+${workoutsPerDay > 1 ? `
+- Manhã: Treino principal (força/resistência)
+- Tarde/Noite: Treino complementar (cardio/mobilidade/core)
+- Cada sessão deve ser completa e independente
+- Respeitar tempo de recuperação entre sessões (mínimo 4-6 horas)
+` : '- Treino único diário com foco completo'}
+
 Estrutura obrigatória com instruções MUITO DETALHADAS:
 {
-  "title": "Plano ${workout_days}x/semana - ${fitness_level}",
-  "description": "Plano personalizado completo para ${fitness_goals} em ${workout_location} durante 6 semanas",
+  "title": "Plano ${workout_days}x/semana - ${workoutsPerDay} sessão(ões) diárias - ${fitness_level}",
+  "description": "Plano personalizado completo para ${fitness_goals} em ${workout_location} durante 6 semanas com ${workoutsPerDay} treino(s) por dia",
   "difficulty_level": "${fitness_level}",
   "duration_weeks": 6,
+  "workouts_per_day": ${workoutsPerDay},
   "total_workouts": ${totalWorkouts},
+  "daily_schedule": {
+    "sessions_per_day": ${workoutsPerDay},
+    "session_duration": ${sessionDuration},
+    "recommended_timing": ${workoutsPerDay > 1 ? '"Manhã (7h-9h) e Tarde/Noite (17h-20h) com 6h+ de intervalo"' : '"Flexível, preferencialmente manhã ou tarde"'}
+  },
   "workouts": [
     {
       "week": 1,
       "day": 1,
-      "title": "Nome Específico do Treino",
+      "session": 1,
+      "title": "Nome Específico do Treino - Sessão ${workoutsPerDay > 1 ? 'Manhã' : 'Única'}",
+      "session_type": "${workoutsPerDay > 1 ? 'principal' : 'completo'}",
       "focus": "Grupos musculares detalhados trabalhados",
-      "estimated_duration": ${parseInt(available_time)},
+      "estimated_duration": ${sessionDuration},
+      "recommended_time": "${workoutsPerDay > 1 ? 'Manhã (7h-9h)' : 'Flexível'}",
       "warm_up": {
-        "duration": 8,
+        "duration": ${Math.floor(sessionDuration * 0.15)},
         "exercises": [
           {
             "name": "Exercício de aquecimento específico",
-            "duration": 90,
+            "duration": ${Math.floor(sessionDuration * 0.05)},
             "instructions": "Instruções muito detalhadas: posição inicial, movimento completo, respiração, ritmo, cuidados especiais e objetivos do aquecimento."
           }
         ]
@@ -244,15 +286,16 @@ Estrutura obrigatória com instruções MUITO DETALHADAS:
         }
       ],
       "cool_down": {
-        "duration": 7,
+        "duration": ${Math.floor(sessionDuration * 0.1)},
         "exercises": [
           {
             "name": "Alongamento específico",
-            "duration": 60,
+            "duration": ${Math.floor(sessionDuration * 0.05)},
             "instructions": "Instruções detalhadas: posição, amplitude, respiração, tempo de manutenção, sensações esperadas, músculos alvos."
           }
         ]
       },
+      "recovery_notes": ${workoutsPerDay > 1 ? '"Descansar mínimo 6 horas antes da próxima sessão. Hidratar bem e fazer refeição leve."' : '"Descanso completo até o próximo dia de treino."'},
       "workout_tips": [
         "Dica específica para este treino baseada no objetivo",
         "Orientação nutricional pré/pós treino",
@@ -264,30 +307,37 @@ Estrutura obrigatória com instruções MUITO DETALHADAS:
     "Hidratação específica: quantidade por peso corporal e atividade",
     "Proteína pós-treino: timing ideal, quantidade e fontes recomendadas",
     "Carboidratos pré-treino: tipos, timing e quantidades",
+    ${workoutsPerDay > 1 ? '"Alimentação entre sessões: lanches leves e hidratação constante",' : ''}
     "Suplementação básica se necessária para o objetivo específico",
     "Alimentação para recuperação muscular baseada no treino"
   ],
   "progression_schedule": {
-    "week_1_2": "Adaptação neural e técnica: foco na forma perfeita, cargas moderadas, estabelecimento de padrões de movimento",
-    "week_3_4": "Intensificação controlada: aumento progressivo de cargas, maior volume, refinamento técnico",
-    "week_5_6": "Máxima adaptação: cargas elevadas, técnicas avançadas, preparação para novo ciclo"
+    "week_1_2": "Adaptação neural e técnica: foco na forma perfeita, cargas moderadas, estabelecimento de padrões de movimento${workoutsPerDay > 1 ? ', adaptação ao ritmo de múltiplas sessões' : ''}",
+    "week_3_4": "Intensificação controlada: aumento progressivo de cargas, maior volume, refinamento técnico${workoutsPerDay > 1 ? ', otimização do timing entre sessões' : ''}",
+    "week_5_6": "Máxima adaptação: cargas elevadas, técnicas avançadas, preparação para novo ciclo${workoutsPerDay > 1 ? ', domínio completo do sistema de múltiplas sessões' : ''}"
   },
   "recovery_guidelines": {
-    "sleep": "Orientações específicas de sono para recuperação muscular",
+    "sleep": "Orientações específicas de sono para recuperação muscular${workoutsPerDay > 1 ? ' (mínimo 8h para múltiplas sessões)' : ''}",
     "rest_days": "Como aproveitar dias de descanso para otimizar resultados",
-    "signs_of_overtraining": "Sinais importantes para reconhecer e prevenir overtraining"
+    "between_sessions": ${workoutsPerDay > 1 ? '"Mínimo 6 horas entre sessões, hidratação constante, refeição leve entre treinos"' : '"Não aplicável - sessão única"'},
+    "signs_of_overtraining": "Sinais importantes para reconhecer e prevenir overtraining${workoutsPerDay > 1 ? ' (especialmente importantes com múltiplas sessões)' : ''}"
   }
 }
 
 INSTRUÇÕES CRÍTICAS:
 - Crie TODOS os ${totalWorkouts} treinos únicos e variados para 6 SEMANAS COMPLETAS
+- ${workoutsPerDay > 1 ? `Para cada dia, crie ${workoutsPerDay} sessões distintas com focos complementares` : 'Crie 1 sessão completa por dia de treino'}
+- ${workoutsPerDay > 1 ? 'Sessão 1 (manhã): Foco em força/resistência/grandes grupos musculares' : ''}
+- ${workoutsPerDay > 1 ? 'Sessão 2 (tarde/noite): Foco em cardio/core/mobilidade/pequenos grupos' : ''}
+- ${workoutsPerDay > 1 && workoutsPerDay === 3 ? 'Sessão 3 (noite): Foco em recuperação ativa/alongamento/yoga' : ''}
 - Cada exercício deve ter instruções EXTREMAMENTE detalhadas (mínimo 3-4 frases por instrução)
 - Inclua variações e progressões específicas para cada exercício
 - Use apenas equipamentos disponíveis para ${workout_location}
 - Adapte intensidade e complexidade para nível ${fitness_level}
 - Foque no objetivo específico: ${fitness_goals}
 - Considere limitações: ${health_conditions || 'Nenhuma'}
-- Mantenha português brasileiro em todas as instruções`;
+- Mantenha português brasileiro em todas as instruções
+- ${workoutsPerDay > 1 ? 'Garanta que as sessões sejam complementares, não competitivas' : ''}`;
 
     console.log('📤 Enviando requisição para Groq API...');
 
@@ -302,7 +352,7 @@ INSTRUÇÕES CRÍTICAS:
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer brasileiro extremamente experiente e detalhista. Responda APENAS com JSON válido, sem formatação markdown. Inicie com { e termine com }. Seja MUITO detalhado nas instruções dos exercícios, incluindo anatomia, biomecânica, respiração e progressões específicas.'
+            content: 'Você é um personal trainer brasileiro extremamente experiente e detalhista. Responda APENAS com JSON válido, sem formatação markdown. Inicie com { e termine com }. Seja MUITO detalhado nas instruções dos exercícios, incluindo anatomia, biomecânica, respiração e progressões específicas. Para múltiplas sessões diárias, crie treinos complementares que se potencializam mutuamente.'
           },
           {
             role: 'user',
@@ -310,7 +360,7 @@ INSTRUÇÕES CRÍTICAS:
           }
         ],
         temperature: 0.1,
-        max_tokens: 25000,
+        max_tokens: 30000,
         top_p: 0.9
       }),
     });
@@ -339,7 +389,8 @@ INSTRUÇÕES CRÍTICAS:
         title: workoutPlan.title,
         total_workouts: workoutPlan.total_workouts,
         workouts_count: workoutPlan.workouts?.length || 0,
-        duration_weeks: workoutPlan.duration_weeks
+        duration_weeks: workoutPlan.duration_weeks,
+        workouts_per_day: workoutPlan.workouts_per_day || 1
       });
       
     } catch (parseError) {
@@ -356,6 +407,7 @@ INSTRUÇÕES CRÍTICAS:
 
     // Garantir que temos 6 semanas e o número correto de treinos
     workoutPlan.duration_weeks = 6;
+    workoutPlan.workouts_per_day = workoutsPerDay;
     
     // Garantir que temos o número correto de treinos
     if (workoutPlan.workouts.length !== totalWorkouts) {
@@ -365,14 +417,17 @@ INSTRUÇÕES CRÍTICAS:
       while (workoutPlan.workouts.length < totalWorkouts) {
         const baseIndex = workoutPlan.workouts.length % (workoutPlan.workouts.length || 1);
         const baseWorkout = workoutPlan.workouts[baseIndex];
-        const newWeek = Math.floor(workoutPlan.workouts.length / workout_days) + 1;
-        const newDay = (workoutPlan.workouts.length % workout_days) + 1;
+        const currentWorkoutIndex = workoutPlan.workouts.length;
+        const newWeek = Math.floor(currentWorkoutIndex / (workout_days * workoutsPerDay)) + 1;
+        const dayInWeek = Math.floor((currentWorkoutIndex % (workout_days * workoutsPerDay)) / workoutsPerDay) + 1;
+        const sessionInDay = (currentWorkoutIndex % workoutsPerDay) + 1;
         
         const newWorkout = {
           ...baseWorkout,
           week: newWeek,
-          day: newDay,
-          title: `${baseWorkout.title} - S${newWeek}D${newDay}`
+          day: dayInWeek,
+          session: sessionInDay,
+          title: `${baseWorkout.title} - S${newWeek}D${dayInWeek}S${sessionInDay}`
         };
         workoutPlan.workouts.push(newWorkout);
       }
@@ -383,7 +438,7 @@ INSTRUÇÕES CRÍTICAS:
       }
       
       workoutPlan.total_workouts = totalWorkouts;
-      console.log('✅ Número de treinos corrigido para 6 semanas');
+      console.log('✅ Número de treinos corrigido para 6 semanas com múltiplas sessões');
     }
 
     // Salvar no banco de dados
