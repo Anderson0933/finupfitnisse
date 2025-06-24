@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Play, Star, Users, Trophy, Zap, ArrowRight, Clock, Target, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,8 @@ const HeroSection = () => {
     "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face",
     "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face",
     "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=40&h=40&fit=crop&crop=face"
+    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=40&h=40&fit=crop&crop=face",
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face"
   ];
 
   return (
@@ -106,7 +106,7 @@ const HeroSection = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 text-sm text-gray-600">
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-3">
-                  {userPhotos.map((photo, i) => (
+                  {userPhotos.slice(0, 5).map((photo, i) => (
                     <img 
                       key={i} 
                       src={photo}
