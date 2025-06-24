@@ -6,6 +6,15 @@ import { Button } from '@/components/ui/button';
 const HeroSection = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
+  // Array de fotos reais de usuários para as avaliações
+  const userPhotos = [
+    "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face",
+    "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face",
+    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
+    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=40&h=40&fit=crop&crop=face"
+  ];
+
   return (
     <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-50 via-purple-50 to-green-50">
       {/* Enhanced background decorative elements */}
@@ -93,22 +102,32 @@ const HeroSection = () => {
               </Button>
             </div>
 
-            {/* Enhanced Social proof */}
+            {/* Enhanced Social proof with real user photos */}
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 text-sm text-gray-600">
-              <div className="flex items-center gap-3">
-                <div className="flex -space-x-2">
-                  {[1,2,3,4,5].map((i) => (
-                    <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 border-3 border-white shadow-lg"></div>
+              <div className="flex items-center gap-4">
+                <div className="flex -space-x-3">
+                  {userPhotos.map((photo, i) => (
+                    <img 
+                      key={i} 
+                      src={photo}
+                      alt={`Usuário ${i + 1}`}
+                      className="w-10 h-10 rounded-full border-3 border-white shadow-lg object-cover"
+                    />
                   ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex">
-                    {[1,2,3,4,5].map((i) => (
-                      <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                    ))}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 border-3 border-white shadow-lg flex items-center justify-center text-white text-xs font-bold">
+                    +50k
                   </div>
-                  <span className="font-semibold text-gray-900">4.9/5</span>
-                  <span>(2.847 avaliações)</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex">
+                      {[1,2,3,4,5].map((i) => (
+                        <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <span className="font-semibold text-gray-900">4.9/5</span>
+                  </div>
+                  <span className="text-xs text-gray-500">(2.847 avaliações)</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full">
