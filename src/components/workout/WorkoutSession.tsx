@@ -1,9 +1,10 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle2, Clock, Dumbbell, Target, Play, Calendar, Eye, User } from 'lucide-react';
+import { CheckCircle2, Clock, Dumbbell, Target, Play, Calendar, Eye, User, ChevronDown, ChevronUp } from 'lucide-react';
 import WorkoutTimer from './WorkoutTimer';
 
 interface Exercise {
@@ -14,14 +15,19 @@ interface Exercise {
   rest_seconds: number;
   weight_guidance: string;
   instructions: string;
+  visual_demo?: string;
   form_cues: string[];
   progression_notes: string;
+  execution_rhythm?: string;
+  breathing_pattern?: string;
+  safety_tips?: string;
 }
 
 interface WarmUpExercise {
   name: string;
   duration: number;
   instructions: string;
+  visual_demo?: string;
 }
 
 interface Workout {
@@ -96,6 +102,96 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
     }));
   };
 
+  const renderVisualDemo = (exercise: any, type: string, index: number) => {
+    const demoKey = `${type}_${index}`;
+    const isVisible = showVisualDemo[demoKey];
+    
+    if (!exercise.visual_demo && !exercise.execution_rhythm && !exercise.breathing_pattern) {
+      return null;
+    }
+
+    return (
+      <div className="mt-4">
+        <Button
+          onClick={() => toggleVisualDemo(demoKey)}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2 mb-3 w-full justify-between bg-blue-50 hover:bg-blue-100 border-blue-200"
+        >
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-blue-600" />
+            <span className="font-medium text-blue-700">🤖💪 Ver Demonstração do Coach IA</span>
+          </div>
+          {isVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+        
+        {isVisible && (
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6 space-y-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg font-bold">🤖</span>
+              </div>
+              <div>
+                <h4 className="font-bold text-blue-800 text-lg">Coach IA - Demonstração Completa</h4>
+                <p className="text-blue-600 text-sm">Seu instrutor virtual te ensina passo a passo</p>
+              </div>
+            </div>
+
+            {exercise.visual_demo && (
+              <div className="bg-white border border-blue-200 rounded-lg p-4">
+                <h5 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                  🎯 Demonstração Visual Completa
+                </h5>
+                <div className="text-gray-700 leading-relaxed whitespace-pre-line text-sm">
+                  {exercise.visual_demo}
+                </div>
+              </div>
+            )}
+
+            {exercise.execution_rhythm && (
+              <div className="bg-white border border-purple-200 rounded-lg p-4">
+                <h5 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                  🎵 Ritmo de Execução
+                </h5>
+                <div className="text-gray-700 leading-relaxed text-sm">
+                  {exercise.execution_rhythm}
+                </div>
+              </div>
+            )}
+
+            {exercise.breathing_pattern && (
+              <div className="bg-white border border-green-200 rounded-lg p-4">
+                <h5 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                  🫁 Padrão Respiratório
+                </h5>
+                <div className="text-gray-700 leading-relaxed text-sm">
+                  {exercise.breathing_pattern}
+                </div>
+              </div>
+            )}
+
+            {exercise.safety_tips && (
+              <div className="bg-white border border-red-200 rounded-lg p-4">
+                <h5 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
+                  ⚠️ Dicas de Segurança
+                </h5>
+                <div className="text-gray-700 leading-relaxed text-sm">
+                  {exercise.safety_tips}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-3">
+              <p className="text-sm text-center font-medium">
+                💡 O Coach IA está sempre aqui para te ajudar a executar os exercícios com perfeição!
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header do Treino */}
@@ -163,33 +259,13 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
             <CardContent className="space-y-4">
               {workout.warm_up.exercises.map((exercise, index) => (
                 <div key={index} className="p-4 border border-orange-200 rounded-lg bg-orange-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-orange-800">{exercise.name}</h4>
-                    <Button
-                      onClick={() => toggleVisualDemo(`warmup_${index}`)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Eye className="h-3 w-3" />
-                      {showVisualDemo[`warmup_${index}`] ? 'Ocultar' : 'Ver'} Demo
-                    </Button>
-                  </div>
-                  <p className="text-sm text-orange-700 mt-1">{exercise.instructions}</p>
-                  <div className="mt-2 text-sm text-orange-600">
+                  <h4 className="font-semibold text-orange-800 mb-2">{exercise.name}</h4>
+                  <p className="text-sm text-orange-700 mb-2">{exercise.instructions}</p>
+                  <div className="text-sm text-orange-600">
                     ⏱️ {Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')} minutos
                   </div>
                   
-                  {showVisualDemo[`warmup_${index}`] && (exercise as any).visual_demo && (
-                    <div className="mt-3 p-3 bg-white border border-orange-300 rounded-lg">
-                      <h5 className="font-medium text-orange-800 mb-2 flex items-center gap-2">
-                        🤖 Demonstração do Coach IA
-                      </h5>
-                      <p className="text-sm text-gray-700 whitespace-pre-line">
-                        {(exercise as any).visual_demo}
-                      </p>
-                    </div>
-                  )}
+                  {renderVisualDemo(exercise, 'warmup', index)}
                 </div>
               ))}
               <div className="pt-4 border-t">
@@ -242,15 +318,6 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                         </Badge>
                       )}
                     </CardTitle>
-                    <Button
-                      onClick={() => toggleVisualDemo(`exercise_${index}`)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Eye className="h-3 w-3" />
-                      {showVisualDemo[`exercise_${index}`] ? 'Ocultar' : 'Ver'} Demo
-                    </Button>
                   </div>
                 </CardHeader>
                 
@@ -284,23 +351,7 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                     <p className="text-sm text-gray-600">{exercise.instructions}</p>
                   </div>
 
-                  {showVisualDemo[`exercise_${index}`] && (exercise as any).visual_demo && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h5 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
-                        🤖💪 Demonstração Completa do Coach IA
-                      </h5>
-                      <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                        {(exercise as any).visual_demo}
-                      </div>
-                      
-                      {(exercise as any).execution_rhythm && (
-                        <div className="mt-3 p-2 bg-white border border-blue-200 rounded">
-                          <h6 className="font-medium text-blue-700 mb-1">Ritmo de Execução:</h6>
-                          <p className="text-sm text-gray-600">{(exercise as any).execution_rhythm}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {renderVisualDemo(exercise, 'exercise', index)}
 
                   <div className="space-y-2">
                     <h5 className="font-medium text-gray-800">Pontos Importantes:</h5>
@@ -353,33 +404,13 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
             <CardContent className="space-y-4">
               {workout.cool_down.exercises.map((exercise, index) => (
                 <div key={index} className="p-4 border border-green-200 rounded-lg bg-green-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-green-800">{exercise.name}</h4>
-                    <Button
-                      onClick={() => toggleVisualDemo(`cooldown_${index}`)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Eye className="h-3 w-3" />
-                      {showVisualDemo[`cooldown_${index}`] ? 'Ocultar' : 'Ver'} Demo
-                    </Button>
-                  </div>
-                  <p className="text-sm text-green-700 mt-1">{exercise.instructions}</p>
-                  <div className="mt-2 text-sm text-green-600">
+                  <h4 className="font-semibold text-green-800 mb-2">{exercise.name}</h4>
+                  <p className="text-sm text-green-700 mb-2">{exercise.instructions}</p>
+                  <div className="text-sm text-green-600">
                     ⏱️ {Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')} minutos
                   </div>
                   
-                  {showVisualDemo[`cooldown_${index}`] && (exercise as any).visual_demo && (
-                    <div className="mt-3 p-3 bg-white border border-green-300 rounded-lg">
-                      <h5 className="font-medium text-green-800 mb-2 flex items-center gap-2">
-                        🤖 Demonstração do Coach IA
-                      </h5>
-                      <p className="text-sm text-gray-700 whitespace-pre-line">
-                        {(exercise as any).visual_demo}
-                      </p>
-                    </div>
-                  )}
+                  {renderVisualDemo(exercise, 'cooldown', index)}
                 </div>
               ))}
               <div className="pt-4 border-t">
