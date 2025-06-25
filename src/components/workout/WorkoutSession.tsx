@@ -102,13 +102,12 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
     }));
   };
 
-  const renderVisualDemo = (exercise: any, type: string, index: number) => {
+  const renderCoachDemo = (exercise: any, type: string, index: number) => {
     const demoKey = `${type}_${index}`;
     const isVisible = showVisualDemo[demoKey];
     
-    if (!exercise.visual_demo && !exercise.execution_rhythm && !exercise.breathing_pattern) {
-      return null;
-    }
+    // SEMPRE renderizar o coach, mesmo se não houver demo específica
+    const hasVisualDemo = exercise.visual_demo || exercise.execution_rhythm || exercise.breathing_pattern || exercise.safety_tips;
 
     return (
       <div className="mt-4">
@@ -116,74 +115,130 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
           onClick={() => toggleVisualDemo(demoKey)}
           variant="outline"
           size="sm"
-          className="flex items-center gap-2 mb-3 w-full justify-between bg-blue-50 hover:bg-blue-100 border-blue-200"
+          className="flex items-center gap-2 mb-3 w-full justify-between bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 border-blue-300"
         >
           <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-blue-600" />
-            <span className="font-medium text-blue-700">🤖💪 Ver Demonstração do Coach IA</span>
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center animate-pulse">
+              <span className="text-white text-sm font-bold">🤖</span>
+            </div>
+            <span className="font-medium text-blue-700">💪 Coach IA - Demonstração Virtual</span>
           </div>
           {isVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
         
         {isVisible && (
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6 space-y-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-lg font-bold">🤖</span>
+          <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 space-y-4 shadow-lg">
+            {/* Header do Coach IA */}
+            <div className="flex items-center gap-3 mb-4 bg-white rounded-lg p-3 shadow-sm">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-white text-2xl font-bold">🤖</span>
               </div>
               <div>
-                <h4 className="font-bold text-blue-800 text-lg">Coach IA - Demonstração Completa</h4>
-                <p className="text-blue-600 text-sm">Seu instrutor virtual te ensina passo a passo</p>
+                <h4 className="font-bold text-blue-800 text-lg">Coach IA Virtual</h4>
+                <p className="text-blue-600 text-sm">Seu instrutor pessoal demonstrando o exercício</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-green-600 font-medium">Online e pronto para ensinar!</span>
+                </div>
               </div>
             </div>
 
-            {exercise.visual_demo && (
-              <div className="bg-white border border-blue-200 rounded-lg p-4">
-                <h5 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
-                  🎯 Demonstração Visual Completa
-                </h5>
-                <div className="text-gray-700 leading-relaxed whitespace-pre-line text-sm">
-                  {exercise.visual_demo}
+            {/* Demonstração Principal - SEMPRE mostrar */}
+            <div className="bg-white border-2 border-blue-200 rounded-lg p-4 shadow-sm">
+              <h5 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                🎯 Demonstração Completa do Coach IA
+              </h5>
+              <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-4 rounded-lg mb-3">
+                <p className="text-blue-800 font-medium mb-2">
+                  🤖 <strong>Coach IA em ação:</strong>
+                </p>
+                <div className="text-gray-700 leading-relaxed text-sm space-y-2">
+                  {hasVisualDemo && exercise.visual_demo ? (
+                    <div className="whitespace-pre-line">{exercise.visual_demo}</div>
+                  ) : (
+                    <div>
+                      <p><strong>🎬 Posição Inicial:</strong> Coach IA se posiciona corretamente - pés alinhados, postura ereta, core ativado.</p>
+                      <p><strong>🔄 Execução:</strong> Coach IA demonstra o movimento {exercise.name} com técnica perfeita, controlando cada fase.</p>
+                      <p><strong>⏱️ Ritmo:</strong> Coach IA mantém cadência ideal - 2 segundos na fase concêntrica, 2 segundos na excêntrica.</p>
+                      <p><strong>💨 Respiração:</strong> Coach IA inspira na preparação e expira durante o esforço máximo.</p>
+                      <p><strong>✅ Execução Correta:</strong> Coach IA demonstra a forma perfeita que você deve seguir!</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
 
-            {exercise.execution_rhythm && (
-              <div className="bg-white border border-purple-200 rounded-lg p-4">
-                <h5 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
-                  🎵 Ritmo de Execução
-                </h5>
-                <div className="text-gray-700 leading-relaxed text-sm">
-                  {exercise.execution_rhythm}
-                </div>
+            {/* Ritmo de Execução */}
+            <div className="bg-white border-2 border-purple-200 rounded-lg p-4 shadow-sm">
+              <h5 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                🎵 Coach IA - Ritmo de Execução
+              </h5>
+              <div className="text-gray-700 leading-relaxed text-sm">
+                {exercise.execution_rhythm || (
+                  <div>
+                    <p>🤖 <strong>Coach IA contando:</strong> "1, 2 para subir... 1, 2 para descer"</p>
+                    <p>⏰ Ritmo controlado demonstrado pelo Coach IA para máximo resultado</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
-            {exercise.breathing_pattern && (
-              <div className="bg-white border border-green-200 rounded-lg p-4">
-                <h5 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
-                  🫁 Padrão Respiratório
-                </h5>
-                <div className="text-gray-700 leading-relaxed text-sm">
-                  {exercise.breathing_pattern}
-                </div>
+            {/* Padrão Respiratório */}
+            <div className="bg-white border-2 border-green-200 rounded-lg p-4 shadow-sm">
+              <h5 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                🫁 Coach IA - Respiração Correta
+              </h5>
+              <div className="text-gray-700 leading-relaxed text-sm">
+                {exercise.breathing_pattern || (
+                  <div>
+                    <p>🤖 <strong>Coach IA respirando:</strong> Inspira profundamente na preparação</p>
+                    <p>💨 Expira controladamente durante o esforço máximo</p>
+                    <p>🔄 Coach IA demonstra o ciclo respiratório perfeito para você seguir</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
-            {exercise.safety_tips && (
-              <div className="bg-white border border-red-200 rounded-lg p-4">
-                <h5 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
-                  ⚠️ Dicas de Segurança
-                </h5>
-                <div className="text-gray-700 leading-relaxed text-sm">
-                  {exercise.safety_tips}
-                </div>
+            {/* Dicas de Segurança */}
+            <div className="bg-white border-2 border-red-200 rounded-lg p-4 shadow-sm">
+              <h5 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
+                ⚠️ Coach IA - Segurança em Primeiro Lugar
+              </h5>
+              <div className="text-gray-700 leading-relaxed text-sm">
+                {exercise.safety_tips || (
+                  <div>
+                    <p>🤖 <strong>Coach IA alerta:</strong> Mantenha sempre o controle do movimento</p>
+                    <p>🛡️ Nunca force além dos seus limites</p>
+                    <p>⚠️ Coach IA demonstra como parar o exercício se sentir desconforto</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-3">
-              <p className="text-sm text-center font-medium">
-                💡 O Coach IA está sempre aqui para te ajudar a executar os exercícios com perfeição!
+            {/* Erros Comuns vs. Execução Correta */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3">
+                <h6 className="font-semibold text-red-800 mb-2 flex items-center gap-1">
+                  ❌ Coach IA: NÃO Faça Assim
+                </h6>
+                <p className="text-red-700 text-xs">
+                  🤖 Coach IA mostra os erros mais comuns para você evitar
+                </p>
+              </div>
+              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+                <h6 className="font-semibold text-green-800 mb-2 flex items-center gap-1">
+                  ✅ Coach IA: FAÇA Assim
+                </h6>
+                <p className="text-green-700 text-xs">
+                  🤖 Coach IA demonstra a execução perfeita para resultados máximos
+                </p>
+              </div>
+            </div>
+
+            {/* Footer motivacional */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-4 text-center">
+              <p className="text-sm font-medium">
+                🤖💪 "Siga os movimentos do Coach IA e você terá resultados incríveis! Estou aqui para te guiar em cada repetição!"
               </p>
             </div>
           </div>
@@ -223,8 +278,8 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                 {progressPercentage()}% Completo
               </Badge>
               <div className="flex items-center gap-2 text-sm text-blue-600">
-                <User className="h-4 w-4" />
-                🤖💪 Coach IA
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span>🤖💪 Coach IA Online</span>
               </div>
             </div>
           </div>
@@ -265,7 +320,7 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                     ⏱️ {Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')} minutos
                   </div>
                   
-                  {renderVisualDemo(exercise, 'warmup', index)}
+                  {renderCoachDemo(exercise, 'warmup', index)}
                 </div>
               ))}
               <div className="pt-4 border-t">
@@ -351,7 +406,7 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                     <p className="text-sm text-gray-600">{exercise.instructions}</p>
                   </div>
 
-                  {renderVisualDemo(exercise, 'exercise', index)}
+                  {renderCoachDemo(exercise, 'exercise', index)}
 
                   <div className="space-y-2">
                     <h5 className="font-medium text-gray-800">Pontos Importantes:</h5>
@@ -410,7 +465,7 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                     ⏱️ {Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')} minutos
                   </div>
                   
-                  {renderVisualDemo(exercise, 'cooldown', index)}
+                  {renderCoachDemo(exercise, 'cooldown', index)}
                 </div>
               ))}
               <div className="pt-4 border-t">
