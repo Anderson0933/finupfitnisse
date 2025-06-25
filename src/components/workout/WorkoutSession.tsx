@@ -1,10 +1,9 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle2, Clock, Dumbbell, Target, Play, Calendar } from 'lucide-react';
+import { CheckCircle2, Clock, Dumbbell, Target, Play, Calendar, Eye, User } from 'lucide-react';
 import WorkoutTimer from './WorkoutTimer';
 
 interface Exercise {
@@ -54,6 +53,7 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [showTimer, setShowTimer] = useState(false);
+  const [showVisualDemo, setShowVisualDemo] = useState<Record<string, boolean>>({});
 
   const handleExerciseComplete = (exerciseName: string) => {
     setCompletedExercises(prev => new Set([...prev, exerciseName]));
@@ -89,6 +89,13 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
     return Math.round((completed / total) * 100);
   };
 
+  const toggleVisualDemo = (exerciseName: string) => {
+    setShowVisualDemo(prev => ({
+      ...prev,
+      [exerciseName]: !prev[exerciseName]
+    }));
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header do Treino */}
@@ -115,9 +122,15 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                 </div>
               </div>
             </div>
-            <Badge variant="outline" className="text-lg px-3 py-1">
-              {progressPercentage()}% Completo
-            </Badge>
+            <div className="text-center">
+              <Badge variant="outline" className="text-lg px-3 py-1 mb-2">
+                {progressPercentage()}% Completo
+              </Badge>
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <User className="h-4 w-4" />
+                🤖💪 Coach IA
+              </div>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -150,11 +163,33 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
             <CardContent className="space-y-4">
               {workout.warm_up.exercises.map((exercise, index) => (
                 <div key={index} className="p-4 border border-orange-200 rounded-lg bg-orange-50">
-                  <h4 className="font-semibold text-orange-800">{exercise.name}</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-orange-800">{exercise.name}</h4>
+                    <Button
+                      onClick={() => toggleVisualDemo(`warmup_${index}`)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
+                      <Eye className="h-3 w-3" />
+                      {showVisualDemo[`warmup_${index}`] ? 'Ocultar' : 'Ver'} Demo
+                    </Button>
+                  </div>
                   <p className="text-sm text-orange-700 mt-1">{exercise.instructions}</p>
                   <div className="mt-2 text-sm text-orange-600">
                     ⏱️ {Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')} minutos
                   </div>
+                  
+                  {showVisualDemo[`warmup_${index}`] && (exercise as any).visual_demo && (
+                    <div className="mt-3 p-3 bg-white border border-orange-300 rounded-lg">
+                      <h5 className="font-medium text-orange-800 mb-2 flex items-center gap-2">
+                        🤖 Demonstração do Coach IA
+                      </h5>
+                      <p className="text-sm text-gray-700 whitespace-pre-line">
+                        {(exercise as any).visual_demo}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
               <div className="pt-4 border-t">
@@ -189,23 +224,34 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                 isCompleted ? 'border-green-500 bg-green-50' : 'border-gray-200'
               }`}>
                 <CardHeader>
-                  <CardTitle className={`flex items-center gap-2 ${
-                    isCompleted ? 'text-green-600' : isActive ? 'text-blue-600' : 'text-gray-700'
-                  }`}>
-                    {isCompleted ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <div className={`w-5 h-5 rounded-full border-2 ${
-                        isActive ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
-                      }`} />
-                    )}
-                    {exercise.name}
-                    {isActive && (
-                      <Badge variant="outline" className="ml-auto">
-                        Série {currentSet}/{exercise.sets}
-                      </Badge>
-                    )}
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className={`flex items-center gap-2 ${
+                      isCompleted ? 'text-green-600' : isActive ? 'text-blue-600' : 'text-gray-700'
+                    }`}>
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <div className={`w-5 h-5 rounded-full border-2 ${
+                          isActive ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                        }`} />
+                      )}
+                      {exercise.name}
+                      {isActive && (
+                        <Badge variant="outline" className="ml-auto">
+                          Série {currentSet}/{exercise.sets}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <Button
+                      onClick={() => toggleVisualDemo(`exercise_${index}`)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
+                      <Eye className="h-3 w-3" />
+                      {showVisualDemo[`exercise_${index}`] ? 'Ocultar' : 'Ver'} Demo
+                    </Button>
+                  </div>
                 </CardHeader>
                 
                 <CardContent className="space-y-4">
@@ -238,12 +284,30 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                     <p className="text-sm text-gray-600">{exercise.instructions}</p>
                   </div>
 
+                  {showVisualDemo[`exercise_${index}`] && (exercise as any).visual_demo && (
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h5 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
+                        🤖💪 Demonstração Completa do Coach IA
+                      </h5>
+                      <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+                        {(exercise as any).visual_demo}
+                      </div>
+                      
+                      {(exercise as any).execution_rhythm && (
+                        <div className="mt-3 p-2 bg-white border border-blue-200 rounded">
+                          <h6 className="font-medium text-blue-700 mb-1">Ritmo de Execução:</h6>
+                          <p className="text-sm text-gray-600">{(exercise as any).execution_rhythm}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <h5 className="font-medium text-gray-800">Pontos Importantes:</h5>
                     <ul className="text-sm text-gray-600 space-y-1">
                       {exercise.form_cues.map((cue, i) => (
-                        <li key={i} className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                        <li key={i} className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2" />
                           {cue}
                         </li>
                       ))}
@@ -289,11 +353,33 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
             <CardContent className="space-y-4">
               {workout.cool_down.exercises.map((exercise, index) => (
                 <div key={index} className="p-4 border border-green-200 rounded-lg bg-green-50">
-                  <h4 className="font-semibold text-green-800">{exercise.name}</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-green-800">{exercise.name}</h4>
+                    <Button
+                      onClick={() => toggleVisualDemo(`cooldown_${index}`)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
+                      <Eye className="h-3 w-3" />
+                      {showVisualDemo[`cooldown_${index}`] ? 'Ocultar' : 'Ver'} Demo
+                    </Button>
+                  </div>
                   <p className="text-sm text-green-700 mt-1">{exercise.instructions}</p>
                   <div className="mt-2 text-sm text-green-600">
                     ⏱️ {Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')} minutos
                   </div>
+                  
+                  {showVisualDemo[`cooldown_${index}`] && (exercise as any).visual_demo && (
+                    <div className="mt-3 p-3 bg-white border border-green-300 rounded-lg">
+                      <h5 className="font-medium text-green-800 mb-2 flex items-center gap-2">
+                        🤖 Demonstração do Coach IA
+                      </h5>
+                      <p className="text-sm text-gray-700 whitespace-pre-line">
+                        {(exercise as any).visual_demo}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
               <div className="pt-4 border-t">
