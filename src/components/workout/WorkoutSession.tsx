@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle2, Clock, Dumbbell, Target, Play, Calendar, Eye, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, Clock, Dumbbell, Target, Play, Calendar } from 'lucide-react';
 import WorkoutTimer from './WorkoutTimer';
 
 interface Exercise {
@@ -15,19 +15,14 @@ interface Exercise {
   rest_seconds: number;
   weight_guidance: string;
   instructions: string;
-  visual_demo?: string;
   form_cues: string[];
   progression_notes: string;
-  execution_rhythm?: string;
-  breathing_pattern?: string;
-  safety_tips?: string;
 }
 
 interface WarmUpExercise {
   name: string;
   duration: number;
   instructions: string;
-  visual_demo?: string;
 }
 
 interface Workout {
@@ -59,7 +54,6 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [showTimer, setShowTimer] = useState(false);
-  const [showVisualDemo, setShowVisualDemo] = useState<Record<string, boolean>>({});
 
   const handleExerciseComplete = (exerciseName: string) => {
     setCompletedExercises(prev => new Set([...prev, exerciseName]));
@@ -95,158 +89,6 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
     return Math.round((completed / total) * 100);
   };
 
-  const toggleVisualDemo = (exerciseName: string) => {
-    setShowVisualDemo(prev => ({
-      ...prev,
-      [exerciseName]: !prev[exerciseName]
-    }));
-  };
-
-  const renderCoachDemo = (exercise: any, type: string, index: number) => {
-    const demoKey = `${type}_${index}`;
-    const isVisible = showVisualDemo[demoKey];
-    
-    // SEMPRE renderizar o coach, mesmo se não houver demo específica
-    const hasVisualDemo = exercise.visual_demo || exercise.execution_rhythm || exercise.breathing_pattern || exercise.safety_tips;
-
-    return (
-      <div className="mt-4">
-        <Button
-          onClick={() => toggleVisualDemo(demoKey)}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2 mb-3 w-full justify-between bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 border-blue-300"
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center animate-pulse">
-              <span className="text-white text-sm font-bold">🤖</span>
-            </div>
-            <span className="font-medium text-blue-700">💪 Coach IA - Demonstração Virtual</span>
-          </div>
-          {isVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </Button>
-        
-        {isVisible && (
-          <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 space-y-4 shadow-lg">
-            {/* Header do Coach IA */}
-            <div className="flex items-center gap-3 mb-4 bg-white rounded-lg p-3 shadow-sm">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-white text-2xl font-bold">🤖</span>
-              </div>
-              <div>
-                <h4 className="font-bold text-blue-800 text-lg">Coach IA Virtual</h4>
-                <p className="text-blue-600 text-sm">Seu instrutor pessoal demonstrando o exercício</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-green-600 font-medium">Online e pronto para ensinar!</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Demonstração Principal - SEMPRE mostrar */}
-            <div className="bg-white border-2 border-blue-200 rounded-lg p-4 shadow-sm">
-              <h5 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
-                🎯 Demonstração Completa do Coach IA
-              </h5>
-              <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-4 rounded-lg mb-3">
-                <p className="text-blue-800 font-medium mb-2">
-                  🤖 <strong>Coach IA em ação:</strong>
-                </p>
-                <div className="text-gray-700 leading-relaxed text-sm space-y-2">
-                  {hasVisualDemo && exercise.visual_demo ? (
-                    <div className="whitespace-pre-line">{exercise.visual_demo}</div>
-                  ) : (
-                    <div>
-                      <p><strong>🎬 Posição Inicial:</strong> Coach IA se posiciona corretamente - pés alinhados, postura ereta, core ativado.</p>
-                      <p><strong>🔄 Execução:</strong> Coach IA demonstra o movimento {exercise.name} com técnica perfeita, controlando cada fase.</p>
-                      <p><strong>⏱️ Ritmo:</strong> Coach IA mantém cadência ideal - 2 segundos na fase concêntrica, 2 segundos na excêntrica.</p>
-                      <p><strong>💨 Respiração:</strong> Coach IA inspira na preparação e expira durante o esforço máximo.</p>
-                      <p><strong>✅ Execução Correta:</strong> Coach IA demonstra a forma perfeita que você deve seguir!</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Ritmo de Execução */}
-            <div className="bg-white border-2 border-purple-200 rounded-lg p-4 shadow-sm">
-              <h5 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
-                🎵 Coach IA - Ritmo de Execução
-              </h5>
-              <div className="text-gray-700 leading-relaxed text-sm">
-                {exercise.execution_rhythm || (
-                  <div>
-                    <p>🤖 <strong>Coach IA contando:</strong> "1, 2 para subir... 1, 2 para descer"</p>
-                    <p>⏰ Ritmo controlado demonstrado pelo Coach IA para máximo resultado</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Padrão Respiratório */}
-            <div className="bg-white border-2 border-green-200 rounded-lg p-4 shadow-sm">
-              <h5 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
-                🫁 Coach IA - Respiração Correta
-              </h5>
-              <div className="text-gray-700 leading-relaxed text-sm">
-                {exercise.breathing_pattern || (
-                  <div>
-                    <p>🤖 <strong>Coach IA respirando:</strong> Inspira profundamente na preparação</p>
-                    <p>💨 Expira controladamente durante o esforço máximo</p>
-                    <p>🔄 Coach IA demonstra o ciclo respiratório perfeito para você seguir</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Dicas de Segurança */}
-            <div className="bg-white border-2 border-red-200 rounded-lg p-4 shadow-sm">
-              <h5 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
-                ⚠️ Coach IA - Segurança em Primeiro Lugar
-              </h5>
-              <div className="text-gray-700 leading-relaxed text-sm">
-                {exercise.safety_tips || (
-                  <div>
-                    <p>🤖 <strong>Coach IA alerta:</strong> Mantenha sempre o controle do movimento</p>
-                    <p>🛡️ Nunca force além dos seus limites</p>
-                    <p>⚠️ Coach IA demonstra como parar o exercício se sentir desconforto</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Erros Comuns vs. Execução Correta */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3">
-                <h6 className="font-semibold text-red-800 mb-2 flex items-center gap-1">
-                  ❌ Coach IA: NÃO Faça Assim
-                </h6>
-                <p className="text-red-700 text-xs">
-                  🤖 Coach IA mostra os erros mais comuns para você evitar
-                </p>
-              </div>
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
-                <h6 className="font-semibold text-green-800 mb-2 flex items-center gap-1">
-                  ✅ Coach IA: FAÇA Assim
-                </h6>
-                <p className="text-green-700 text-xs">
-                  🤖 Coach IA demonstra a execução perfeita para resultados máximos
-                </p>
-              </div>
-            </div>
-
-            {/* Footer motivacional */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-4 text-center">
-              <p className="text-sm font-medium">
-                🤖💪 "Siga os movimentos do Coach IA e você terá resultados incríveis! Estou aqui para te guiar em cada repetição!"
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header do Treino */}
@@ -273,15 +115,9 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                 </div>
               </div>
             </div>
-            <div className="text-center">
-              <Badge variant="outline" className="text-lg px-3 py-1 mb-2">
-                {progressPercentage()}% Completo
-              </Badge>
-              <div className="flex items-center gap-2 text-sm text-blue-600">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span>🤖💪 Coach IA Online</span>
-              </div>
-            </div>
+            <Badge variant="outline" className="text-lg px-3 py-1">
+              {progressPercentage()}% Completo
+            </Badge>
           </div>
         </CardHeader>
       </Card>
@@ -314,13 +150,11 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
             <CardContent className="space-y-4">
               {workout.warm_up.exercises.map((exercise, index) => (
                 <div key={index} className="p-4 border border-orange-200 rounded-lg bg-orange-50">
-                  <h4 className="font-semibold text-orange-800 mb-2">{exercise.name}</h4>
-                  <p className="text-sm text-orange-700 mb-2">{exercise.instructions}</p>
-                  <div className="text-sm text-orange-600">
+                  <h4 className="font-semibold text-orange-800">{exercise.name}</h4>
+                  <p className="text-sm text-orange-700 mt-1">{exercise.instructions}</p>
+                  <div className="mt-2 text-sm text-orange-600">
                     ⏱️ {Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')} minutos
                   </div>
-                  
-                  {renderCoachDemo(exercise, 'warmup', index)}
                 </div>
               ))}
               <div className="pt-4 border-t">
@@ -355,25 +189,23 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                 isCompleted ? 'border-green-500 bg-green-50' : 'border-gray-200'
               }`}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className={`flex items-center gap-2 ${
-                      isCompleted ? 'text-green-600' : isActive ? 'text-blue-600' : 'text-gray-700'
-                    }`}>
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <div className={`w-5 h-5 rounded-full border-2 ${
-                          isActive ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
-                        }`} />
-                      )}
-                      {exercise.name}
-                      {isActive && (
-                        <Badge variant="outline" className="ml-auto">
-                          Série {currentSet}/{exercise.sets}
-                        </Badge>
-                      )}
-                    </CardTitle>
-                  </div>
+                  <CardTitle className={`flex items-center gap-2 ${
+                    isCompleted ? 'text-green-600' : isActive ? 'text-blue-600' : 'text-gray-700'
+                  }`}>
+                    {isCompleted ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <div className={`w-5 h-5 rounded-full border-2 ${
+                        isActive ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                      }`} />
+                    )}
+                    {exercise.name}
+                    {isActive && (
+                      <Badge variant="outline" className="ml-auto">
+                        Série {currentSet}/{exercise.sets}
+                      </Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 
                 <CardContent className="space-y-4">
@@ -406,14 +238,12 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                     <p className="text-sm text-gray-600">{exercise.instructions}</p>
                   </div>
 
-                  {renderCoachDemo(exercise, 'exercise', index)}
-
                   <div className="space-y-2">
                     <h5 className="font-medium text-gray-800">Pontos Importantes:</h5>
                     <ul className="text-sm text-gray-600 space-y-1">
                       {exercise.form_cues.map((cue, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2" />
+                        <li key={i} className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                           {cue}
                         </li>
                       ))}
@@ -459,13 +289,11 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
             <CardContent className="space-y-4">
               {workout.cool_down.exercises.map((exercise, index) => (
                 <div key={index} className="p-4 border border-green-200 rounded-lg bg-green-50">
-                  <h4 className="font-semibold text-green-800 mb-2">{exercise.name}</h4>
-                  <p className="text-sm text-green-700 mb-2">{exercise.instructions}</p>
-                  <div className="text-sm text-green-600">
+                  <h4 className="font-semibold text-green-800">{exercise.name}</h4>
+                  <p className="text-sm text-green-700 mt-1">{exercise.instructions}</p>
+                  <div className="mt-2 text-sm text-green-600">
                     ⏱️ {Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')} minutos
                   </div>
-                  
-                  {renderCoachDemo(exercise, 'cooldown', index)}
                 </div>
               ))}
               <div className="pt-4 border-t">
