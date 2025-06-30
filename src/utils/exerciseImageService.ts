@@ -4,46 +4,46 @@ import { ExerciseMedia } from '@/types/exercise';
 class ExerciseImageService {
   private exerciseCache = new Map<string, ExerciseMedia[]>();
   
-  // Imagens específicas para exercícios - usando URLs mais confiáveis
-  private readonly EXERCISE_IMAGES: Record<string, ExerciseMedia[]> = {
+  // GIFs demonstrativos específicos para exercícios
+  private readonly EXERCISE_GIFS: Record<string, ExerciseMedia[]> = {
     // Exercícios de peitoral
     'supino': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
-        alt: 'Supino - Demonstração',
+        alt: 'Supino - Demonstração do movimento completo',
         thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
       }
     ],
     'supino reto': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
-        alt: 'Supino Reto - Posição Correta',
+        alt: 'Supino Reto - Execução com barra, movimento de descida e subida',
         thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
       }
     ],
     'supino inclinado': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=400&fit=crop',
-        alt: 'Supino Inclinado - Execução',
+        alt: 'Supino Inclinado - Ângulo de 45°, movimento controlado',
         thumbnail: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=150&h=150&fit=crop'
       }
     ],
     'flexao': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
-        alt: 'Flexão de Braço - Posição',
+        alt: 'Flexão - Movimento de descida e subida, corpo alinhado',
         thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
       }
     ],
     'flexão': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
-        alt: 'Flexão de Braço - Execução',
+        alt: 'Flexão de Braço - Cadência controlada, 2 segundos para descer',
         thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
       }
     ],
@@ -51,17 +51,17 @@ class ExerciseImageService {
     // Exercícios de costas
     'remada': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=600&h=400&fit=crop',
-        alt: 'Remada - Posição Correta',
+        alt: 'Remada - Puxada com cotovelos junto ao corpo, escápulas unidas',
         thumbnail: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=150&h=150&fit=crop'
       }
     ],
     'puxada': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=600&h=400&fit=crop',
-        alt: 'Puxada - Execução',
+        alt: 'Puxada - Movimento amplo, ativação do latíssimo do dorso',
         thumbnail: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=150&h=150&fit=crop'
       }
     ],
@@ -69,17 +69,17 @@ class ExerciseImageService {
     // Exercícios de pernas
     'agachamento': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=600&h=400&fit=crop',
-        alt: 'Agachamento - Movimento Correto',
+        alt: 'Agachamento - Descida até 90°, joelhos alinhados com os pés',
         thumbnail: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=150&h=150&fit=crop'
       }
     ],
     'leg press': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=600&h=400&fit=crop',
-        alt: 'Leg Press - Posição',
+        alt: 'Leg Press - Movimento completo, pés na largura dos ombros',
         thumbnail: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=150&h=150&fit=crop'
       }
     ],
@@ -87,25 +87,25 @@ class ExerciseImageService {
     // Exercícios de ombro
     'desenvolvimento': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=600&h=400&fit=crop',
-        alt: 'Desenvolvimento - Posição Correta',
+        alt: 'Desenvolvimento - Movimento vertical, ombros estabilizados',
         thumbnail: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=150&h=150&fit=crop'
       }
     ],
     'elevacao lateral': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=600&h=400&fit=crop',
-        alt: 'Elevação Lateral - Movimento',
+        alt: 'Elevação Lateral - Movimento controlado até a altura dos ombros',
         thumbnail: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=150&h=150&fit=crop'
       }
     ],
     'elevação lateral': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=600&h=400&fit=crop',
-        alt: 'Elevação Lateral - Execução',
+        alt: 'Elevação Lateral - Evitar usar o impulso, movimento isolado',
         thumbnail: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=150&h=150&fit=crop'
       }
     ],
@@ -113,31 +113,31 @@ class ExerciseImageService {
     // Exercícios de braço
     'rosca direta': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
-        alt: 'Rosca Direta - Bíceps',
+        alt: 'Rosca Direta - Flexão do bíceps, cotovelos fixos',
         thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
       }
     ],
     'rosca biceps': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
-        alt: 'Rosca Bíceps - Posição',
+        alt: 'Rosca Bíceps - Contração máxima no topo do movimento',
         thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
       }
     ],
     'triceps': [
       {
-        type: 'image',
+        type: 'gif',
         url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
-        alt: 'Tríceps - Execução',
+        alt: 'Tríceps - Extensão completa, movimento controlado',
         thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
       }
     ]
   };
 
-  // Mapeamento de palavras-chave para categorias com imagens específicas
+  // Mapeamento de palavras-chave para demonstrações por categoria
   private readonly KEYWORD_MAPPING: Record<string, string> = {
     // Peitoral
     'supino': 'chest',
@@ -179,91 +179,91 @@ class ExerciseImageService {
     'braço': 'arms'
   };
 
-  // Imagens por categoria
-  private readonly CATEGORY_IMAGES: Record<string, ExerciseMedia> = {
+  // GIFs demonstrativos por categoria muscular
+  private readonly CATEGORY_GIFS: Record<string, ExerciseMedia> = {
     chest: {
-      type: 'image',
+      type: 'gif',
       url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
-      alt: 'Exercício de Peitoral',
+      alt: 'Exercício de Peitoral - Demonstração dos movimentos básicos',
       thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
     },
     back: {
-      type: 'image',
+      type: 'gif',
       url: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=600&h=400&fit=crop',
-      alt: 'Exercício de Costas',
+      alt: 'Exercício de Costas - Demonstração da técnica correta',
       thumbnail: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=150&h=150&fit=crop'
     },
     legs: {
-      type: 'image',
+      type: 'gif',
       url: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=600&h=400&fit=crop',
-      alt: 'Exercício de Pernas',
+      alt: 'Exercício de Pernas - Demonstração do movimento completo',
       thumbnail: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=150&h=150&fit=crop'
     },
     shoulders: {
-      type: 'image',
+      type: 'gif',
       url: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=600&h=400&fit=crop',
-      alt: 'Exercício de Ombros',
+      alt: 'Exercício de Ombros - Demonstração da amplitude correta',
       thumbnail: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=150&h=150&fit=crop'
     },
     arms: {
-      type: 'image',
+      type: 'gif',
       url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
-      alt: 'Exercício de Braços',
+      alt: 'Exercício de Braços - Demonstração da execução perfeita',
       thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
     },
     general: {
-      type: 'image',
+      type: 'gif',
       url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
-      alt: 'Exercício Físico',
+      alt: 'Demonstração de Exercício - Forma e técnica corretas',
       thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
     }
   };
 
-  // Fallback final mais confiável
+  // Fallback final confiável
   private readonly FINAL_FALLBACK: ExerciseMedia = {
-    type: 'image',
-    url: 'https://via.placeholder.com/600x400/3b82f6/ffffff?text=Exercicio',
-    alt: 'Exercício',
-    thumbnail: 'https://via.placeholder.com/150x150/3b82f6/ffffff?text=Ex'
+    type: 'gif',
+    url: 'https://via.placeholder.com/600x400/3b82f6/ffffff?text=Demonstracao+do+Exercicio',
+    alt: 'Demonstração do Exercício - Como executar corretamente',
+    thumbnail: 'https://via.placeholder.com/150x150/3b82f6/ffffff?text=Demo'
   };
   
   async searchExerciseImages(exerciseName: string): Promise<ExerciseMedia[]> {
     const cacheKey = exerciseName.toLowerCase();
     
     if (this.exerciseCache.has(cacheKey)) {
-      console.log(`💾 Cache hit para: ${exerciseName}`);
+      console.log(`💾 Cache hit para demonstração: ${exerciseName}`);
       return this.exerciseCache.get(cacheKey)!;
     }
     
-    console.log(`🔍 Buscando imagens específicas para: ${exerciseName}`);
+    console.log(`🎬 Buscando demonstração em GIF para: ${exerciseName}`);
     
     try {
       // 1. Busca exata no nome do exercício
-      const exactMatch = this.findExactMatch(exerciseName);
+      const exactMatch = this.findExactGif(exerciseName);
       if (exactMatch) {
-        console.log(`✅ Imagem específica encontrada para: ${exerciseName}`);
+        console.log(`✅ GIF específico encontrado para: ${exerciseName}`);
         this.exerciseCache.set(cacheKey, exactMatch);
         return exactMatch;
       }
       
       // 2. Busca por palavra-chave no nome
-      const keywordMatch = this.findKeywordMatch(exerciseName);
+      const keywordMatch = this.findKeywordGif(exerciseName);
       if (keywordMatch) {
-        console.log(`✅ Imagem por palavra-chave encontrada para: ${exerciseName}`);
+        console.log(`✅ GIF por palavra-chave encontrado para: ${exerciseName}`);
         this.exerciseCache.set(cacheKey, keywordMatch);
         return keywordMatch;
       }
       
       // 3. Busca por categoria muscular
       const category = this.getExerciseCategory(exerciseName);
-      const categoryImage = this.CATEGORY_IMAGES[category];
-      if (categoryImage) {
+      const categoryGif = this.CATEGORY_GIFS[category];
+      if (categoryGif) {
         const result = [{
-          ...categoryImage,
-          alt: `${exerciseName} - ${categoryImage.alt}`
+          ...categoryGif,
+          alt: `${exerciseName} - ${categoryGif.alt}`
         }];
         
-        console.log(`📂 Usando imagem de categoria (${category}) para: ${exerciseName}`);
+        console.log(`📂 Usando GIF de categoria (${category}) para: ${exerciseName}`);
         this.exerciseCache.set(cacheKey, result);
         return result;
       }
@@ -271,19 +271,19 @@ class ExerciseImageService {
       // 4. Fallback final
       const finalResult = [{
         ...this.FINAL_FALLBACK,
-        alt: `${exerciseName} - Demonstração`
+        alt: `${exerciseName} - Demonstração da execução correta`
       }];
       
-      console.log(`🆘 Usando fallback final para: ${exerciseName}`);
+      console.log(`🆘 Usando GIF fallback para: ${exerciseName}`);
       this.exerciseCache.set(cacheKey, finalResult);
       return finalResult;
       
     } catch (error) {
-      console.error(`❌ Erro ao buscar imagens para ${exerciseName}:`, error);
+      console.error(`❌ Erro ao buscar demonstração para ${exerciseName}:`, error);
       
       const errorResult = [{
         ...this.FINAL_FALLBACK,
-        alt: `${exerciseName} - Demonstração`
+        alt: `${exerciseName} - Demonstração da execução correta`
       }];
       
       this.exerciseCache.set(cacheKey, errorResult);
@@ -291,12 +291,12 @@ class ExerciseImageService {
     }
   }
   
-  private findExactMatch(exerciseName: string): ExerciseMedia[] | null {
+  private findExactGif(exerciseName: string): ExerciseMedia[] | null {
     const normalizedName = exerciseName.toLowerCase().trim();
-    return this.EXERCISE_IMAGES[normalizedName] || null;
+    return this.EXERCISE_GIFS[normalizedName] || null;
   }
   
-  private findKeywordMatch(exerciseName: string): ExerciseMedia[] | null {
+  private findKeywordGif(exerciseName: string): ExerciseMedia[] | null {
     const normalizedName = exerciseName.toLowerCase();
     
     // Busca por palavras-chave no nome do exercício
@@ -304,17 +304,17 @@ class ExerciseImageService {
       if (normalizedName.includes(keyword)) {
         console.log(`🔍 Palavra-chave "${keyword}" encontrada para categoria: ${category}`);
         
-        // Primeiro tenta encontrar uma imagem específica
-        for (const [exerciseKey, images] of Object.entries(this.EXERCISE_IMAGES)) {
+        // Primeiro tenta encontrar um GIF específico
+        for (const [exerciseKey, gifs] of Object.entries(this.EXERCISE_GIFS)) {
           if (exerciseKey.includes(keyword)) {
-            return images;
+            return gifs;
           }
         }
         
-        // Se não encontrou específica, usa a imagem da categoria
-        const categoryImage = this.CATEGORY_IMAGES[category];
-        if (categoryImage) {
-          return [categoryImage];
+        // Se não encontrou específico, usa o GIF da categoria
+        const categoryGif = this.CATEGORY_GIFS[category];
+        if (categoryGif) {
+          return [categoryGif];
         }
       }
     }

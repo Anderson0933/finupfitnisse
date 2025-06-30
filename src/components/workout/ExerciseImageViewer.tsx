@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Play, Pause, RefreshCw, AlertCircle } from 'lucide-react';
+import { Play, Pause, RefreshCw, AlertCircle } from 'lucide-react';
 import { ExerciseMedia } from '@/types/exercise';
 import { exerciseImageService } from '@/utils/exerciseImageService';
 
@@ -12,82 +12,50 @@ interface ExerciseImageViewerProps {
 }
 
 const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [exerciseMedia, setExerciseMedia] = useState<ExerciseMedia[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-
-  // SVG placeholder válido e funcional
-  const VALID_PLACEHOLDER_SVG = `data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22600%22%20height%3D%22400%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Crect%20width%3D%22600%22%20height%3D%22400%22%20fill%3D%22%23f3f4f6%22/%3E%3Ctext%20x%3D%22300%22%20y%3D%22200%22%20text-anchor%3D%22middle%22%20fill%3D%22%239ca3af%22%20font-size%3D%2224%22%20font-family%3D%22Arial%22%3EExerc%C3%ADcio%3C/text%3E%3C/svg%3E`;
+  const [isPlaying, setIsPlaying] = useState(true);
 
   useEffect(() => {
-    console.log(`🖼️ ExerciseImageViewer: Carregando imagens para ${exerciseName}`);
-    loadExerciseImages();
+    console.log(`🎬 ExerciseImageViewer: Carregando GIF demonstrativo para ${exerciseName}`);
+    loadExerciseGif();
   }, [exerciseName]);
 
-  const loadExerciseImages = async () => {
+  const loadExerciseGif = async () => {
     setIsLoading(true);
     setHasError(false);
     
     try {
-      console.log(`🔄 Iniciando carregamento de imagens para: ${exerciseName}`);
+      console.log(`🔄 Buscando demonstração em GIF para: ${exerciseName}`);
       const images = await exerciseImageService.searchExerciseImages(exerciseName);
       
-      console.log(`📥 Imagens recebidas para ${exerciseName}:`, images);
+      console.log(`📥 Mídia recebida para ${exerciseName}:`, images);
       
       if (images && images.length > 0) {
-        console.log(`✅ ${images.length} imagens carregadas para ${exerciseName}`);
+        console.log(`✅ Demonstração carregada para ${exerciseName}`);
         setExerciseMedia(images);
-        setCurrentIndex(0);
         setHasError(false);
       } else {
-        console.error(`❌ Nenhuma imagem retornada para ${exerciseName}`);
+        console.error(`❌ Nenhuma demonstração encontrada para ${exerciseName}`);
         setHasError(true);
       }
     } catch (error) {
-      console.error(`💥 Erro crítico ao carregar imagens para ${exerciseName}:`, error);
+      console.error(`💥 Erro ao carregar demonstração para ${exerciseName}:`, error);
       setHasError(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const currentMedia = exerciseMedia[currentIndex];
-
-  const nextImage = () => {
-    if (exerciseMedia.length > 1) {
-      setCurrentIndex((prev) => (prev + 1) % exerciseMedia.length);
-    }
-  };
-
-  const prevImage = () => {
-    if (exerciseMedia.length > 1) {
-      setCurrentIndex((prev) => (prev - 1 + exerciseMedia.length) % exerciseMedia.length);
-    }
-  };
-
-  // Auto-play para múltiplas imagens
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isPlaying && exerciseMedia.length > 1) {
-      interval = setInterval(() => {
-        nextImage();
-      }, 3000);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isPlaying, exerciseMedia.length, currentIndex]);
+  const currentMedia = exerciseMedia[0]; // Usando apenas o primeiro item
 
   // Loading state
   if (isLoading) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg h-64 flex items-center justify-center">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg h-80 flex items-center justify-center">
             <div className="text-center space-y-3">
               <RefreshCw className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
               <div>
@@ -106,15 +74,15 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg h-64 flex items-center justify-center">
+          <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg h-80 flex items-center justify-center">
             <div className="text-center space-y-3">
               <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
               <div className="space-y-1">
-                <p className="text-gray-500 font-medium">Erro ao carregar imagem</p>
+                <p className="text-gray-500 font-medium">Demonstração não disponível</p>
                 <p className="text-sm text-gray-400">{exerciseName}</p>
               </div>
               <Button 
-                onClick={loadExerciseImages}
+                onClick={loadExerciseGif}
                 variant="outline"
                 size="sm"
                 className="mt-2"
@@ -133,120 +101,106 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
     <Card className="overflow-hidden">
       <CardContent className="p-0">
         <div className="space-y-0">
-          {/* Área de exibição principal */}
-          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden group">
-            <div className="aspect-video flex items-center justify-center min-h-[300px]">
+          {/* Área de demonstração principal */}
+          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+            <div className="aspect-video flex items-center justify-center min-h-[400px]">
               {currentMedia && (
                 <div className="relative w-full h-full">
                   <img
                     src={currentMedia.url}
                     alt={currentMedia.alt}
-                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-contain"
                     loading="lazy"
                     onLoad={() => {
-                      console.log(`✅ Imagem carregada com sucesso: ${currentMedia.url}`);
+                      console.log(`✅ Demonstração carregada: ${currentMedia.url}`);
                     }}
                     onError={(e) => {
-                      console.error(`❌ Erro ao carregar imagem: ${currentMedia.url}`);
+                      console.error(`❌ Erro ao carregar demonstração: ${currentMedia.url}`);
                       const target = e.target as HTMLImageElement;
                       
-                      // Fallback direto para placeholder confiável
-                      if (!target.src.includes('data:image/svg+xml')) {
-                        console.log(`🔄 Usando placeholder SVG para: ${exerciseName}`);
-                        target.src = VALID_PLACEHOLDER_SVG;
+                      // Fallback para GIF genérico
+                      if (!target.src.includes('placeholder')) {
+                        console.log(`🔄 Usando fallback para: ${exerciseName}`);
+                        target.src = 'https://via.placeholder.com/600x400/3b82f6/ffffff?text=Demonstracao+do+Exercicio';
                       }
                     }}
                   />
                   
-                  {/* Overlay com tipo de mídia */}
-                  <div className="absolute top-3 left-3 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
-                    {currentMedia.type === 'gif' && '🎬 Demonstração'}
-                    {currentMedia.type === 'image' && '📸 Posição'}
-                    {currentMedia.type === 'video' && '🎥 Vídeo'}
+                  {/* Overlay com informações */}
+                  <div className="absolute top-4 left-4 space-y-2">
+                    <div className="bg-black bg-opacity-80 text-white px-4 py-2 rounded-lg text-sm font-medium backdrop-blur-sm">
+                      🎬 Demonstração do Exercício
+                    </div>
+                    {currentMedia.type === 'gif' && (
+                      <div className="bg-green-600 bg-opacity-90 text-white px-3 py-1 rounded-full text-xs font-medium">
+                        ▶️ Animação
+                      </div>
+                    )}
                   </div>
+
+                  {/* Controle de play/pause para GIFs */}
+                  {currentMedia.type === 'gif' && (
+                    <div className="absolute bottom-4 right-4">
+                      <Button
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        variant="secondary"
+                        size="sm"
+                        className="bg-white bg-opacity-90 hover:bg-white shadow-lg"
+                      >
+                        {isPlaying ? (
+                          <>
+                            <Pause className="h-4 w-4 mr-2" />
+                            Pausar
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-4 w-4 mr-2" />
+                            Reproduzir
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-
-            {/* Controles de navegação */}
-            {exerciseMedia.length > 1 && (
-              <>
-                <Button
-                  onClick={prevImage}
-                  variant="secondary"
-                  size="sm"
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-90 hover:opacity-100 transition-opacity bg-white shadow-lg border"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  onClick={nextImage}
-                  variant="secondary"
-                  size="sm"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-90 hover:opacity-100 transition-opacity bg-white shadow-lg border"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </>
-            )}
           </div>
 
-          {/* Controles inferiores */}
-          <div className="p-4 space-y-4">
-            {exerciseMedia.length > 1 && (
-              <div className="flex justify-center items-center gap-4">
-                <div className="flex space-x-2">
-                  {exerciseMedia.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentIndex(index)}
-                      className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${
-                        index === currentIndex 
-                          ? 'bg-blue-500 scale-125' 
-                          : 'bg-gray-300 hover:bg-gray-400'
-                      }`}
-                    />
-                  ))}
-                </div>
-                
-                <Button
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs px-3 py-1 h-7"
-                >
-                  {isPlaying ? (
-                    <>
-                      <Pause className="h-3 w-3 mr-1" />
-                      Pausar
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-3 w-3 mr-1" />
-                      Auto
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            <div className="text-center space-y-2">
-              <div className="flex items-center justify-center gap-4 text-sm">
-                <span className="flex items-center gap-1 text-gray-600">
-                  {currentMedia?.type === 'gif' && '🎬 Demonstração Animada'}  
-                  {currentMedia?.type === 'image' && '📸 Posição Correta'}
-                  {currentMedia?.type === 'video' && '🎥 Vídeo Demonstrativo'}
-                </span>
-                {exerciseMedia.length > 1 && (
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                    {currentIndex + 1} de {exerciseMedia.length}
-                  </span>
-                )}
+          {/* Informações da demonstração */}
+          <div className="p-6 bg-white border-t">
+            <div className="text-center space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {exerciseName}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {currentMedia?.alt || 'Demonstração da execução correta'}
+                </p>
               </div>
               
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-gray-700">{exerciseName}</p>
-                <p className="text-xs text-gray-500">{currentMedia?.alt}</p>
+              <div className="flex items-center justify-center gap-6 text-sm text-gray-500">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span>Movimento Correto</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span>Forma Adequada</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                  <span>Cadência</span>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+                  💡 Dica de Execução
+                </h4>
+                <p className="text-sm text-blue-700">
+                  Observe atentamente o movimento demonstrado e mantenha a mesma cadência e amplitude. 
+                  Foque na forma correta antes de aumentar a carga.
+                </p>
               </div>
             </div>
           </div>
