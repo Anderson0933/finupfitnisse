@@ -116,55 +116,17 @@ const Auth = () => {
     try {
       console.log('=== ENVIANDO EMAIL DE RECUPERAÇÃO ===');
       console.log('Email:', email);
-      console.log('URL atual:', window.location.href);
-      console.log('Origin:', window.location.origin);
-      console.log('Hostname:', window.location.hostname);
       
-      // Múltiplas estratégias para URL de redirecionamento
-      let redirectUrl;
+      // Usar sempre a URL atual como base
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      console.log('Redirect URL:', redirectUrl);
       
-      // Estratégia 1: Detectar ambiente automaticamente
-      const isDevelopment = window.location.hostname === 'localhost' || 
-                           window.location.hostname.includes('127.0.0.1') ||
-                           window.location.hostname.includes('lovable.app');
-      
-      if (isDevelopment) {
-        redirectUrl = `${window.location.origin}/reset-password`;
-      } else {
-        // Para produção, usar domínio específico
-        redirectUrl = 'https://fitaipro.cloud/reset-password';
-      }
-      
-      console.log('Ambiente detectado:', isDevelopment ? 'Desenvolvimento' : 'Produção');
-      console.log('Redirect URL escolhida:', redirectUrl);
-      
-      // Tentar enviar email com a URL detectada
-      let { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
 
-      // Se falhar e estivermos em produção, tentar URLs alternativas
-      if (error && !isDevelopment) {
-        console.log('Primeira tentativa falhou, tentando URL alternativa...');
-        console.error('Erro primeira tentativa:', error);
-        
-        // Tentar com URL do origin atual
-        const alternativeUrl = `${window.location.origin}/reset-password`;
-        console.log('Tentando URL alternativa:', alternativeUrl);
-        
-        const result = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: alternativeUrl,
-        });
-        
-        error = result.error;
-        
-        if (!error) {
-          console.log('✅ Sucesso com URL alternativa');
-        }
-      }
-
       if (error) {
-        console.error('❌ Erro final do Supabase:', error);
+        console.error('❌ Erro do Supabase:', error);
         throw error;
       }
 
@@ -172,7 +134,7 @@ const Auth = () => {
 
       toast({
         title: "Email enviado!",
-        description: "Verifique sua caixa de entrada. O link é válido por alguns minutos. Se não receber, verifique o spam.",
+        description: "Verifique sua caixa de entrada para redefinir sua senha. Se não receber, verifique o spam.",
       });
     } catch (error: any) {
       console.error('❌ Erro ao enviar email:', error);
