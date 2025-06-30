@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +28,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [isPromoter, setIsPromoter] = useState(false);
   const [isInTrialPeriod, setIsInTrialPeriod] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -78,33 +80,51 @@ const Dashboard = () => {
       console.log(`👤 Usuário logado: ${currentUser.email}`);
 
       try {
-        console.log('🔍 Verificando assinatura e período de teste...');
-        const { data: subscription } = await supabase
-          .from('subscriptions')
-          .select('*')
+        // Verificar se é promoter ativo primeiro
+        console.log('🎯 Verificando se usuário é promoter...');
+        const { data: promoterData } = await supabase
+          .from('promoters')
+          .select('status')
           .eq('user_id', currentUser.id)
           .eq('status', 'active')
-          .gte('expires_at', new Date().toISOString())
           .maybeSingle();
 
-        if (subscription) {
-          console.log('✅ Assinatura ativa encontrada.');
-          setHasActiveSubscription(true);
+        if (promoterData) {
+          console.log('✅ Usuário é promoter ativo - acesso gratuito permanente');
+          setIsPromoter(true);
+          setHasActiveSubscription(false);
           setIsInTrialPeriod(false);
         } else {
-          console.log('⏳ Sem assinatura ativa, verificando período de teste...');
-          const userCreatedAt = new Date(currentUser.created_at);
-          const oneDayLater = new Date(userCreatedAt.getTime() + 24 * 60 * 60 * 1000);
-          const now = new Date();
+          console.log('🔍 Verificando assinatura e período de teste...');
+          setIsPromoter(false);
+          
+          const { data: subscription } = await supabase
+            .from('subscriptions')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .eq('status', 'active')
+            .gte('expires_at', new Date().toISOString())
+            .maybeSingle();
 
-          if (now <= oneDayLater) {
-            console.log('🎉 Usuário em período de teste.');
-            setIsInTrialPeriod(true);
-            setHasActiveSubscription(false);
-          } else {
-            console.log('❌ Período de teste expirado.');
+          if (subscription) {
+            console.log('✅ Assinatura ativa encontrada.');
+            setHasActiveSubscription(true);
             setIsInTrialPeriod(false);
-            setHasActiveSubscription(false);
+          } else {
+            console.log('⏳ Sem assinatura ativa, verificando período de teste...');
+            const userCreatedAt = new Date(currentUser.created_at);
+            const oneDayLater = new Date(userCreatedAt.getTime() + 24 * 60 * 60 * 1000);
+            const now = new Date();
+
+            if (now <= oneDayLater) {
+              console.log('🎉 Usuário em período de teste.');
+              setIsInTrialPeriod(true);
+              setHasActiveSubscription(false);
+            } else {
+              console.log('❌ Período de teste expirado.');
+              setIsInTrialPeriod(false);
+              setHasActiveSubscription(false);
+            }
           }
         }
 
@@ -152,6 +172,7 @@ const Dashboard = () => {
           console.log('🚪 Usuário deslogado via listener, redirecionando...');
           setWorkoutPlan(null);
           setHasActiveSubscription(false);
+          setIsPromoter(false);
           setIsInTrialPeriod(false);
           navigate('/auth');
         } else if (_event === 'SIGNED_IN' && !user) {
@@ -174,7 +195,7 @@ const Dashboard = () => {
     navigate('/auth');
   };
 
-  const hasAccess = hasActiveSubscription || isInTrialPeriod;
+  const hasAccess = hasActiveSubscription || isInTrialPeriod || isPromoter;
 
   const LockedFeature = ({ children, title }: { children: React.ReactNode, title: string }) => {
     if (hasAccess) {
@@ -262,7 +283,10 @@ const Dashboard = () => {
             <div className="flex items-center space-x-2 md:space-x-4">
               <div className="text-right hidden md:block">
                 <p className="text-blue-800 font-medium text-sm md:text-base">Olá, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}</p>
-                {isInTrialPeriod && !hasActiveSubscription && (
+                {isPromoter && (
+                  <span className="text-purple-700 text-xs md:text-sm font-medium bg-purple-100 px-2 py-1 rounded-full">⭐ Promoter</span>
+                )}
+                {isInTrialPeriod && !hasActiveSubscription && !isPromoter && (
                   <span className="text-blue-700 text-xs md:text-sm font-medium bg-blue-100 px-2 py-1 rounded-full">🎉 Gratuito</span>
                 )}
                 {hasActiveSubscription && (
@@ -299,7 +323,8 @@ const Dashboard = () => {
                     {hasAccess ? "Explore nossos assistentes de IA para transformar seus objetivos em resultados" : "Sua assinatura expirou ou o período de teste acabou. Renove para continuar."}
                   </p>
                   <div className="mt-2 md:hidden">
-                    {isInTrialPeriod && !hasActiveSubscription && (<span className="text-blue-700 text-xs font-medium bg-blue-100 px-2 py-1 rounded-full">🎉 Gratuito</span>)}
+                    {isPromoter && (<span className="text-purple-700 text-xs font-medium bg-purple-100 px-2 py-1 rounded-full">⭐ Promoter</span>)}
+                    {isInTrialPeriod && !hasActiveSubscription && !isPromoter && (<span className="text-blue-700 text-xs font-medium bg-blue-100 px-2 py-1 rounded-full">🎉 Gratuito</span>)}
                     {hasActiveSubscription && (<span className="text-green-700 text-xs font-medium bg-green-100 px-2 py-1 rounded-full">✅ Plano Ativo</span>)}
                     {!hasAccess && (<span className="text-red-700 text-xs font-medium bg-red-100 px-2 py-1 rounded-full">⚠️ Bloqueado</span>)}
                   </div>
