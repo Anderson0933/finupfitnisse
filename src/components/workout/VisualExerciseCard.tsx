@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Info } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import ExerciseImageViewer from './ExerciseImageViewer';
 import Avatar3DDemo from './Avatar3DDemo';
 import MuscleGroupDiagram from './MuscleGroupDiagram';
@@ -29,37 +29,23 @@ const VisualExerciseCard = ({
   const getMovementType = (exerciseName: string): 'push' | 'pull' | 'squat' | 'deadlift' | 'lunge' | 'plank' => {
     const name = exerciseName.toLowerCase();
     if (name.includes('agachamento') || name.includes('squat')) return 'squat';
-    if (name.includes('supino') || name.includes('flexão') || name.includes('push')) return 'push';
-    if (name.includes('puxada') || name.includes('remada') || name.includes('pull')) return 'pull';
-    if (name.includes('terra') || name.includes('deadlift')) return 'deadlift';
-    if (name.includes('afundo') || name.includes('lunge')) return 'lunge';
-    if (name.includes('prancha') || name.includes('plank')) return 'plank';
+    if (name.includes('supino') || name.includes('flexão') || name.includes('push') || name.includes('peitoral')) return 'push';
+    if (name.includes('puxada') || name.includes('remada') || name.includes('pull') || name.includes('dorsal')) return 'pull';
+    if (name.includes('terra') || name.includes('deadlift') || name.includes('levantamento')) return 'deadlift';
+    if (name.includes('afundo') || name.includes('lunge') || name.includes('passada')) return 'lunge';
+    if (name.includes('prancha') || name.includes('plank') || name.includes('abdominal isométrico')) return 'plank';
     return 'push'; // default
   };
 
-  // Criar dados de exemplo para demonstração
-  const exampleMedia = [
-    {
-      type: 'image' as const,
-      url: `https://via.placeholder.com/400x300/3B82F6/ffffff?text=Posição+Inicial`,
-      alt: `${exercise.name} - Posição Inicial`
-    },
-    {
-      type: 'gif' as const,
-      url: `https://via.placeholder.com/400x300/10B981/ffffff?text=Movimento+Completo`,
-      alt: `${exercise.name} - Movimento Completo`
-    }
-  ];
-
   return (
     <Card className={`transition-all duration-300 ${
-      isActive ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+      isActive ? 'border-blue-500 bg-blue-50/50 shadow-lg' : 'border-gray-200 hover:border-gray-300'
     }`}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             {exercise.name}
-            {isActive && <Badge variant="outline">Ativo</Badge>}
+            {isActive && <Badge variant="default" className="bg-blue-500">Em Execução</Badge>}
           </CardTitle>
           {onToggleVisuals && (
             <Button
@@ -74,88 +60,104 @@ const VisualExerciseCard = ({
           )}
         </div>
         
-        {/* Informações básicas do exercício */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="flex items-center gap-1">
-            <span className="font-medium">Séries:</span> {exercise.sets}
+        {/* Informações básicas do exercício com layout melhorado */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-gray-50 rounded-lg text-sm">
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 uppercase tracking-wide">Séries</span>
+            <span className="font-semibold text-gray-800">{exercise.sets}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="font-medium">Reps:</span> {exercise.reps}
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 uppercase tracking-wide">Reps</span>
+            <span className="font-semibold text-gray-800">{exercise.reps}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="font-medium">Descanso:</span> {Math.floor(exercise.rest_seconds / 60)}:{(exercise.rest_seconds % 60).toString().padStart(2, '0')}
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 uppercase tracking-wide">Descanso</span>
+            <span className="font-semibold text-gray-800">
+              {Math.floor(exercise.rest_seconds / 60)}:{(exercise.rest_seconds % 60).toString().padStart(2, '0')}
+            </span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="font-medium">Carga:</span> {exercise.weight_guidance}
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 uppercase tracking-wide">Carga</span>
+            <span className="font-semibold text-gray-800 text-xs">{exercise.weight_guidance}</span>
           </div>
         </div>
       </CardHeader>
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="instructions" className="text-xs">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="instructions" className="text-xs px-2">
               📋 Instruções
             </TabsTrigger>
-            <TabsTrigger value="visual" className="text-xs">
+            <TabsTrigger value="visual" className="text-xs px-2">
               🖼️ Visual
             </TabsTrigger>
-            <TabsTrigger value="3d" className="text-xs">
+            <TabsTrigger value="3d" className="text-xs px-2">
               🤖 3D Demo
             </TabsTrigger>
-            <TabsTrigger value="muscles" className="text-xs">
+            <TabsTrigger value="muscles" className="text-xs px-2">
               💪 Músculos
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab de Instruções */}
+          {/* Tab de Instruções Melhorada */}
           <TabsContent value="instructions" className="space-y-4 mt-4">
-            <div className="space-y-3">
-              <div>
-                <h4 className="font-medium text-gray-800 mb-2">Como Executar:</h4>
-                <p className="text-sm text-gray-600">{exercise.instructions}</p>
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                  🎯 Como Executar
+                </h4>
+                <p className="text-sm text-blue-700 leading-relaxed">{exercise.instructions}</p>
               </div>
 
-              <div>
-                <h4 className="font-medium text-gray-800 mb-2">Pontos Importantes:</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h4 className="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
+                  ⚠️ Pontos Importantes
+                </h4>
+                <ul className="text-sm text-yellow-700 space-y-2">
                   {exercise.form_cues.map((cue, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
-                      {cue}
+                    <li key={i} className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-yellow-400 mt-2 flex-shrink-0" />
+                      <span className="leading-relaxed">{cue}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
               {exercise.progression_notes && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-1">💡 Progressão:</h4>
-                  <p className="text-sm text-blue-600">{exercise.progression_notes}</p>
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                    📈 Como Progredir
+                  </h4>
+                  <p className="text-sm text-green-700 leading-relaxed">{exercise.progression_notes}</p>
                 </div>
               )}
             </div>
           </TabsContent>
 
-          {/* Tab Visual */}
+          {/* Tab Visual Melhorada */}
           <TabsContent value="visual" className="mt-4">
             {showVisuals ? (
               <ExerciseImageViewer
                 exerciseName={exercise.name}
-                media={exercise.visuals?.images || exampleMedia}
+                media={exercise.visuals?.images}
               />
             ) : (
               <Card>
-                <CardContent className="p-6 text-center">
+                <CardContent className="p-8 text-center">
                   <div className="bg-gray-100 rounded-lg h-48 flex items-center justify-center">
-                    <p className="text-gray-500">Visuais desabilitados</p>
+                    <div className="space-y-2">
+                      <EyeOff className="h-8 w-8 text-gray-400 mx-auto" />
+                      <p className="text-gray-500">Visuais desabilitados</p>
+                      <p className="text-xs text-gray-400">Clique em "Mostrar Visuais" para ativar</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             )}
           </TabsContent>
 
-          {/* Tab 3D Demo */}
+          {/* Tab 3D Demo Melhorada */}
           <TabsContent value="3d" className="mt-4">
             {showVisuals ? (
               <Avatar3DDemo
@@ -164,16 +166,20 @@ const VisualExerciseCard = ({
               />
             ) : (
               <Card>
-                <CardContent className="p-6 text-center">
+                <CardContent className="p-8 text-center">
                   <div className="bg-gray-100 rounded-lg h-48 flex items-center justify-center">
-                    <p className="text-gray-500">Demonstração 3D desabilitada</p>
+                    <div className="space-y-2">
+                      <div className="text-4xl">🤖</div>
+                      <p className="text-gray-500">Demonstração 3D desabilitada</p>
+                      <p className="text-xs text-gray-400">Ative os visuais para ver a animação</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             )}
           </TabsContent>
 
-          {/* Tab Músculos */}
+          {/* Tab Músculos Melhorada */}
           <TabsContent value="muscles" className="mt-4">
             <MuscleGroupDiagram
               muscleGroups={exercise.muscle_groups}

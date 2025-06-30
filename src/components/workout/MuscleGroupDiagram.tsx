@@ -1,10 +1,10 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MuscleGroup } from '@/types/exercise';
+import { findMuscleMatch, getMuscleIntensity } from '@/utils/muscleMapping';
 
 interface MuscleGroupDiagramProps {
   muscleGroups: string[];
@@ -15,60 +15,91 @@ const MuscleGroupDiagram = ({ muscleGroups, detailedMuscles }: MuscleGroupDiagra
   const [activeView, setActiveView] = useState<'front' | 'back'>('front');
   const [hoveredMuscle, setHoveredMuscle] = useState<string | null>(null);
 
-  // Mapeamento de músculos para coordenadas SVG
+  // Mapeamento anatômico mais preciso dos músculos
   const musclePositions = {
     front: {
-      'peitoral': { x: 150, y: 120, width: 100, height: 60 },
-      'deltoides': { x: 80, y: 100, width: 60, height: 40 },
-      'biceps': { x: 60, y: 140, width: 40, height: 60 },
-      'abdominais': { x: 140, y: 180, width: 80, height: 80 },
-      'quadriceps': { x: 120, y: 280, width: 100, height: 120 },
-      'panturrilha': { x: 130, y: 420, width: 60, height: 80 }
+      'peitoral': { x: 130, y: 100, width: 80, height: 50, rx: 15 },
+      'deltoides': { x: 70, y: 80, width: 50, height: 35, rx: 10 },
+      'biceps': { x: 55, y: 120, width: 30, height: 50, rx: 8 },
+      'abdominais': { x: 140, y: 160, width: 60, height: 70, rx: 12 },
+      'quadriceps': { x: 120, y: 250, width: 80, height: 90, rx: 15 },
+      'panturrilha': { x: 130, y: 380, width: 50, height: 60, rx: 10 },
+      'antebraco': { x: 50, y: 175, width: 25, height: 45, rx: 6 }
     },
     back: {
-      'trapezio': { x: 130, y: 80, width: 100, height: 60 },
-      'latissimo': { x: 100, y: 140, width: 140, height: 100 },
-      'triceps': { x: 60, y: 140, width: 40, height: 60 },
-      'gluteos': { x: 120, y: 240, width: 100, height: 80 },
-      'isquiotibiais': { x: 120, y: 320, width: 100, height: 100 },
-      'panturrilha': { x: 130, y: 420, width: 60, height: 80 }
+      'trapezio': { x: 120, y: 70, width: 100, height: 40, rx: 12 },
+      'latissimo': { x: 90, y: 120, width: 120, height: 80, rx: 18 },
+      'triceps': { x: 220, y: 120, width: 30, height: 50, rx: 8 },
+      'gluteos': { x: 115, y: 220, width: 90, height: 60, rx: 15 },
+      'isquiotibiais': { x: 120, y: 290, width: 80, height: 80, rx: 12 },
+      'panturrilha': { x: 130, y: 380, width: 50, height: 60, rx: 10 }
     }
   };
 
   const getMuscleColor = (muscle: string) => {
-    if (!detailedMuscles) {
-      return muscleGroups.some(mg => mg.toLowerCase().includes(muscle.toLowerCase())) ? '#3B82F6' : '#E5E7EB';
-    }
+    const intensity = getMuscleIntensity(muscleGroups, muscle, detailedMuscles);
+    
+    const colors = {
+      primary: '#DC2626',     // Vermelho forte
+      secondary: '#F59E0B',   // Amarelo/laranja
+      stabilizer: '#10B981',  // Verde
+      inactive: '#E5E7EB'     // Cinza claro
+    };
+    
+    return colors[intensity];
+  };
 
-    if (detailedMuscles.primary.some(m => m.toLowerCase().includes(muscle.toLowerCase()))) {
-      return '#DC2626'; // Vermelho para músculos primários
-    }
-    if (detailedMuscles.secondary.some(m => m.toLowerCase().includes(muscle.toLowerCase()))) {
-      return '#F59E0B'; // Amarelo para músculos secundários
-    }
-    if (detailedMuscles.stabilizer.some(m => m.toLowerCase().includes(muscle.toLowerCase()))) {
-      return '#10B981'; // Verde para músculos estabilizadores
-    }
-    return '#E5E7EB'; // Cinza para não trabalhados
+  const getMuscleOpacity = (muscle: string) => {
+    const intensity = getMuscleIntensity(muscleGroups, muscle, detailedMuscles);
+    return intensity === 'inactive' ? 0.2 : (hoveredMuscle === muscle ? 0.9 : 0.7);
   };
 
   const renderMuscleGroup = (muscle: string, position: any) => (
-    <rect
-      key={muscle}
-      x={position.x}
-      y={position.y}
-      width={position.width}
-      height={position.height}
-      fill={getMuscleColor(muscle)}
-      stroke="#374151"
-      strokeWidth="1"
-      rx="8"
-      className="transition-all duration-200 cursor-pointer hover:stroke-2 hover:stroke-blue-500"
-      onMouseEnter={() => setHoveredMuscle(muscle)}
-      onMouseLeave={() => setHoveredMuscle(null)}
-      opacity={hoveredMuscle === muscle ? 0.8 : 0.6}
-    />
+    <g key={muscle}>
+      <rect
+        x={position.x}
+        y={position.y}
+        width={position.width}
+        height={position.height}
+        fill={getMuscleColor(muscle)}
+        stroke="#374151"
+        strokeWidth="1.5"
+        rx={position.rx}
+        className="transition-all duration-300 cursor-pointer hover:stroke-2 hover:stroke-blue-500"
+        onMouseEnter={() => setHoveredMuscle(muscle)}
+        onMouseLeave={() => setHoveredMuscle(null)}
+        opacity={getMuscleOpacity(muscle)}
+      />
+      {hoveredMuscle === muscle && (
+        <text
+          x={position.x + position.width / 2}
+          y={position.y + position.height / 2}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="text-xs font-semibold fill-white"
+          style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+        >
+          {muscle.charAt(0).toUpperCase() + muscle.slice(1)}
+        </text>
+      )}
+    </g>
   );
+
+  const getIntensityStats = () => {
+    const stats = { primary: 0, secondary: 0, stabilizer: 0 };
+    const allMuscles = [...Object.keys(musclePositions.front), ...Object.keys(musclePositions.back)];
+    
+    allMuscles.forEach(muscle => {
+      const intensity = getMuscleIntensity(muscleGroups, muscle, detailedMuscles);
+      if (intensity !== 'inactive') {
+        stats[intensity]++;
+      }
+    });
+    
+    return stats;
+  };
+
+  const stats = getIntensityStats();
 
   return (
     <Card>
@@ -76,38 +107,78 @@ const MuscleGroupDiagram = ({ muscleGroups, detailedMuscles }: MuscleGroupDiagra
         <CardTitle className="text-lg flex items-center gap-2">
           💪 Músculos Trabalhados
         </CardTitle>
+        
+        {/* Estatísticas rápidas */}
+        <div className="flex flex-wrap gap-2 text-sm">
+          {stats.primary > 0 && (
+            <Badge variant="outline" className="bg-red-50 border-red-200 text-red-700">
+              🔴 {stats.primary} Primários
+            </Badge>
+          )}
+          {stats.secondary > 0 && (
+            <Badge variant="outline" className="bg-yellow-50 border-yellow-200 text-yellow-700">
+              🟡 {stats.secondary} Secundários  
+            </Badge>
+          )}
+          {stats.stabilizer > 0 && (
+            <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+              🟢 {stats.stabilizer} Estabilizadores
+            </Badge>
+          )}
+        </div>
       </CardHeader>
+      
       <CardContent className="space-y-4">
-        {/* Legenda */}
-        {detailedMuscles && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Badge variant="outline" className="bg-red-50 border-red-200">
-              🔴 Primários
-            </Badge>
-            <Badge variant="outline" className="bg-yellow-50 border-yellow-200">
-              🟡 Secundários
-            </Badge>
-            <Badge variant="outline" className="bg-green-50 border-green-200">
-              🟢 Estabilizadores
-            </Badge>
-          </div>
-        )}
-
         {/* Controles de visualização */}
         <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'front' | 'back')}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="front">Vista Frontal</TabsTrigger>
-            <TabsTrigger value="back">Vista Posterior</TabsTrigger>
+            <TabsTrigger value="front" className="flex items-center gap-2">
+              👤 Vista Frontal
+            </TabsTrigger>
+            <TabsTrigger value="back" className="flex items-center gap-2">
+              🔄 Vista Posterior
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="front" className="space-y-4">
             <div className="flex justify-center">
-              <svg width="300" height="500" viewBox="0 0 300 500" className="border rounded-lg">
-                {/* Corpo base (silhueta frontal) */}
+              <svg width="320" height="460" viewBox="0 0 320 460" className="border rounded-lg bg-gradient-to-b from-blue-50 to-blue-100">
+                {/* Silhueta corporal frontal mais realista */}
+                <defs>
+                  <linearGradient id="bodyGradientFront" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style={{ stopColor: '#F8FAFC', stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: '#E2E8F0', stopOpacity: 1 }} />
+                  </linearGradient>
+                </defs>
+                
+                {/* Corpo base */}
                 <path
-                  d="M150 50 C170 50, 180 70, 180 90 L180 110 C200 110, 220 130, 220 150 L220 200 C220 220, 210 240, 190 250 L190 350 C220 350, 240 370, 240 400 L240 450 C240 470, 220 480, 200 480 L100 480 C80 480, 60 470, 60 450 L60 400 C60 370, 80 350, 110 350 L110 250 C90 240, 80 220, 80 200 L80 150 C80 130, 100 110, 120 110 L120 90 C120 70, 130 50, 150 50"
-                  fill="#F3F4F6"
-                  stroke="#9CA3AF"
+                  d="M160 40 
+                     C175 40, 185 50, 185 65 
+                     L185 85 
+                     C205 85, 225 100, 225 120 
+                     L225 180 
+                     C225 200, 215 215, 200 220 
+                     L200 240 
+                     C220 240, 235 255, 235 275 
+                     L235 350 
+                     C235 370, 225 385, 210 390 
+                     L210 420 
+                     C210 440, 195 450, 175 450 
+                     L145 450 
+                     C125 450, 110 440, 110 420 
+                     L110 390 
+                     C95 385, 85 370, 85 350 
+                     L85 275 
+                     C85 255, 100 240, 120 240 
+                     L120 220 
+                     C105 215, 95 200, 95 180 
+                     L95 120 
+                     C95 100, 115 85, 135 85 
+                     L135 65 
+                     C135 50, 145 40, 160 40"
+                  fill="url(#bodyGradientFront)"
+                  stroke="#CBD5E1"
                   strokeWidth="2"
                 />
                 
@@ -121,12 +192,42 @@ const MuscleGroupDiagram = ({ muscleGroups, detailedMuscles }: MuscleGroupDiagra
 
           <TabsContent value="back" className="space-y-4">
             <div className="flex justify-center">
-              <svg width="300" height="500" viewBox="0 0 300 500" className="border rounded-lg">
-                {/* Corpo base (silhueta posterior) */}
+              <svg width="320" height="460" viewBox="0 0 320 460" className="border rounded-lg bg-gradient-to-b from-green-50 to-green-100">
+                <defs>
+                  <linearGradient id="bodyGradientBack" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style={{ stopColor: '#F0FDF4', stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: '#DCFCE7', stopOpacity: 1 }} />
+                  </linearGradient>
+                </defs>
+                
+                {/* Corpo base posterior */}
                 <path
-                  d="M150 50 C170 50, 180 70, 180 90 L180 110 C200 110, 220 130, 220 150 L220 200 C220 220, 210 240, 190 250 L190 350 C220 350, 240 370, 240 400 L240 450 C240 470, 220 480, 200 480 L100 480 C80 480, 60 470, 60 450 L60 400 C60 370, 80 350, 110 350 L110 250 C90 240, 80 220, 80 200 L80 150 C80 130, 100 110, 120 110 L120 90 C120 70, 130 50, 150 50"
-                  fill="#F3F4F6"
-                  stroke="#9CA3AF"
+                  d="M160 40 
+                     C175 40, 185 50, 185 65 
+                     L185 85 
+                     C205 85, 225 100, 225 120 
+                     L225 180 
+                     C225 200, 215 215, 200 220 
+                     L200 240 
+                     C220 240, 235 255, 235 275 
+                     L235 350 
+                     C235 370, 225 385, 210 390 
+                     L210 420 
+                     C210 440, 195 450, 175 450 
+                     L145 450 
+                     C125 450, 110 440, 110 420 
+                     L110 390 
+                     C95 385, 85 370, 85 350 
+                     L85 275 
+                     C85 255, 100 240, 120 240 
+                     L120 220 
+                     C105 215, 95 200, 95 180 
+                     L95 120 
+                     C95 100, 115 85, 135 85 
+                     L135 65 
+                     C135 50, 145 40, 160 40"
+                  fill="url(#bodyGradientBack)"
+                  stroke="#CBD5E1"
                   strokeWidth="2"
                 />
                 
@@ -141,24 +242,30 @@ const MuscleGroupDiagram = ({ muscleGroups, detailedMuscles }: MuscleGroupDiagra
 
         {/* Informação do músculo em hover */}
         {hoveredMuscle && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-            <p className="font-medium text-blue-800 capitalize">{hoveredMuscle}</p>
-            {detailedMuscles && (
-              <p className="text-sm text-blue-600">
-                {detailedMuscles.primary.some(m => m.toLowerCase().includes(hoveredMuscle.toLowerCase())) && 'Músculo Primário'}
-                {detailedMuscles.secondary.some(m => m.toLowerCase().includes(hoveredMuscle.toLowerCase())) && 'Músculo Secundário'}
-                {detailedMuscles.stabilizer.some(m => m.toLowerCase().includes(hoveredMuscle.toLowerCase())) && 'Músculo Estabilizador'}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <div 
+                className="w-4 h-4 rounded-full border-2 border-gray-300"
+                style={{ backgroundColor: getMuscleColor(hoveredMuscle) }}
+              />
+              <p className="font-semibold text-blue-800 capitalize">
+                {hoveredMuscle.replace(/_/g, ' ')}
               </p>
-            )}
+            </div>
+            <p className="text-sm text-blue-600">
+              {getMuscleIntensity(muscleGroups, hoveredMuscle, detailedMuscles) === 'primary' && 'Músculo Primário - Trabalhado intensamente'}
+              {getMuscleIntensity(muscleGroups, hoveredMuscle, detailedMuscles) === 'secondary' && 'Músculo Secundário - Auxilia no movimento'}
+              {getMuscleIntensity(muscleGroups, hoveredMuscle, detailedMuscles) === 'stabilizer' && 'Músculo Estabilizador - Mantém postura'}
+            </p>
           </div>
         )}
 
         {/* Lista de músculos trabalhados */}
-        <div className="space-y-2">
-          <h4 className="font-medium text-gray-800">Grupos Musculares:</h4>
-          <div className="flex flex-wrap gap-1">
+        <div className="space-y-3">
+          <h4 className="font-medium text-gray-800">Grupos Musculares Envolvidos:</h4>
+          <div className="flex flex-wrap gap-2">
             {muscleGroups.map((muscle, index) => (
-              <Badge key={index} variant="secondary" className="text-xs">
+              <Badge key={index} variant="secondary" className="text-xs px-3 py-1">
                 {muscle}
               </Badge>
             ))}
