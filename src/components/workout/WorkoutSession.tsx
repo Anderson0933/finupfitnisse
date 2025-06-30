@@ -1,12 +1,11 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle2, Clock, Dumbbell, Target, Play, Calendar, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle2, Clock, Dumbbell, Target, Play, Calendar } from 'lucide-react';
 import WorkoutTimer from './WorkoutTimer';
-import VisualExerciseCard from './VisualExerciseCard';
-import { EnhancedExercise } from '@/types/exercise';
 
 interface Exercise {
   name: string;
@@ -55,7 +54,6 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [showTimer, setShowTimer] = useState(false);
-  const [showVisuals, setShowVisuals] = useState(true);
 
   const handleExerciseComplete = (exerciseName: string) => {
     setCompletedExercises(prev => new Set([...prev, exerciseName]));
@@ -69,13 +67,16 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
       setCurrentSet(prev => prev + 1);
       setShowTimer(true);
     } else {
+      // Exercício completo
       handleExerciseComplete(currentExercise.name);
       
       if (currentExerciseIndex < workout.main_exercises.length - 1) {
+        // Próximo exercício
         setCurrentExerciseIndex(prev => prev + 1);
         setCurrentSet(1);
         setShowTimer(false);
       } else {
+        // Treino principal completo
         setActivePhase('cool-down');
         setShowTimer(false);
       }
@@ -86,21 +87,6 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
     const total = workout.main_exercises.length;
     const completed = completedExercises.size;
     return Math.round((completed / total) * 100);
-  };
-
-  // Converter Exercise para EnhancedExercise SEM criar imagens placeholder
-  const convertToEnhancedExercise = (exercise: Exercise): EnhancedExercise => {
-    console.log(`🔄 Convertendo exercício sem imagens placeholder: ${exercise.name}`);
-    
-    return {
-      ...exercise,
-      // NÃO criar imagens aqui - deixar o ExerciseImageViewer buscar
-      muscle_anatomy: {
-        primary: exercise.muscle_groups.slice(0, 2),
-        secondary: exercise.muscle_groups.slice(2, 4),
-        stabilizer: exercise.muscle_groups.slice(4)
-      }
-    };
   };
 
   return (
@@ -129,20 +115,9 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={() => setShowVisuals(!showVisuals)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                {showVisuals ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                {showVisuals ? 'Ocultar' : 'Mostrar'} Visuais
-              </Button>
-              <Badge variant="outline" className="text-lg px-3 py-1">
-                {progressPercentage()}% Completo
-              </Badge>
-            </div>
+            <Badge variant="outline" className="text-lg px-3 py-1">
+              {progressPercentage()}% Completo
+            </Badge>
           </div>
         </CardHeader>
       </Card>
@@ -207,42 +182,98 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
           {workout.main_exercises.map((exercise, index) => {
             const isActive = index === currentExerciseIndex && activePhase === 'main';
             const isCompleted = completedExercises.has(exercise.name);
-            const enhancedExercise = convertToEnhancedExercise(exercise);
             
             return (
-              <div key={index} className="space-y-4">
-                <VisualExerciseCard
-                  exercise={enhancedExercise}
-                  isActive={isActive}
-                  showVisuals={showVisuals}
-                />
+              <Card key={index} className={`transition-all duration-300 ${
+                isActive ? 'border-blue-500 bg-blue-50' : 
+                isCompleted ? 'border-green-500 bg-green-50' : 'border-gray-200'
+              }`}>
+                <CardHeader>
+                  <CardTitle className={`flex items-center gap-2 ${
+                    isCompleted ? 'text-green-600' : isActive ? 'text-blue-600' : 'text-gray-700'
+                  }`}>
+                    {isCompleted ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <div className={`w-5 h-5 rounded-full border-2 ${
+                        isActive ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                      }`} />
+                    )}
+                    {exercise.name}
+                    {isActive && (
+                      <Badge variant="outline" className="ml-auto">
+                        Série {currentSet}/{exercise.sets}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Séries:</span> {exercise.sets}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Reps:</span> {exercise.reps}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Descanso:</span> {Math.floor(exercise.rest_seconds / 60)}:{(exercise.rest_seconds % 60).toString().padStart(2, '0')}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Carga:</span> {exercise.weight_guidance}
+                    </div>
+                  </div>
 
-                {isActive && !isCompleted && (
-                  <Card className="border-blue-500 bg-blue-50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-semibold text-blue-800">
-                            Série {currentSet} de {exercise.sets}
-                          </h4>
-                          <p className="text-sm text-blue-600">
-                            {exercise.reps} repetições • {exercise.weight_guidance}
-                          </p>
-                        </div>
-                        <Button 
-                          onClick={handleSetComplete}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          {currentSet < exercise.sets ? 
-                            `Série ${currentSet} Concluída` : 
-                            'Exercício Completo'
-                          }
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+                  <div className="space-y-2">
+                    <h5 className="font-medium text-gray-800">Músculos Trabalhados:</h5>
+                    <div className="flex flex-wrap gap-1">
+                      {exercise.muscle_groups.map((muscle, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">{muscle}</Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h5 className="font-medium text-gray-800">Instruções:</h5>
+                    <p className="text-sm text-gray-600">{exercise.instructions}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h5 className="font-medium text-gray-800">Pontos Importantes:</h5>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      {exercise.form_cues.map((cue, i) => (
+                        <li key={i} className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                          {cue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {exercise.progression_notes && (
+                    <div className="space-y-2">
+                      <h5 className="font-medium text-gray-800">Progressão:</h5>
+                      <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                        💡 {exercise.progression_notes}
+                      </p>
+                    </div>
+                  )}
+
+                  {isActive && !isCompleted && (
+                    <div className="pt-4 border-t">
+                      <Button 
+                        onClick={handleSetComplete}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        {currentSet < exercise.sets ? 
+                          `Série ${currentSet} Concluída - Descansar` : 
+                          'Exercício Completo'
+                        }
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
         </TabsContent>

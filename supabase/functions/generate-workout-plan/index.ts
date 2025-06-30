@@ -186,7 +186,7 @@ serve(async (req) => {
     const totalWorkouts = workout_days * 6;
 
     const prompt = `
-Você é um personal trainer brasileiro experiente e detalhista. Crie um plano de treino personalizado COMPLETO em JSON válido com instruções muito detalhadas e dados para elementos visuais.
+Você é um personal trainer brasileiro experiente e detalhista. Crie um plano de treino personalizado COMPLETO em JSON válido com instruções muito detalhadas.
 
 DADOS DO CLIENTE:
 - ${age} anos, ${height}cm, ${weight}kg (IMC: ${bmi.toFixed(1)} - ${bmiCategory})
@@ -198,7 +198,7 @@ DADOS DO CLIENTE:
 
 IMPORTANTE: Retorne APENAS JSON válido, sem formatação markdown, começando com { e terminando com }.
 
-Estrutura obrigatória com instruções MUITO DETALHADAS e dados visuais:
+Estrutura obrigatória com instruções MUITO DETALHADAS:
 {
   "title": "Plano ${workout_days}x/semana - ${fitness_level}",
   "description": "Plano personalizado completo para ${fitness_goals} em ${workout_location} durante 6 semanas",
@@ -239,30 +239,7 @@ Estrutura obrigatória com instruções MUITO DETALHADAS e dados visuais:
           ],
           "progression_notes": "Como progredir especificamente: semana a semana, aumento de carga, variações de dificuldade, sinais para progressão.",
           "safety_tips": "Cuidados específicos, contraindicações, quando parar, adaptações para lesões.",
-          "breathing_pattern": "Padrão respiratório detalhado para cada fase do movimento.",
-          "visuals": {
-            "images": [
-              {
-                "type": "image",
-                "url": "placeholder_inicial",
-                "alt": "Posição inicial do exercício",
-                "description": "Demonstração da postura inicial correta"
-              },
-              {
-                "type": "gif",
-                "url": "placeholder_movimento",
-                "alt": "Movimento completo do exercício",
-                "description": "Animação do movimento completo"
-              }
-            ],
-            "movement_type": "push|pull|squat|deadlift|lunge|plank",
-            "difficulty_visualization": "beginner|intermediate|advanced"
-          },
-          "muscle_anatomy": {
-            "primary": ["músculo_principal_1", "músculo_principal_2"],
-            "secondary": ["músculo_secundário_1", "músculo_secundário_2"],
-            "stabilizer": ["músculo_estabilizador_1", "músculo_estabilizador_2"]
-          }
+          "breathing_pattern": "Padrão respiratório detalhado para cada fase do movimento."
         }
       ],
       "cool_down": {
@@ -304,9 +281,7 @@ Estrutura obrigatória com instruções MUITO DETALHADAS e dados visuais:
 INSTRUÇÕES CRÍTICAS:
 - Crie TODOS os ${totalWorkouts} treinos únicos e variados para 6 SEMANAS COMPLETAS
 - Cada exercício deve ter instruções EXTREMAMENTE detalhadas (mínimo 3-4 frases por instrução)
-- Inclua dados visuais completos para cada exercício: type movement, anatomia muscular detalhada
-- Para muscle_anatomy, especifique músculos anatômicos reais (ex: "peitoral_maior", "deltoides_anterior", "triceps_braquial")
-- Para movement_type, use: push (empurrar), pull (puxar), squat (agachamento), deadlift (levantamento), lunge (afundo), plank (isométrico)
+- Inclua variações e progressões específicas para cada exercício
 - Use apenas equipamentos disponíveis para ${workout_location}
 - Adapte intensidade e complexidade para nível ${fitness_level}
 - Foque no objetivo específico: ${fitness_goals}
@@ -326,7 +301,7 @@ INSTRUÇÕES CRÍTICAS:
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer brasileiro extremamente experiente e detalhista. Responda APENAS com JSON válido, sem formatação markdown. Inicie com { e termine com }. Seja MUITO detalhado nas instruções dos exercícios, incluindo anatomia, biomecânica, respiração, progressões específicas e dados visuais completos para cada exercício.'
+            content: 'Você é um personal trainer brasileiro extremamente experiente e detalhista. Responda APENAS com JSON válido, sem formatação markdown. Inicie com { e termine com }. Seja MUITO detalhado nas instruções dos exercícios, incluindo anatomia, biomecânica, respiração e progressões específicas.'
           },
           {
             role: 'user',
@@ -355,6 +330,7 @@ INSTRUÇÕES CRÍTICAS:
       const content = data.choices[0].message.content.trim();
       console.log('🔍 Tamanho do conteúdo recebido:', content.length, 'caracteres');
       
+      // Usar nossa função robusta de limpeza e parsing
       workoutPlan = cleanAndParseJSON(content);
       
       console.log('✅ JSON parseado com sucesso');
@@ -428,7 +404,7 @@ INSTRUÇÕES CRÍTICAS:
       console.log('✅ Plano salvo no banco de dados');
     }
 
-    console.log('🎉 Plano gerado com sucesso - completo com elementos visuais e', workoutPlan.workouts.length, 'treinos detalhados para 6 semanas');
+    console.log('🎉 Plano gerado com sucesso - completo com', workoutPlan.workouts.length, 'treinos detalhados para 6 semanas');
 
     return new Response(JSON.stringify({ plan: workoutPlan }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
