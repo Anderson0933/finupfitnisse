@@ -1,9 +1,42 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Play, Star, Users, Trophy, Zap, ArrowRight, Clock, Target, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 const HeroSection = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Verificar se usuário está logado
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+
+    checkUser();
+
+    // Listener para mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleGetStarted = () => {
+    if (user) {
+      // Se usuário já está logado, vai para dashboard
+      window.location.href = '/dashboard';
+    } else {
+      // Se não está logado, vai para página de auth
+      window.location.href = '/auth';
+    }
+  };
 
   // Array de fotos reais de usuários para as avaliações
   const userPhotos = [
@@ -85,10 +118,10 @@ const HeroSection = () => {
               <Button 
                 size="lg" 
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-10 py-5 text-xl font-semibold glow-button shadow-2xl transform transition-all hover:scale-105"
-                onClick={() => window.location.href = '/auth'}
+                onClick={handleGetStarted}
               >
                 <Zap className="h-6 w-6 mr-2" />
-                Começar Gratuitamente
+                {user ? 'Ir para Dashboard' : 'Começar Gratuitamente'}
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
               <Button 
@@ -242,10 +275,10 @@ const HeroSection = () => {
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3"
                 onClick={() => {
                   setIsVideoPlaying(false);
-                  window.location.href = '/auth';
+                  handleGetStarted();
                 }}
               >
-                Começar Agora Gratuitamente
+                {user ? 'Ir para Dashboard' : 'Começar Agora Gratuitamente'}
               </Button>
             </div>
           </div>

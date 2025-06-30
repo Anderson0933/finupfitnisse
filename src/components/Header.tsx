@@ -1,11 +1,54 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dumbbell, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 const Header = () => {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Verificar se usuário está logado
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+
+    checkUser();
+
+    // Listener para mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleGetStarted = () => {
+    if (user) {
+      // Se usuário já está logado, vai para dashboard
+      window.location.href = '/dashboard';
+    } else {
+      // Se não está logado, vai para página de auth
+      window.location.href = '/auth';
+    }
+  };
+
+  const handleLogin = () => {
+    if (user) {
+      // Se usuário já está logado, vai para dashboard
+      window.location.href = '/dashboard';
+    } else {
+      // Se não está logado, vai para página de auth
+      window.location.href = '/auth';
+    }
+  };
+
   return (
     <header className="fixed top-0 w-full z-50 bg-black/20 backdrop-blur-sm border-b border-white/10">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -30,15 +73,15 @@ const Header = () => {
           <Button 
             variant="outline" 
             className="hidden md:inline-flex border-white text-white hover:bg-white hover:text-blue-800 bg-white/10 backdrop-blur-sm"
-            onClick={() => window.location.href = '/auth'}
+            onClick={handleLogin}
           >
-            Entrar
+            {user ? 'Dashboard' : 'Entrar'}
           </Button>
           <Button 
             className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold"
-            onClick={() => window.location.href = '/auth'}
+            onClick={handleGetStarted}
           >
-            Começar Agora
+            {user ? 'Ir para Dashboard' : 'Começar Agora'}
           </Button>
           
           <Sheet>
@@ -62,15 +105,15 @@ const Header = () => {
                 <Button 
                   variant="outline" 
                   className="border-white text-white hover:bg-white hover:text-blue-800 bg-white/10"
-                  onClick={() => window.location.href = '/auth'}
+                  onClick={handleLogin}
                 >
-                  Entrar
+                  {user ? 'Dashboard' : 'Entrar'}
                 </Button>
                 <Button 
                   className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                  onClick={() => window.location.href = '/auth'}
+                  onClick={handleGetStarted}
                 >
-                  Começar Agora
+                  {user ? 'Ir para Dashboard' : 'Começar Agora'}
                 </Button>
               </div>
             </SheetContent>
