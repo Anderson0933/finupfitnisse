@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -41,6 +40,7 @@ const Dashboard = () => {
 
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [activeTab, setActiveTab] = useState<string>('workout');
+  const [initializationError, setInitializationError] = useState<string | null>(null);
 
   const {
     onboardingState,
@@ -54,6 +54,15 @@ const Dashboard = () => {
   } = useOnboarding(user);
 
   useEffect(() => {
+    console.log('📊 Dashboard useEffect iniciado');
+    console.log('🔍 Estado atual:', { 
+      isLoading, 
+      user: user?.email, 
+      isAdmin, 
+      isPromoter, 
+      hasPremiumAccess 
+    });
+
     if (!isLoading && !user) {
       console.log('🚫 Usuário não logado, redirecionando...');
       navigate('/auth');
@@ -69,7 +78,7 @@ const Dashboard = () => {
         hasAccess: hasPremiumAccess
       });
 
-      // Buscar plano de treino salvo
+      // Buscar plano de treino salvo com melhor tratamento de erro
       const fetchWorkoutPlan = async () => {
         try {
           console.log('🏋️ Buscando plano de treino salvo...');
@@ -83,7 +92,8 @@ const Dashboard = () => {
 
           if (planError) {
             console.error('❌ Erro ao buscar plano de treino:', planError);
-            toast({ title: "Erro ao Carregar Plano", description: "Não foi possível buscar seu plano salvo.", variant: "destructive" });
+            // Não mostrar toast para este erro específico pois pode ser normal
+            setInitializationError(`Erro ao carregar plano: ${planError.message}`);
           } else if (savedPlanData && savedPlanData.plan_data) {
             console.log('✅ Plano de treino salvo encontrado!');
             if (typeof savedPlanData.plan_data === 'object' && savedPlanData.plan_data !== null && 'title' in savedPlanData.plan_data) {
@@ -96,19 +106,32 @@ const Dashboard = () => {
             console.log('📄 Nenhum plano de treino salvo encontrado.');
             setWorkoutPlan(null);
           }
+          
+          // Limpar erro se chegou até aqui
+          setInitializationError(null);
         } catch (error: any) {
           console.error('💥 Erro ao buscar plano de treino:', error);
+          setInitializationError(`Erro de conexão: ${error.message}`);
         }
       };
 
       fetchWorkoutPlan();
     }
-  }, [user, isLoading, isAdmin, isPromoter, hasPremiumAccess, navigate, toast]);
+  }, [user, isLoading, isAdmin, isPromoter, hasPremiumAccess, navigate]);
 
   const handleSignOut = async () => {
-    await signOut();
-    toast({ title: "Logout realizado", description: "Você foi desconectado." });
-    navigate('/auth');
+    try {
+      await signOut();
+      toast({ title: "Logout realizado", description: "Você foi desconectado." });
+      navigate('/auth');
+    } catch (error: any) {
+      console.error('Erro no logout:', error);
+      toast({ 
+        title: "Erro no logout", 
+        description: "Tente novamente.", 
+        variant: "destructive" 
+      });
+    }
   };
 
   const getStatusInfo = () => {
@@ -170,6 +193,11 @@ const Dashboard = () => {
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <div className="text-blue-800 text-xl font-semibold">Carregando seu dashboard...</div>
+          {initializationError && (
+            <div className="text-red-600 text-sm max-w-md text-center">
+              {initializationError}
+            </div>
+          )}
         </div>
       </div>
     );
