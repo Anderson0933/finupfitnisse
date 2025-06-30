@@ -21,6 +21,40 @@ const ResetPassword = () => {
     const checkSession = async () => {
       try {
         console.log('=== VERIFICANDO SESSÃO DE RESET ===');
+        console.log('URL atual:', window.location.href);
+        console.log('Parâmetros da URL:', window.location.search);
+        
+        // Verificar se há parâmetros de reset na URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        const type = urlParams.get('type');
+        
+        console.log('Parâmetros encontrados:', {
+          access_token: accessToken ? 'presente' : 'ausente',
+          refresh_token: refreshToken ? 'presente' : 'ausente',
+          type: type
+        });
+        
+        // Se há tokens na URL, tentar fazer login com eles
+        if (accessToken && refreshToken && type === 'recovery') {
+          console.log('Tentando fazer login com tokens da URL...');
+          
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            console.error('❌ Erro ao definir sessão:', error);
+            setIsValidSession(false);
+            return;
+          }
+          
+          console.log('✅ Sessão definida com sucesso:', data);
+          setIsValidSession(true);
+          return;
+        }
         
         // Verificar se há uma sessão válida
         const { data: { session }, error } = await supabase.auth.getSession();

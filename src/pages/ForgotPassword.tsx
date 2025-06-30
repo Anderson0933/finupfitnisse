@@ -34,9 +34,10 @@ const ForgotPassword = () => {
       console.log('=== ENVIANDO EMAIL DE RECUPERAÇÃO ===');
       console.log('Email:', email);
       console.log('Current origin:', window.location.origin);
+      console.log('Production URL being used: https://fitaipro.cloud/reset-password');
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: 'https://fitaipro.cloud/reset-password',
       });
 
       if (error) {
