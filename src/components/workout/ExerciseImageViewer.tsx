@@ -16,27 +16,36 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   const [isPlaying, setIsPlaying] = useState(false);
   const [exerciseMedia, setExerciseMedia] = useState<ExerciseMedia[]>(media || []);
   const [isLoading, setIsLoading] = useState(false);
-  const [imageError, setImageError] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
 
-  // Carregar imagens reais se não foram fornecidas
+  // Carregar imagens quando o componente monta ou exercício muda
   useEffect(() => {
     if (!media || media.length === 0) {
       loadExerciseImages();
+    } else {
+      setExerciseMedia(media);
     }
   }, [exerciseName, media]);
 
   const loadExerciseImages = async () => {
     setIsLoading(true);
-    setImageError(null);
+    setHasError(false);
     
     try {
-      console.log(`🔍 Buscando imagens para: ${exerciseName}`);
+      console.log(`🔍 Carregando imagens para: ${exerciseName}`);
       const images = await exerciseImageService.searchExerciseImages(exerciseName);
-      console.log(`✅ Encontradas ${images.length} imagens para ${exerciseName}`);
-      setExerciseMedia(images);
+      
+      if (images && images.length > 0) {
+        console.log(`✅ ${images.length} imagens carregadas para ${exerciseName}`);
+        setExerciseMedia(images);
+        setCurrentIndex(0);
+      } else {
+        console.warn(`⚠️ Nenhuma imagem encontrada para ${exerciseName}`);
+        setHasError(true);
+      }
     } catch (error) {
       console.error('❌ Erro ao carregar imagens:', error);
-      setImageError('Usando imagem padrão');
+      setHasError(true);
     } finally {
       setIsLoading(false);
     }
@@ -45,11 +54,15 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   const currentMedia = exerciseMedia[currentIndex];
 
   const nextImage = () => {
-    setCurrentIndex((prev) => (prev + 1) % exerciseMedia.length);
+    if (exerciseMedia.length > 1) {
+      setCurrentIndex((prev) => (prev + 1) % exerciseMedia.length);
+    }
   };
 
   const prevImage = () => {
-    setCurrentIndex((prev) => (prev - 1 + exerciseMedia.length) % exerciseMedia.length);
+    if (exerciseMedia.length > 1) {
+      setCurrentIndex((prev) => (prev - 1 + exerciseMedia.length) % exerciseMedia.length);
+    }
   };
 
   // Auto-play para múltiplas imagens
@@ -65,8 +78,9 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPlaying, exerciseMedia.length]);
+  }, [isPlaying, exerciseMedia.length, currentIndex]);
 
+  // Loading state
   if (isLoading) {
     return (
       <Card>
@@ -85,7 +99,8 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
     );
   }
 
-  if (!exerciseMedia || exerciseMedia.length === 0) {
+  // Error state
+  if (hasError || !exerciseMedia || exerciseMedia.length === 0) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -93,7 +108,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
             <div className="text-center space-y-3">
               <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
               <div className="space-y-1">
-                <p className="text-gray-500 font-medium">Imagens não disponíveis</p>
+                <p className="text-gray-500 font-medium">Erro ao carregar imagem</p>
                 <p className="text-sm text-gray-400">{exerciseName}</p>
               </div>
               <Button 
@@ -124,14 +139,14 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                   <img
                     src={currentMedia.url}
                     alt={currentMedia.alt}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
                     onError={(e) => {
                       console.warn(`⚠️ Erro ao carregar imagem: ${currentMedia.url}`);
-                      // Tentar uma imagem de fallback mais genérica
                       const target = e.target as HTMLImageElement;
-                      if (!target.src.includes('placeholder')) {
-                        target.src = 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=600&h=400&fit=crop&q=80';
+                      // Fallback para uma imagem mais básica
+                      if (!target.src.includes('via.placeholder.com')) {
+                        target.src = `https://via.placeholder.com/600x400/6B7280/FFFFFF?text=${encodeURIComponent(exerciseName)}`;
                       }
                     }}
                   />
@@ -142,13 +157,6 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                     {currentMedia.type === 'image' && '📸 Posição'}
                     {currentMedia.type === 'video' && '🎥 Vídeo'}
                   </div>
-                  
-                  {/* Indicador se usando fallback */}
-                  {imageError && (
-                    <div className="absolute top-3 right-3 bg-blue-500 bg-opacity-90 text-white px-2 py-1 rounded text-xs">
-                      💡 Imagem Padrão
-                    </div>
-                  )}
                 </div>
               )}
             </div>

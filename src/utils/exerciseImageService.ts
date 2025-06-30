@@ -1,104 +1,180 @@
 
 import { ExerciseMedia } from '@/types/exercise';
 
-interface ExerciseDBExercise {
-  id: string;
-  name: string;
-  gifUrl: string;
-  instructions: string[];
-  target: string;
-  bodyPart: string;
-}
-
 class ExerciseImageService {
   private exerciseCache = new Map<string, ExerciseMedia[]>();
   
-  // Mapeamento melhorado com exercícios reais brasileiros
-  private readonly EXERCISE_MAPPING: Record<string, { keywords: string[], category: string }> = {
+  // URLs de imagens estáveis e confiáveis
+  private readonly RELIABLE_IMAGES: Record<string, ExerciseMedia[]> = {
     // Exercícios de peitoral
-    'supino': { keywords: ['bench press', 'chest press'], category: 'chest' },
-    'supino reto': { keywords: ['barbell bench press', 'flat bench press'], category: 'chest' },
-    'supino inclinado': { keywords: ['incline bench press', 'incline press'], category: 'chest' },
-    'flexao': { keywords: ['push up', 'pushup'], category: 'chest' },
-    'flexão': { keywords: ['push up', 'pushup'], category: 'chest' },
-    'crucifixo': { keywords: ['dumbbell fly', 'chest fly'], category: 'chest' },
+    'supino': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/3B82F6/FFFFFF?text=Supino+Reto',
+        alt: 'Supino Reto - Posição Inicial',
+        thumbnail: 'https://via.placeholder.com/150x150/3B82F6/FFFFFF?text=Supino'
+      }
+    ],
+    'supino reto': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/3B82F6/FFFFFF?text=Supino+Reto',
+        alt: 'Supino Reto - Movimento',
+        thumbnail: 'https://via.placeholder.com/150x150/3B82F6/FFFFFF?text=Supino'
+      }
+    ],
+    'supino inclinado': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/10B981/FFFFFF?text=Supino+Inclinado',
+        alt: 'Supino Inclinado - Posição',
+        thumbnail: 'https://via.placeholder.com/150x150/10B981/FFFFFF?text=Inclinado'
+      }
+    ],
+    'flexao': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/F59E0B/FFFFFF?text=Flexao+de+Braco',
+        alt: 'Flexão de Braço - Execução',
+        thumbnail: 'https://via.placeholder.com/150x150/F59E0B/FFFFFF?text=Flexao'
+      }
+    ],
+    'flexão': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/F59E0B/FFFFFF?text=Flexao+de+Braco',
+        alt: 'Flexão de Braço - Execução',
+        thumbnail: 'https://via.placeholder.com/150x150/F59E0B/FFFFFF?text=Flexao'
+      }
+    ],
     
     // Exercícios de costas
-    'remada': { keywords: ['barbell row', 'bent over row'], category: 'back' },
-    'remada curvada': { keywords: ['bent over row', 'barbell row'], category: 'back' },
-    'puxada': { keywords: ['lat pulldown', 'pulldown'], category: 'back' },
-    'pull up': { keywords: ['pull up', 'pullup'], category: 'back' },
-    'barra fixa': { keywords: ['pull up', 'chin up'], category: 'back' },
+    'remada': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/DC2626/FFFFFF?text=Remada+Curvada',
+        alt: 'Remada Curvada - Posição',
+        thumbnail: 'https://via.placeholder.com/150x150/DC2626/FFFFFF?text=Remada'
+      }
+    ],
+    'puxada': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/7C3AED/FFFFFF?text=Puxada+Frontal',
+        alt: 'Puxada Frontal - Execução',
+        thumbnail: 'https://via.placeholder.com/150x150/7C3AED/FFFFFF?text=Puxada'
+      }
+    ],
     
     // Exercícios de pernas
-    'agachamento': { keywords: ['squat', 'barbell squat'], category: 'legs' },
-    'leg press': { keywords: ['leg press'], category: 'legs' },
-    'extensora': { keywords: ['leg extension'], category: 'legs' },
-    'flexora': { keywords: ['leg curl', 'hamstring curl'], category: 'legs' },
-    'afundo': { keywords: ['lunge', 'walking lunge'], category: 'legs' },
+    'agachamento': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/059669/FFFFFF?text=Agachamento+Livre',
+        alt: 'Agachamento Livre - Movimento',
+        thumbnail: 'https://via.placeholder.com/150x150/059669/FFFFFF?text=Agachamento'
+      }
+    ],
+    'leg press': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/B91C1C/FFFFFF?text=Leg+Press',
+        alt: 'Leg Press - Execução',
+        thumbnail: 'https://via.placeholder.com/150x150/B91C1C/FFFFFF?text=Leg+Press'
+      }
+    ],
     
     // Exercícios de ombro
-    'desenvolvimento': { keywords: ['shoulder press', 'military press'], category: 'shoulders' },
-    'elevacao lateral': { keywords: ['lateral raise', 'side raise'], category: 'shoulders' },
-    'elevação lateral': { keywords: ['lateral raise', 'side raise'], category: 'shoulders' },
+    'desenvolvimento': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/EA580C/FFFFFF?text=Desenvolvimento',
+        alt: 'Desenvolvimento - Posição',
+        thumbnail: 'https://via.placeholder.com/150x150/EA580C/FFFFFF?text=Desenvolvimento'
+      }
+    ],
+    'elevacao lateral': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/7C2D12/FFFFFF?text=Elevacao+Lateral',
+        alt: 'Elevação Lateral - Movimento',
+        thumbnail: 'https://via.placeholder.com/150x150/7C2D12/FFFFFF?text=Elevacao'
+      }
+    ],
+    'elevação lateral': [
+      {
+        type: 'image',
+        url: 'https://via.placeholder.com/600x400/7C2D12/FFFFFF?text=Elevacao+Lateral',
+        alt: 'Elevação Lateral - Movimento',
+        thumbnail: 'https://via.placeholder.com/150x150/7C2D12/FFFFFF?text=Elevacao'
+      }
+    ],
     
     // Exercícios de braço
-    'rosca direta': { keywords: ['bicep curl', 'barbell curl'], category: 'arms' },
-    'rosca biceps': { keywords: ['bicep curl', 'dumbbell curl'], category: 'arms' },
-    'triceps testa': { keywords: ['skull crusher', 'lying tricep extension'], category: 'arms' },
-    'triceps pulley': { keywords: ['tricep pushdown'], category: 'arms' },
-  };
-
-  // URLs de imagens específicas e confiáveis do Unsplash
-  private readonly FALLBACK_IMAGES: Record<string, ExerciseMedia[]> = {
-    chest: [
+    'rosca direta': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop&q=80',
-        alt: 'Exercício de Peitoral - Demonstração',
-        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop&q=60'
+        url: 'https://via.placeholder.com/600x400/8B5CF6/FFFFFF?text=Rosca+Direta',
+        alt: 'Rosca Direta - Bíceps',
+        thumbnail: 'https://via.placeholder.com/150x150/8B5CF6/FFFFFF?text=Rosca'
       }
     ],
-    back: [
-      {
-        type: 'image', 
-        url: 'https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=600&h=400&fit=crop&q=80',
-        alt: 'Exercício de Costas - Demonstração',
-        thumbnail: 'https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=150&h=150&fit=crop&q=60'
-      }
-    ],
-    legs: [
+    'rosca biceps': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1566241134466-a85a44b8f8a8?w=600&h=400&fit=crop&q=80',
-        alt: 'Exercício de Pernas - Demonstração', 
-        thumbnail: 'https://images.unsplash.com/photo-1566241134466-a85a44b8f8a8?w=150&h=150&fit=crop&q=60'
+        url: 'https://via.placeholder.com/600x400/8B5CF6/FFFFFF?text=Rosca+Biceps',
+        alt: 'Rosca Bíceps - Execução',
+        thumbnail: 'https://via.placeholder.com/150x150/8B5CF6/FFFFFF?text=Biceps'
       }
     ],
-    shoulders: [
+    'triceps': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop&q=80',
-        alt: 'Exercício de Ombros - Demonstração',
-        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop&q=60'
-      }
-    ],
-    arms: [
-      {
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1583500178690-f7bf168ac3d1?w=600&h=400&fit=crop&q=80',
-        alt: 'Exercício de Braços - Demonstração',
-        thumbnail: 'https://images.unsplash.com/photo-1583500178690-f7bf168ac3d1?w=150&h=150&fit=crop&q=60'
-      }
-    ],
-    general: [
-      {
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=600&h=400&fit=crop&q=80',
-        alt: 'Exercício - Demonstração',
-        thumbnail: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=150&h=150&fit=crop&q=60'
+        url: 'https://via.placeholder.com/600x400/EC4899/FFFFFF?text=Triceps+Testa',
+        alt: 'Tríceps Testa - Posição',
+        thumbnail: 'https://via.placeholder.com/150x150/EC4899/FFFFFF?text=Triceps'
       }
     ]
+  };
+
+  // Fallback geral por categoria
+  private readonly CATEGORY_FALLBACKS: Record<string, ExerciseMedia> = {
+    chest: {
+      type: 'image',
+      url: 'https://via.placeholder.com/600x400/3B82F6/FFFFFF?text=Exercicio+de+Peitoral',
+      alt: 'Exercício de Peitoral',
+      thumbnail: 'https://via.placeholder.com/150x150/3B82F6/FFFFFF?text=Peitoral'
+    },
+    back: {
+      type: 'image',
+      url: 'https://via.placeholder.com/600x400/DC2626/FFFFFF?text=Exercicio+de+Costas',
+      alt: 'Exercício de Costas',
+      thumbnail: 'https://via.placeholder.com/150x150/DC2626/FFFFFF?text=Costas'
+    },
+    legs: {
+      type: 'image',
+      url: 'https://via.placeholder.com/600x400/059669/FFFFFF?text=Exercicio+de+Pernas',
+      alt: 'Exercício de Pernas',
+      thumbnail: 'https://via.placeholder.com/150x150/059669/FFFFFF?text=Pernas'
+    },
+    shoulders: {
+      type: 'image',
+      url: 'https://via.placeholder.com/600x400/EA580C/FFFFFF?text=Exercicio+de+Ombros',
+      alt: 'Exercício de Ombros',
+      thumbnail: 'https://via.placeholder.com/150x150/EA580C/FFFFFF?text=Ombros'
+    },
+    arms: {
+      type: 'image',
+      url: 'https://via.placeholder.com/600x400/8B5CF6/FFFFFF?text=Exercicio+de+Bracos',
+      alt: 'Exercício de Braços',
+      thumbnail: 'https://via.placeholder.com/150x150/8B5CF6/FFFFFF?text=Bracos'
+    },
+    general: {
+      type: 'image',
+      url: 'https://via.placeholder.com/600x400/6B7280/FFFFFF?text=Exercicio+Fisico',
+      alt: 'Exercício Físico',
+      thumbnail: 'https://via.placeholder.com/150x150/6B7280/FFFFFF?text=Exercicio'
+    }
   };
   
   async searchExerciseImages(exerciseName: string): Promise<ExerciseMedia[]> {
@@ -108,90 +184,86 @@ class ExerciseImageService {
       return this.exerciseCache.get(cacheKey)!;
     }
     
-    try {
-      // Buscar por categoria do exercício
-      const category = this.getExerciseCategory(exerciseName);
-      
-      // Tentar APIs externas primeiro (simulado por enquanto)
-      const apiImages = await this.tryExternalAPIs(exerciseName);
-      if (apiImages.length > 0) {
-        this.exerciseCache.set(cacheKey, apiImages);
-        return apiImages;
-      }
-      
-      // Usar fallback específico da categoria
-      const fallbackImages = this.FALLBACK_IMAGES[category] || this.FALLBACK_IMAGES.general;
-      
-      // Personalizar as imagens com o nome do exercício
-      const personalizedImages = fallbackImages.map(img => ({
-        ...img,
-        alt: `${exerciseName} - ${img.alt.split(' - ')[1]}`,
-      }));
-      
-      this.exerciseCache.set(cacheKey, personalizedImages);
-      return personalizedImages;
-      
-    } catch (error) {
-      console.warn('Erro ao buscar imagens:', error);
-      return this.FALLBACK_IMAGES.general.map(img => ({
-        ...img,
-        alt: `${exerciseName} - Demonstração`
-      }));
+    console.log(`🔍 Buscando imagens para: ${exerciseName}`);
+    
+    // Primeiro tentar busca exata
+    const exactMatch = this.findExactMatch(exerciseName);
+    if (exactMatch) {
+      console.log(`✅ Encontrada imagem específica para: ${exerciseName}`);
+      this.exerciseCache.set(cacheKey, exactMatch);
+      return exactMatch;
     }
+    
+    // Buscar por palavra-chave
+    const keywordMatch = this.findKeywordMatch(exerciseName);
+    if (keywordMatch) {
+      console.log(`✅ Encontrada imagem por palavra-chave para: ${exerciseName}`);
+      this.exerciseCache.set(cacheKey, keywordMatch);
+      return keywordMatch;
+    }
+    
+    // Usar fallback por categoria
+    const category = this.getExerciseCategory(exerciseName);
+    const fallbackImage = this.CATEGORY_FALLBACKS[category];
+    const result = [{
+      ...fallbackImage,
+      alt: `${exerciseName} - ${fallbackImage.alt}`
+    }];
+    
+    console.log(`📸 Usando imagem de categoria (${category}) para: ${exerciseName}`);
+    this.exerciseCache.set(cacheKey, result);
+    return result;
   }
   
-  private async tryExternalAPIs(exerciseName: string): Promise<ExerciseMedia[]> {
-    // Por enquanto retornamos vazio, mas aqui poderia integrar APIs reais
-    // como ExerciseDB, Wger API, etc.
-    
-    // Simulação de busca bem-sucedida para exercícios comuns
-    const commonExercises: Record<string, ExerciseMedia[]> = {
-      'supino': [
-        {
-          type: 'gif',
-          url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop&q=80',
-          alt: 'Supino - Movimento Completo',
-          thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop&q=60'
-        }
-      ],
-      'agachamento': [
-        {
-          type: 'gif',
-          url: 'https://images.unsplash.com/photo-1566241134466-a85a44b8f8a8?w=600&h=400&fit=crop&q=80', 
-          alt: 'Agachamento - Movimento Completo',
-          thumbnail: 'https://images.unsplash.com/photo-1566241134466-a85a44b8f8a8?w=150&h=150&fit=crop&q=60'
-        }
-      ]
-    };
-    
+  private findExactMatch(exerciseName: string): ExerciseMedia[] | null {
+    const normalizedName = exerciseName.toLowerCase().trim();
+    return this.RELIABLE_IMAGES[normalizedName] || null;
+  }
+  
+  private findKeywordMatch(exerciseName: string): ExerciseMedia[] | null {
     const normalizedName = exerciseName.toLowerCase();
-    return commonExercises[normalizedName] || [];
+    
+    // Buscar por palavras-chave
+    for (const [key, images] of Object.entries(this.RELIABLE_IMAGES)) {
+      if (normalizedName.includes(key) || key.includes(normalizedName)) {
+        return images;
+      }
+    }
+    
+    return null;
   }
   
   private getExerciseCategory(exerciseName: string): string {
     const normalizedName = exerciseName.toLowerCase();
     
-    // Verificar mapeamento direto
-    for (const [exercise, config] of Object.entries(this.EXERCISE_MAPPING)) {
-      if (normalizedName.includes(exercise) || exercise.includes(normalizedName)) {
-        return config.category;
-      }
-    }
-    
-    // Fallback por palavras-chave
-    if (normalizedName.includes('supino') || normalizedName.includes('flexao') || normalizedName.includes('peitoral')) {
+    // Peitoral
+    if (normalizedName.includes('supino') || normalizedName.includes('flexao') || 
+        normalizedName.includes('peitoral') || normalizedName.includes('crucifixo')) {
       return 'chest';
     }
-    if (normalizedName.includes('remada') || normalizedName.includes('puxada') || normalizedName.includes('costas')) {
+    
+    // Costas
+    if (normalizedName.includes('remada') || normalizedName.includes('puxada') || 
+        normalizedName.includes('costas') || normalizedName.includes('pull')) {
       return 'back';
     }
-    if (normalizedName.includes('agachamento') || normalizedName.includes('leg') || normalizedName.includes('coxa')) {
+    
+    // Pernas
+    if (normalizedName.includes('agachamento') || normalizedName.includes('leg') || 
+        normalizedName.includes('coxa') || normalizedName.includes('perna') ||
+        normalizedName.includes('quadriceps') || normalizedName.includes('gluteo')) {
       return 'legs';
     }
-    if (normalizedName.includes('ombro') || normalizedName.includes('desenvolvimento')) {
+    
+    // Ombros
+    if (normalizedName.includes('ombro') || normalizedName.includes('desenvolvimento') ||
+        normalizedName.includes('elevacao') || normalizedName.includes('deltoid')) {
       return 'shoulders';
     }
-    if (normalizedName.includes('rosca') || normalizedName.includes('triceps') || normalizedName.includes('biceps')) {
+    
+    // Braços
+    if (normalizedName.includes('rosca') || normalizedName.includes('triceps') || 
+        normalizedName.includes('biceps') || normalizedName.includes('braco')) {
       return 'arms';
     }
     
