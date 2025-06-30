@@ -171,6 +171,7 @@ const Dashboard = () => {
     setLoading(true);
     await supabase.auth.signOut();
     toast({ title: "Logout realizado", description: "Você foi desconectado." });
+    navigate('/auth');
   };
 
   const hasAccess = hasActiveSubscription || isInTrialPeriod;
