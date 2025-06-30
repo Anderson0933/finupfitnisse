@@ -23,12 +23,8 @@ export const usePasswordReset = () => {
       console.log('=== ENVIANDO EMAIL DE RECUPERAÇÃO ===');
       console.log('Email:', email);
       
-      // Sempre usar a URL de produção
-      const redirectUrl = 'https://fitaipro.cloud/reset-password';
-      console.log('Redirect URL:', redirectUrl);
-      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
+        redirectTo: 'https://fitaipro.cloud/reset-password',
       });
 
       if (error) {
@@ -40,7 +36,7 @@ export const usePasswordReset = () => {
 
       toast({
         title: "Email enviado!",
-        description: "Verifique sua caixa de entrada para redefinir sua senha. Se não receber, verifique o spam.",
+        description: "Verifique sua caixa de entrada para redefinir sua senha. IMPORTANTE: Clique diretamente no botão do email.",
       });
 
       return true;

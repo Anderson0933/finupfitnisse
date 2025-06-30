@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -23,22 +24,31 @@ const ResetPassword = () => {
         console.log('=== VERIFICANDO SESSÃO DE RESET ===');
         console.log('URL atual:', window.location.href);
         console.log('Parâmetros da URL:', window.location.search);
+        console.log('Hash da URL:', window.location.hash);
         
-        // Verificar se há parâmetros de reset na URL
+        // Primeiro, verificar se há tokens no hash (formato fragment)
+        const hash = window.location.hash.substring(1);
+        const hashParams = new URLSearchParams(hash);
+        
+        // Depois verificar parâmetros de query
         const urlParams = new URLSearchParams(window.location.search);
-        const accessToken = urlParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token');
-        const type = urlParams.get('type');
+        
+        // Tentar pegar tokens do hash primeiro, depois da query
+        const accessToken = hashParams.get('access_token') || urlParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || urlParams.get('refresh_token');
+        const type = hashParams.get('type') || urlParams.get('type');
         
         console.log('Parâmetros encontrados:', {
           access_token: accessToken ? 'presente' : 'ausente',
           refresh_token: refreshToken ? 'presente' : 'ausente',
-          type: type
+          type: type,
+          hash: hash,
+          search: window.location.search
         });
         
-        // Se há tokens na URL, tentar fazer login com eles
+        // Se há tokens, tentar fazer login com eles
         if (accessToken && refreshToken && type === 'recovery') {
-          console.log('Tentando fazer login com tokens da URL...');
+          console.log('Tentando fazer login com tokens...');
           
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -56,7 +66,7 @@ const ResetPassword = () => {
           return;
         }
         
-        // Verificar se há uma sessão válida
+        // Verificar se há uma sessão válida existente
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -80,7 +90,8 @@ const ResetPassword = () => {
       }
     };
 
-    checkSession();
+    // Aguardar um pouco para garantir que a URL está completamente carregada
+    setTimeout(checkSession, 100);
   }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -122,10 +133,13 @@ const ResetPassword = () => {
 
       toast({
         title: "Senha atualizada!",
-        description: "Sua senha foi alterada com sucesso.",
+        description: "Sua senha foi alterada com sucesso. Redirecionando para o login...",
       });
 
-      // Redirecionar para login
+      // Fazer logout para limpar a sessão de recovery
+      await supabase.auth.signOut();
+
+      // Redirecionar para login após um delay
       setTimeout(() => {
         navigate('/auth');
       }, 2000);
@@ -148,7 +162,7 @@ const ResetPassword = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
         <div className="text-center text-white">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Verificando...</p>
+          <p>Verificando link de redefinição...</p>
         </div>
       </div>
     );
@@ -177,6 +191,10 @@ const ResetPassword = () => {
               <CardTitle className="text-2xl text-white">Link inválido</CardTitle>
               <CardDescription className="text-blue-200">
                 O link de redefinição expirou ou é inválido.
+                <br />
+                <small className="text-xs text-gray-400 mt-2 block">
+                  Dica: Use o link diretamente do email, não copie e cole a URL.
+                </small>
               </CardDescription>
             </CardHeader>
             
