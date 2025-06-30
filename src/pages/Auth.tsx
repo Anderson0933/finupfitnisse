@@ -67,10 +67,8 @@ const Auth = () => {
           throw new Error('A senha deve ter pelo menos 6 caracteres');
         }
 
-        // Preparar metadados do usuário
         const userMetadata: any = { full_name: fullName };
         
-        // Se há um promoter_code, incluir nos metadados
         if (promoterCode) {
           userMetadata.promoter_code = promoterCode;
           console.log('Cadastrando com promoter_code:', promoterCode);
@@ -116,20 +114,30 @@ const Auth = () => {
     }
 
     try {
-      console.log('Enviando email de recuperação para:', email);
+      console.log('=== ENVIANDO EMAIL DE RECUPERAÇÃO ===');
+      console.log('Email:', email);
+      
+      // URL absoluta fixa para evitar problemas de redirecionamento
+      const redirectUrl = 'https://fitaipro.cloud/reset-password';
+      console.log('Redirect URL:', redirectUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectUrl,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro do Supabase:', error);
+        throw error;
+      }
+
+      console.log('✅ Email de recuperação enviado com sucesso');
 
       toast({
         title: "Email enviado!",
-        description: "Verifique sua caixa de entrada. O link é válido por alguns minutos.",
+        description: "Verifique sua caixa de entrada. O link é válido por alguns minutos. Se não receber, verifique o spam.",
       });
     } catch (error: any) {
-      console.error('Erro ao enviar email:', error);
+      console.error('❌ Erro ao enviar email:', error);
       toast({
         title: "Erro",
         description: error.message || "Erro ao enviar email de recuperação",

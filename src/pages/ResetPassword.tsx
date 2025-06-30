@@ -17,89 +17,92 @@ const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
+  const [diagnosticInfo, setDiagnosticInfo] = useState<string>('');
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const establishSession = async () => {
+    const validateResetToken = async () => {
       try {
-        console.log('=== INICIANDO PROCESSO DE RECOVERY ===');
+        console.log('=== INICIANDO VALIDAÇÃO DE TOKEN ===');
         
         const accessToken = searchParams.get('access_token');
         const refreshToken = searchParams.get('refresh_token');
         const type = searchParams.get('type');
         const tokenHash = searchParams.get('token_hash');
-        const token = searchParams.get('token');
         
         console.log('Parâmetros recebidos:', { 
           type, 
           hasAccess: !!accessToken, 
           hasRefresh: !!refreshToken,
           hasTokenHash: !!tokenHash,
-          hasToken: !!token
+          currentUrl: window.location.href
         });
 
-        // Método 1: Verificar com tokens da URL (método tradicional)
-        if (type === 'recovery' && accessToken && refreshToken) {
-          console.log('Método 1: Usando access_token e refresh_token');
-          
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+        setDiagnosticInfo(`Tipo: ${type}, Token Hash: ${tokenHash ? 'Presente' : 'Ausente'}, Access Token: ${accessToken ? 'Presente' : 'Ausente'}`);
 
-          if (!sessionError && sessionData.session) {
-            console.log('✅ Sessão estabelecida via tokens');
-            setIsValidSession(true);
-            setUserEmail(sessionData.session.user.email || '');
-            return;
-          }
-          
-          console.log('❌ Falha no método 1:', sessionError?.message);
+        // Verificar se é uma URL de recovery válida
+        if (type !== 'recovery') {
+          console.log('❌ Tipo inválido ou ausente');
+          setIsValidSession(false);
+          return;
         }
 
-        // Método 2: Verificar com verifyOtp (mais robusto)
-        if (type === 'recovery' && tokenHash) {
-          console.log('Método 2: Usando verifyOtp com token_hash');
+        // Método principal: verifyOtp com token_hash
+        if (tokenHash) {
+          console.log('🔄 Validando com verifyOtp...');
           
-          const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+          const { data, error } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
             type: 'recovery'
           });
 
-          if (!verifyError && verifyData.session) {
-            console.log('✅ Sessão estabelecida via verifyOtp');
-            setIsValidSession(true);
-            setUserEmail(verifyData.session.user.email || '');
+          if (error) {
+            console.error('❌ Erro verifyOtp:', error.message);
+            
+            // Se o token expirou, tentar método alternativo
+            if (error.message.includes('expired') || error.message.includes('invalid')) {
+              console.log('🔄 Token expirado, tentando método alternativo...');
+              
+              if (accessToken && refreshToken) {
+                const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken,
+                });
+
+                if (!sessionError && sessionData.session) {
+                  console.log('✅ Sessão estabelecida via tokens alternativos');
+                  setIsValidSession(true);
+                  setUserEmail(sessionData.session.user.email || '');
+                  return;
+                }
+              }
+            }
+            
+            setIsValidSession(false);
             return;
           }
-          
-          console.log('❌ Falha no método 2:', verifyError?.message);
+
+          if (data.session && data.user) {
+            console.log('✅ Token válido, sessão estabelecida');
+            setIsValidSession(true);
+            setUserEmail(data.user.email || '');
+            return;
+          }
         }
 
-        // Método 3: Verificar se já há uma sessão ativa
-        console.log('Método 3: Verificando sessão existente');
-        const { data: currentSession } = await supabase.auth.getSession();
-        
-        if (currentSession.session) {
-          console.log('✅ Sessão ativa encontrada');
-          setIsValidSession(true);
-          setUserEmail(currentSession.session.user.email || '');
-          return;
-        }
-
-        // Se chegou até aqui, nenhum método funcionou
-        console.log('❌ Todos os métodos falharam - link inválido ou expirado');
+        // Se chegou até aqui, o token é inválido
+        console.log('❌ Token inválido ou expirado');
         setIsValidSession(false);
 
       } catch (error) {
-        console.error('❌ Erro geral no processo:', error);
+        console.error('❌ Erro geral na validação:', error);
         setIsValidSession(false);
       }
     };
 
-    establishSession();
+    validateResetToken();
   }, [searchParams]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -128,12 +131,12 @@ const ResetPassword = () => {
     try {
       console.log('=== ATUALIZANDO SENHA ===');
       
-      const { data, error } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: password
       });
 
       if (error) {
-        console.error('Erro updateUser:', error);
+        console.error('❌ Erro updateUser:', error);
         throw error;
       }
 
@@ -144,7 +147,6 @@ const ResetPassword = () => {
         description: "Sua senha foi alterada com sucesso. Redirecionando...",
       });
 
-      // Redirecionar após sucesso
       setTimeout(() => {
         navigate('/auth');
       }, 2000);
@@ -162,12 +164,12 @@ const ResetPassword = () => {
     }
   };
 
-  const handleResendLink = async () => {
+  const handleRequestNewLink = async () => {
     if (!userEmail) {
+      navigate('/auth');
       toast({
-        title: "Email não encontrado",
-        description: "Não foi possível identificar seu email. Volte à página de login.",
-        variant: "destructive",
+        title: "Solicite um novo link",
+        description: "Use a opção 'Esqueci minha senha' na página de login.",
       });
       return;
     }
@@ -176,7 +178,7 @@ const ResetPassword = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: 'https://fitaipro.cloud/reset-password',
       });
 
       if (error) throw error;
@@ -198,20 +200,13 @@ const ResetPassword = () => {
     }
   };
 
-  const handleRequestNewLink = () => {
-    navigate('/auth');
-    toast({
-      title: "Solicite um novo link",
-      description: "Use a opção 'Esqueci minha senha' na página de login.",
-    });
-  };
-
   if (isValidSession === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-8">
         <div className="text-center text-white">
           <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
           <p>Verificando link de redefinição...</p>
+          <p className="text-sm text-gray-400 mt-2">{diagnosticInfo}</p>
         </div>
       </div>
     );
@@ -237,18 +232,19 @@ const ResetPassword = () => {
                   <AlertCircle className="h-8 w-8 text-red-400" />
                 </div>
               </div>
-              <CardTitle className="text-2xl text-white">Link expirado</CardTitle>
+              <CardTitle className="text-2xl text-white">Link inválido ou expirado</CardTitle>
               <CardDescription className="text-blue-200">
                 O link de redefinição de senha expirou ou é inválido. 
                 Links têm duração limitada por segurança.
               </CardDescription>
+              <p className="text-xs text-gray-400 mt-2">{diagnosticInfo}</p>
             </CardHeader>
             
             <CardContent>
               <div className="space-y-4">
                 {userEmail && (
                   <Button 
-                    onClick={handleResendLink}
+                    onClick={handleRequestNewLink}
                     disabled={resendLoading}
                     className="w-full h-12 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold"
                   >
@@ -267,18 +263,10 @@ const ResetPassword = () => {
                 )}
                 
                 <Button 
-                  onClick={handleRequestNewLink}
+                  onClick={() => navigate('/auth')}
                   className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"
                 >
                   Solicitar novo link
-                </Button>
-                
-                <Button 
-                  variant="ghost"
-                  onClick={() => navigate('/auth')}
-                  className="w-full text-gray-300 hover:text-white hover:bg-white/10"
-                >
-                  Voltar ao login
                 </Button>
               </div>
             </CardContent>
