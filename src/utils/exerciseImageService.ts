@@ -4,47 +4,47 @@ import { ExerciseMedia } from '@/types/exercise';
 class ExerciseImageService {
   private exerciseCache = new Map<string, ExerciseMedia[]>();
   
-  // GIFs demonstrativos específicos para exercícios
+  // GIFs demonstrativos reais de exercícios
   private readonly EXERCISE_GIFS: Record<string, ExerciseMedia[]> = {
     // Exercícios de peitoral
     'supino': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/3o7TKqnN349PBUtGFO/giphy.gif',
         alt: 'Supino - Demonstração do movimento completo',
-        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/3o7TKqnN349PBUtGFO/200.gif'
       }
     ],
     'supino reto': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
         alt: 'Supino Reto - Execução com barra, movimento de descida e subida',
-        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/200.gif'
       }
     ],
     'supino inclinado': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/3o6ZtpxSZbQRRnwCKQ/giphy.gif',
         alt: 'Supino Inclinado - Ângulo de 45°, movimento controlado',
-        thumbnail: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/3o6ZtpxSZbQRRnwCKQ/200.gif'
       }
     ],
     'flexao': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/giphy.gif',
         alt: 'Flexão - Movimento de descida e subida, corpo alinhado',
-        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/200.gif'
       }
     ],
     'flexão': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/giphy.gif',
         alt: 'Flexão de Braço - Cadência controlada, 2 segundos para descer',
-        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/200.gif'
       }
     ],
     
@@ -52,17 +52,17 @@ class ExerciseImageService {
     'remada': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/l0HlPystfePnAI3G8/giphy.gif',
         alt: 'Remada - Puxada com cotovelos junto ao corpo, escápulas unidas',
-        thumbnail: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/l0HlPystfePnAI3G8/200.gif'
       }
     ],
     'puxada': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif',
         alt: 'Puxada - Movimento amplo, ativação do latíssimo do dorso',
-        thumbnail: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/26tn33aiTi1jkl6H6/200.gif'
       }
     ],
     
@@ -70,17 +70,17 @@ class ExerciseImageService {
     'agachamento': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
         alt: 'Agachamento - Descida até 90°, joelhos alinhados com os pés',
-        thumbnail: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/200.gif'
       }
     ],
     'leg press': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/giphy.gif',
         alt: 'Leg Press - Movimento completo, pés na largura dos ombros',
-        thumbnail: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/200.gif'
       }
     ],
     
@@ -88,25 +88,25 @@ class ExerciseImageService {
     'desenvolvimento': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif',
         alt: 'Desenvolvimento - Movimento vertical, ombros estabilizados',
-        thumbnail: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/200.gif'
       }
     ],
     'elevacao lateral': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/3oKIPfnmN9NEqiMUDu/giphy.gif',
         alt: 'Elevação Lateral - Movimento controlado até a altura dos ombros',
-        thumbnail: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/3oKIPfnmN9NEqiMUDu/200.gif'
       }
     ],
     'elevação lateral': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/3oKIPfnmN9NEqiMUDu/giphy.gif',
         alt: 'Elevação Lateral - Evitar usar o impulso, movimento isolado',
-        thumbnail: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/3oKIPfnmN9NEqiMUDu/200.gif'
       }
     ],
     
@@ -114,30 +114,30 @@ class ExerciseImageService {
     'rosca direta': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/giphy.gif',
         alt: 'Rosca Direta - Flexão do bíceps, cotovelos fixos',
-        thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/200.gif'
       }
     ],
     'rosca biceps': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/giphy.gif',
         alt: 'Rosca Bíceps - Contração máxima no topo do movimento',
-        thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/200.gif'
       }
     ],
     'triceps': [
       {
         type: 'gif',
-        url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
+        url: 'https://media.giphy.com/media/3oKIPnKuS9W7IjNkFO/giphy.gif',
         alt: 'Tríceps - Extensão completa, movimento controlado',
-        thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
+        thumbnail: 'https://media.giphy.com/media/3oKIPnKuS9W7IjNkFO/200.gif'
       }
     ]
   };
 
-  // Mapeamento de palavras-chave para demonstrações por categoria
+  // Mapeamento de palavras-chave para GIFs por categoria
   private readonly KEYWORD_MAPPING: Record<string, string> = {
     // Peitoral
     'supino': 'chest',
@@ -179,52 +179,52 @@ class ExerciseImageService {
     'braço': 'arms'
   };
 
-  // GIFs demonstrativos por categoria muscular
+  // GIFs demonstrativos por categoria muscular (URLs do Giphy)
   private readonly CATEGORY_GIFS: Record<string, ExerciseMedia> = {
     chest: {
       type: 'gif',
-      url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+      url: 'https://media.giphy.com/media/3o7TKqnN349PBUtGFO/giphy.gif',
       alt: 'Exercício de Peitoral - Demonstração dos movimentos básicos',
-      thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+      thumbnail: 'https://media.giphy.com/media/3o7TKqnN349PBUtGFO/200.gif'
     },
     back: {
       type: 'gif',
-      url: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=600&h=400&fit=crop',
+      url: 'https://media.giphy.com/media/l0HlPystfePnAI3G8/giphy.gif',
       alt: 'Exercício de Costas - Demonstração da técnica correta',
-      thumbnail: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=150&h=150&fit=crop'
+      thumbnail: 'https://media.giphy.com/media/l0HlPystfePnAI3G8/200.gif'
     },
     legs: {
       type: 'gif',
-      url: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=600&h=400&fit=crop',
+      url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
       alt: 'Exercício de Pernas - Demonstração do movimento completo',
-      thumbnail: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=150&h=150&fit=crop'
+      thumbnail: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/200.gif'
     },
     shoulders: {
       type: 'gif',
-      url: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=600&h=400&fit=crop',
+      url: 'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif',
       alt: 'Exercício de Ombros - Demonstração da amplitude correta',
-      thumbnail: 'https://images.unsplash.com/photo-1583500178690-f7fd1d14d2ad?w=150&h=150&fit=crop'
+      thumbnail: 'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/200.gif'
     },
     arms: {
       type: 'gif',
-      url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
+      url: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/giphy.gif',
       alt: 'Exercício de Braços - Demonstração da execução perfeita',
-      thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
+      thumbnail: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/200.gif'
     },
     general: {
       type: 'gif',
-      url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+      url: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/giphy.gif',
       alt: 'Demonstração de Exercício - Forma e técnica corretas',
-      thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+      thumbnail: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/200.gif'
     }
   };
 
-  // Fallback final confiável
+  // Fallback final com GIF genérico de exercício
   private readonly FINAL_FALLBACK: ExerciseMedia = {
     type: 'gif',
-    url: 'https://via.placeholder.com/600x400/3b82f6/ffffff?text=Demonstracao+do+Exercicio',
+    url: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/giphy.gif',
     alt: 'Demonstração do Exercício - Como executar corretamente',
-    thumbnail: 'https://via.placeholder.com/150x150/3b82f6/ffffff?text=Demo'
+    thumbnail: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/200.gif'
   };
   
   async searchExerciseImages(exerciseName: string): Promise<ExerciseMedia[]> {
@@ -235,7 +235,7 @@ class ExerciseImageService {
       return this.exerciseCache.get(cacheKey)!;
     }
     
-    console.log(`🎬 Buscando demonstração em GIF para: ${exerciseName}`);
+    console.log(`🎬 Buscando GIF demonstrativo para: ${exerciseName}`);
     
     try {
       // 1. Busca exata no nome do exercício
@@ -268,7 +268,7 @@ class ExerciseImageService {
         return result;
       }
       
-      // 4. Fallback final
+      // 4. Fallback final com GIF genérico
       const finalResult = [{
         ...this.FINAL_FALLBACK,
         alt: `${exerciseName} - Demonstração da execução correta`
