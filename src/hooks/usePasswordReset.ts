@@ -23,7 +23,8 @@ export const usePasswordReset = () => {
       console.log('=== ENVIANDO EMAIL DE RECUPERAÇÃO ===');
       console.log('Email:', email);
       
-      const redirectUrl = 'https://fitaipro.cloud/reset-password';
+      // Usar a URL atual do projeto
+      const redirectUrl = `${window.location.origin}/reset-password`;
       console.log('Redirect URL:', redirectUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
