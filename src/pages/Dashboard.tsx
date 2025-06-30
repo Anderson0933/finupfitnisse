@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -20,19 +21,23 @@ import OnboardingTour from '@/components/onboarding/OnboardingTour';
 import OnboardingChecklist from '@/components/onboarding/OnboardingChecklist';
 import ContextualTips from '@/components/onboarding/ContextualTips';
 import ChallengeCenter from '@/components/ChallengeCenter';
+import { useAuth } from '@/hooks/useAuth';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
-  const [isPromoter, setIsPromoter] = useState(false);
-  const [isInTrialPeriod, setIsInTrialPeriod] = useState(false);
-  const [isExPromoter, setIsExPromoter] = useState(false);
-  const [exPromoterDeactivatedAt, setExPromoterDeactivatedAt] = useState<Date | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { 
+    user, 
+    session, 
+    isLoading, 
+    isAdmin, 
+    isPromoter, 
+    hasPremiumAccess, 
+    signOut,
+    refreshPermissions 
+  } = useAuth();
 
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [activeTab, setActiveTab] = useState<string>('workout');
@@ -49,192 +54,71 @@ const Dashboard = () => {
   } = useOnboarding(user);
 
   useEffect(() => {
-    const initialTab = workoutPlan ? 'workout' : 'workout';
-    setActiveTab(initialTab);
-  }, [workoutPlan]);
+    if (!isLoading && !user) {
+      console.log('🚫 Usuário não logado, redirecionando...');
+      navigate('/auth');
+      return;
+    }
 
-  useEffect(() => {
-    const initializeDashboard = async () => {
-      setLoading(true);
-      console.log('🔄 Inicializando Dashboard...');
+    if (user) {
+      console.log(`👤 Usuário logado: ${user.email}`);
+      console.log(`🔐 Status de acesso:`, {
+        isAdmin,
+        isPromoter,
+        hasPremiumAccess,
+        hasAccess: hasPremiumAccess
+      });
 
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Erro ao buscar sessão:', sessionError);
-        toast({ title: "Erro de Sessão", description: "Não foi possível verificar sua sessão.", variant: "destructive" });
-        navigate('/auth');
-        setLoading(false);
-        return;
-      }
-
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      if (!currentUser) {
-        console.log('🚫 Usuário não logado, redirecionando...');
-        navigate('/auth');
-        setLoading(false);
-        return;
-      }
-
-      console.log(`👤 Usuário logado: ${currentUser.email}`);
-
-      try {
-        // Verificar status de promoter (ativo ou inativo)
-        console.log('🎯 Verificando status de promoter...');
-        const { data: promoterData } = await supabase
-          .from('promoters')
-          .select('status, deactivated_at')
-          .eq('user_id', currentUser.id)
-          .maybeSingle();
-
-        if (promoterData) {
-          if (promoterData.status === 'active') {
-            console.log('✅ Usuário é promoter ativo - acesso gratuito permanente');
-            setIsPromoter(true);
-            setIsExPromoter(false);
-            setHasActiveSubscription(false);
-            setIsInTrialPeriod(false);
-          } else if (promoterData.status === 'inactive' && promoterData.deactivated_at) {
-            console.log('⚠️ Usuário é ex-promoter, verificando período de carência...');
-            const deactivatedAt = new Date(promoterData.deactivated_at);
-            const now = new Date();
-            const hoursSinceDeactivation = (now.getTime() - deactivatedAt.getTime()) / (1000 * 60 * 60);
-
-            setIsPromoter(false);
-            setIsExPromoter(true);
-            setExPromoterDeactivatedAt(deactivatedAt);
-
-            if (hoursSinceDeactivation <= 24) {
-              console.log('🎉 Ex-promoter ainda em período de carência (24h)');
-              setIsInTrialPeriod(true);
-              setHasActiveSubscription(false);
-            } else {
-              console.log('❌ Ex-promoter fora do período de carência');
-              setIsInTrialPeriod(false);
-              setHasActiveSubscription(false);
-            }
-          }
-        } else {
-          console.log('🔍 Verificando assinatura e período de teste...');
-          setIsPromoter(false);
-          setIsExPromoter(false);
-          
-          const { data: subscription } = await supabase
-            .from('subscriptions')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .eq('status', 'active')
-            .gte('expires_at', new Date().toISOString())
+      // Buscar plano de treino salvo
+      const fetchWorkoutPlan = async () => {
+        try {
+          console.log('🏋️ Buscando plano de treino salvo...');
+          const { data: savedPlanData, error: planError } = await supabase
+            .from('user_workout_plans')
+            .select('plan_data')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
             .maybeSingle();
 
-          if (subscription) {
-            console.log('✅ Assinatura ativa encontrada.');
-            setHasActiveSubscription(true);
-            setIsInTrialPeriod(false);
-          } else {
-            console.log('⏳ Sem assinatura ativa, verificando período de teste...');
-            const userCreatedAt = new Date(currentUser.created_at);
-            const oneDayLater = new Date(userCreatedAt.getTime() + 24 * 60 * 60 * 1000);
-            const now = new Date();
-
-            if (now <= oneDayLater) {
-              console.log('🎉 Usuário em período de teste.');
-              setIsInTrialPeriod(true);
-              setHasActiveSubscription(false);
+          if (planError) {
+            console.error('❌ Erro ao buscar plano de treino:', planError);
+            toast({ title: "Erro ao Carregar Plano", description: "Não foi possível buscar seu plano salvo.", variant: "destructive" });
+          } else if (savedPlanData && savedPlanData.plan_data) {
+            console.log('✅ Plano de treino salvo encontrado!');
+            if (typeof savedPlanData.plan_data === 'object' && savedPlanData.plan_data !== null && 'title' in savedPlanData.plan_data) {
+               setWorkoutPlan(savedPlanData.plan_data as unknown as WorkoutPlan);
             } else {
-              console.log('❌ Período de teste expirado.');
-              setIsInTrialPeriod(false);
-              setHasActiveSubscription(false);
+               console.warn('⚠️ Formato inválido para plan_data encontrado no DB.');
+               setWorkoutPlan(null);
             }
-          }
-        }
-
-        console.log('🏋️ Buscando plano de treino salvo...');
-        const { data: savedPlanData, error: planError } = await supabase
-          .from('user_workout_plans')
-          .select('plan_data')
-          .eq('user_id', currentUser.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (planError) {
-          console.error('❌ Erro ao buscar plano de treino:', planError);
-          toast({ title: "Erro ao Carregar Plano", description: "Não foi possível buscar seu plano salvo.", variant: "destructive" });
-        } else if (savedPlanData && savedPlanData.plan_data) {
-          console.log('✅ Plano de treino salvo encontrado!');
-          if (typeof savedPlanData.plan_data === 'object' && savedPlanData.plan_data !== null && 'title' in savedPlanData.plan_data) {
-             setWorkoutPlan(savedPlanData.plan_data as unknown as WorkoutPlan);
           } else {
-             console.warn('⚠️ Formato inválido para plan_data encontrado no DB.');
-             setWorkoutPlan(null);
+            console.log('📄 Nenhum plano de treino salvo encontrado.');
+            setWorkoutPlan(null);
           }
-        } else {
-          console.log('📄 Nenhum plano de treino salvo encontrado.');
-          setWorkoutPlan(null);
+        } catch (error: any) {
+          console.error('💥 Erro ao buscar plano de treino:', error);
         }
+      };
 
-      } catch (error: any) {
-        console.error('💥 Erro durante inicialização do Dashboard:', error);
-        toast({ title: "Erro Inesperado", description: "Ocorreu um erro ao carregar seus dados.", variant: "destructive" });
-      }
-
-      setLoading(false);
-      console.log('✅ Dashboard inicializado.');
-    };
-
-    initializeDashboard();
-
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        const newAuthUser = session?.user ?? null;
-        setUser(newAuthUser);
-        if (!newAuthUser) {
-          console.log('🚪 Usuário deslogado via listener, redirecionando...');
-          setWorkoutPlan(null);
-          setHasActiveSubscription(false);
-          setIsPromoter(false);
-          setIsInTrialPeriod(false);
-          setIsExPromoter(false);
-          setExPromoterDeactivatedAt(null);
-          navigate('/auth');
-        } else if (_event === 'SIGNED_IN' && !user) {
-           console.log('👤 Usuário logado via listener, reinicializando...');
-           initializeDashboard();
-        }
-      }
-    );
-
-    return () => {
-      authSubscription?.unsubscribe();
-      console.log('🧹 Listener de autenticação removido.');
-    };
-  }, [navigate]); 
+      fetchWorkoutPlan();
+    }
+  }, [user, isLoading, isAdmin, isPromoter, hasPremiumAccess, navigate, toast]);
 
   const handleSignOut = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
+    await signOut();
     toast({ title: "Logout realizado", description: "Você foi desconectado." });
     navigate('/auth');
   };
 
-  const hasAccess = hasActiveSubscription || isInTrialPeriod || isPromoter;
-
   const getStatusInfo = () => {
+    if (isAdmin) {
+      return { text: "👑 Master Admin", bgColor: "bg-yellow-100", textColor: "text-yellow-700" };
+    }
     if (isPromoter) {
       return { text: "⭐ Promoter", bgColor: "bg-purple-100", textColor: "text-purple-700" };
     }
-    if (isExPromoter && isInTrialPeriod) {
-      const hoursLeft = exPromoterDeactivatedAt ? 
-        Math.max(0, 24 - Math.floor((new Date().getTime() - exPromoterDeactivatedAt.getTime()) / (1000 * 60 * 60))) : 0;
-      return { text: `⏰ Carência (${hoursLeft}h restantes)`, bgColor: "bg-orange-100", textColor: "text-orange-700" };
-    }
-    if (isInTrialPeriod && !hasActiveSubscription && !isPromoter) {
-      return { text: "🎉 Gratuito", bgColor: "bg-blue-100", textColor: "text-blue-700" };
-    }
-    if (hasActiveSubscription) {
+    if (hasPremiumAccess) {
       return { text: "✅ Plano Ativo", bgColor: "bg-green-100", textColor: "text-green-700" };
     }
     return { text: "⚠️ Bloqueado", bgColor: "bg-red-100", textColor: "text-red-700" };
@@ -243,7 +127,7 @@ const Dashboard = () => {
   const statusInfo = getStatusInfo();
 
   const LockedFeature = ({ children, title }: { children: React.ReactNode, title: string }) => {
-    if (hasAccess) {
+    if (hasPremiumAccess) {
       return <>{children}</>;
     }
     return (
@@ -280,7 +164,7 @@ const Dashboard = () => {
     setActiveTab('nutrition');
   };
 
-  if (loading || isLoadingOnboarding) {
+  if (isLoading || isLoadingOnboarding) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
@@ -290,8 +174,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  const defaultMainTab = workoutPlan ? 'workout' : 'workout';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
@@ -307,7 +189,7 @@ const Dashboard = () => {
         onSwitchTab={setActiveTab}
         dismissedTips={onboardingState?.dismissed_contextual_tips || []}
         onDismissTip={dismissContextualTip}
-        isEnabled={hasAccess}
+        isEnabled={hasPremiumAccess}
       />
 
       <header className="border-b border-blue-200 bg-white/90 backdrop-blur-xl shadow-sm sticky top-0 z-10">
@@ -352,10 +234,10 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg md:text-2xl font-bold text-blue-800 mb-2">
-                    {hasAccess ? "Bem-vindo ao seu centro de fitness!" : "Acesso Bloqueado"}
+                    {hasPremiumAccess ? "Bem-vindo ao seu centro de fitness!" : "Acesso Bloqueado"}
                   </h2>
                   <p className="text-blue-600 text-sm md:text-base">
-                    {hasAccess ? "Explore nossos assistentes de IA para transformar seus objetivos em resultados" : "Sua assinatura expirou ou o período de teste acabou. Renove para continuar."}
+                    {hasPremiumAccess ? "Explore nossos assistentes de IA para transformar seus objetivos em resultados" : "Sua assinatura expirou ou o período de teste acabou. Renove para continuar."}
                   </p>
                   <div className="mt-2 md:hidden">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusInfo.bgColor} ${statusInfo.textColor}`}>
@@ -364,14 +246,14 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="hidden md:block">
-                  <UserAvatar user={user} hasAccess={hasAccess} />
+                  <UserAvatar user={user} hasAccess={hasPremiumAccess} />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {hasAccess && shouldShowChecklist && (
+        {hasPremiumAccess && shouldShowChecklist && (
           <div className="mb-6 md:mb-8">
             <OnboardingChecklist
               user={user}
@@ -384,7 +266,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {hasAccess && (
+        {hasPremiumAccess && (
           <div className="mb-6 md:mb-8">
             <DailyTip />
           </div>
@@ -396,67 +278,66 @@ const Dashboard = () => {
               value="workout" 
               data-value="workout"
               className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-blue-50 text-blue-700 group" 
-              disabled={!hasAccess}
+              disabled={!hasPremiumAccess}
             >
               <Dumbbell className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
               <span className="text-xs md:text-sm font-semibold">Treinos</span> 
-              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
+              {!hasPremiumAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
             
             <TabsTrigger 
               value="assistant" 
               data-value="assistant"
               className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-purple-50 text-purple-700 group" 
-              disabled={!hasAccess}
+              disabled={!hasPremiumAccess}
             >
               <MessageCircle className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
               <span className="text-xs md:text-sm font-semibold">Assistente</span> 
-              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
+              {!hasPremiumAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
             
             <TabsTrigger 
               value="progress" 
               data-value="progress"
               className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-green-50 text-green-700 group" 
-              disabled={!hasAccess}
+              disabled={!hasPremiumAccess}
             >
               <TrendingUp className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
               <span className="text-xs md:text-sm font-semibold">Evolução</span> 
-              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
+              {!hasPremiumAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
             
             <TabsTrigger 
               value="nutrition" 
               data-value="nutrition"
               className="relative flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-emerald-50 text-emerald-700 group" 
-              disabled={!hasAccess}
+              disabled={!hasPremiumAccess}
             >
               <Apple className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
               <span className="text-xs md:text-sm font-semibold">Nutrição</span> 
-              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
+              {!hasPremiumAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
             
-            {/* Aba Fórum - apenas desktop */}
             <TabsTrigger 
               value="forum" 
               data-value="forum"
               className="hidden lg:flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-indigo-50 text-indigo-700 group" 
-              disabled={!hasAccess}
+              disabled={!hasPremiumAccess}
             >
               <Users className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
               <span className="text-xs md:text-sm font-semibold">Fórum</span> 
-              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
+              {!hasPremiumAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
             
             <TabsTrigger 
               value="faq" 
               data-value="faq"
               className="flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-violet-50 text-violet-700 group" 
-              disabled={!hasAccess}
+              disabled={!hasPremiumAccess}
             >
               <HelpCircle className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
               <span className="text-xs md:text-sm font-semibold">Dúvidas</span> 
-              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
+              {!hasPremiumAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
             
             <TabsTrigger 
@@ -468,16 +349,15 @@ const Dashboard = () => {
               <span className="text-xs md:text-sm font-semibold">Pagamento</span>
             </TabsTrigger>
 
-             {/* Aba Desafios - apenas desktop */}
-             <TabsTrigger 
+            <TabsTrigger 
               value="challenges" 
               data-value="challenges"
               className="relative hidden lg:flex flex-col md:flex-row items-center gap-1 md:gap-2 p-3 md:p-4 rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-yellow-50 text-yellow-700 group" 
-              disabled={!hasAccess}
+              disabled={!hasPremiumAccess}
             >
               <Trophy className="h-4 w-4 md:h-5 md:w-5 group-data-[state=active]:text-white transition-colors" /> 
               <span className="text-xs md:text-sm font-semibold">Desafios</span> 
-              {!hasAccess && <Lock className="h-3 w-3 opacity-50" />}
+              {!hasPremiumAccess && <Lock className="h-3 w-3 opacity-50" />}
             </TabsTrigger>
           </TabsList>
 
@@ -522,7 +402,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="payment">
-            <PaymentManager user={user} hasActiveSubscription={hasActiveSubscription} />
+            <PaymentManager user={user} hasActiveSubscription={hasPremiumAccess} />
           </TabsContent>
           
           <TabsContent value="forum">
