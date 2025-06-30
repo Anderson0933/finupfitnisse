@@ -1,3 +1,4 @@
+
 import { ExerciseMedia } from '@/types/exercise';
 
 class ExerciseImageService {
@@ -9,41 +10,41 @@ class ExerciseImageService {
     'supino': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop&auto=format',
         alt: 'Supino Reto - Posição Inicial',
-        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'supino reto': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop&auto=format',
         alt: 'Supino Reto - Movimento',
-        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'supino inclinado': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1584380931214-dbb5b72e6232?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1584380931214-dbb5b72e6232?w=600&h=400&fit=crop&auto=format',
         alt: 'Supino Inclinado - Posição',
-        thumbnail: 'https://images.unsplash.com/photo-1584380931214-dbb5b72e6232?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1584380931214-dbb5b72e6232?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'flexao': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop&auto=format',
         alt: 'Flexão de Braço - Execução',
-        thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'flexão': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop&auto=format',
         alt: 'Flexão de Braço - Execução',
-        thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop&auto=format'
       }
     ],
     
@@ -51,17 +52,17 @@ class ExerciseImageService {
     'remada': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop&auto=format',
         alt: 'Remada Curvada - Posição',
-        thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'puxada': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=600&h=400&fit=crop&auto=format',
         alt: 'Puxada Frontal - Execução',
-        thumbnail: 'https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=150&h=150&fit=crop&auto=format'
       }
     ],
     
@@ -69,17 +70,17 @@ class ExerciseImageService {
     'agachamento': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=600&h=400&fit=crop&auto=format',
         alt: 'Agachamento Livre - Movimento',
-        thumbnail: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'leg press': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=600&h=400&fit=crop&auto=format',
         alt: 'Leg Press - Execução',
-        thumbnail: 'https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=150&h=150&fit=crop&auto=format'
       }
     ],
     
@@ -87,25 +88,25 @@ class ExerciseImageService {
     'desenvolvimento': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop&auto=format',
         alt: 'Desenvolvimento - Posição',
-        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'elevacao lateral': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop&auto=format',
         alt: 'Elevação Lateral - Movimento',
-        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'elevação lateral': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop&auto=format',
         alt: 'Elevação Lateral - Movimento',
-        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop&auto=format'
       }
     ],
     
@@ -113,25 +114,25 @@ class ExerciseImageService {
     'rosca direta': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop&auto=format',
         alt: 'Rosca Direta - Bíceps',
-        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'rosca biceps': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop&auto=format',
         alt: 'Rosca Bíceps - Execução',
-        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop&auto=format'
       }
     ],
     'triceps': [
       {
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop',
+        url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop&auto=format',
         alt: 'Tríceps Testa - Posição',
-        thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop'
+        thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop&auto=format'
       }
     ]
   };
@@ -140,48 +141,48 @@ class ExerciseImageService {
   private readonly CATEGORY_FALLBACKS: Record<string, ExerciseMedia> = {
     chest: {
       type: 'image',
-      url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+      url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop&auto=format',
       alt: 'Exercício de Peitoral',
-      thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+      thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop&auto=format'
     },
     back: {
       type: 'image',
-      url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop',
+      url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop&auto=format',
       alt: 'Exercício de Costas',
-      thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop'
+      thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop&auto=format'
     },
     legs: {
       type: 'image',
-      url: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=600&h=400&fit=crop',
+      url: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=600&h=400&fit=crop&auto=format',
       alt: 'Exercício de Pernas',
-      thumbnail: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=150&h=150&fit=crop'
+      thumbnail: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=150&h=150&fit=crop&auto=format'
     },
     shoulders: {
       type: 'image',
-      url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
+      url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop&auto=format',
       alt: 'Exercício de Ombros',
-      thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
+      thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop&auto=format'
     },
     arms: {
       type: 'image',
-      url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
+      url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop&auto=format',
       alt: 'Exercício de Braços',
-      thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
+      thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop&auto=format'
     },
     general: {
       type: 'image',
-      url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+      url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop&auto=format',
       alt: 'Exercício Físico',
-      thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
+      thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop&auto=format'
     }
   };
 
-  // Fallback final sempre funcional
+  // Fallback final sempre funcional - usando uma imagem simples e confiável
   private readonly FINAL_FALLBACK: ExerciseMedia = {
     type: 'image',
-    url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNTAgMTUwSDM1MFYyNTBIMjUwVjE1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHRLEHT+",
+    url: 'https://via.placeholder.com/600x400/f3f4f6/9ca3af?text=Exercicio',
     alt: 'Exercício',
-    thumbnail: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik02MCA2MEg5MFY5MEg2MFY2MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHRLEHT+
+    thumbnail: 'https://via.placeholder.com/150x150/f3f4f6/9ca3af?text=Ex'
   };
   
   async searchExerciseImages(exerciseName: string): Promise<ExerciseMedia[]> {
