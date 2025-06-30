@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -75,32 +74,36 @@ const AdminPromoterManager = () => {
 
   const fetchAvailableUsers = async () => {
     try {
-      // Buscar usuários que não são promoters
-      const { data: usersData, error: usersError } = await supabase
+      console.log('🔍 Buscando usuários disponíveis para promoção...');
+      
+      // Buscar todos os perfis de usuários
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name')
-        .not('id', 'in', `(${promoters.map(p => `'${p.user_id}'`).join(',') || "'00000000-0000-0000-0000-000000000000'"})`);
+        .select('id, full_name');
 
-      if (usersError) throw usersError;
-
-      // Buscar dados dos usuários do auth
-      const userIds = usersData?.map(u => u.id) || [];
-      if (userIds.length === 0) {
-        setAvailableUsers([]);
-        return;
+      if (profilesError) {
+        console.error('Erro ao buscar profiles:', profilesError);
+        throw profilesError;
       }
 
-      // Como não podemos acessar auth.users diretamente, vamos usar apenas os dados do profiles
-      const availableUsersList: AvailableUser[] = (usersData || [])
-        .filter(user => !promoters.some(p => p.user_id === user.id))
-        .map(user => ({
-          id: user.id,
-          email: `user-${user.id.slice(0, 8)}@...`, // Placeholder já que não temos acesso ao email
-          full_name: user.full_name || 'Nome não disponível',
+      console.log('📋 Perfis encontrados:', profilesData?.length || 0);
+
+      // Filtrar usuários que não são promoters
+      const promoterUserIds = promoters.map(p => p.user_id).filter(Boolean);
+      console.log('🚫 IDs de promoters a excluir:', promoterUserIds);
+
+      const availableUsersList: AvailableUser[] = (profilesData || [])
+        .filter(profile => !promoterUserIds.includes(profile.id))
+        .map(profile => ({
+          id: profile.id,
+          email: `user-${profile.id.slice(0, 8)}@...`, // Placeholder, pois não temos acesso direto ao email
+          full_name: profile.full_name || 'Nome não disponível',
           created_at: new Date().toISOString(),
         }));
 
+      console.log('✅ Usuários disponíveis:', availableUsersList.length);
       setAvailableUsers(availableUsersList);
+
     } catch (error: any) {
       console.error('Erro ao buscar usuários disponíveis:', error);
       toast({
@@ -108,6 +111,7 @@ const AdminPromoterManager = () => {
         description: "Não foi possível carregar os usuários disponíveis",
         variant: "destructive",
       });
+      setAvailableUsers([]);
     }
   };
 
@@ -121,9 +125,7 @@ const AdminPromoterManager = () => {
   }, []);
 
   useEffect(() => {
-    if (promoters.length > 0) {
-      fetchAvailableUsers();
-    }
+    fetchAvailableUsers();
   }, [promoters]);
 
   const handleCreatePromoter = async (e: React.FormEvent) => {
@@ -201,7 +203,7 @@ const AdminPromoterManager = () => {
       const { error } = await supabase
         .from('promoters')
         .insert({
-          email: `user-${userId.slice(0, 8)}@system.local`, // Email placeholder
+          email: profileData?.id ? `user-${profileData.id.slice(0, 8)}@system.local` : 'unknown@system.local',
           full_name: profileData?.full_name || 'Usuário Promovido',
           user_id: userId,
           status: 'active',
@@ -216,7 +218,6 @@ const AdminPromoterManager = () => {
       });
       
       fetchPromoters();
-      fetchAvailableUsers();
     } catch (error: any) {
       console.error('Erro ao promover usuário:', error);
       toast({
@@ -254,10 +255,14 @@ const AdminPromoterManager = () => {
     }
   };
 
-  const filteredUsers = availableUsers.filter(user => 
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar usuários baseado no termo de busca
+  const filteredUsers = availableUsers.filter(user => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      user.full_name?.toLowerCase().includes(searchLower) ||
+      user.id.toLowerCase().includes(searchLower)
+    );
+  });
 
   if (loading && promoters.length === 0) {
     return (
@@ -373,16 +378,28 @@ const AdminPromoterManager = () => {
               <div className="flex items-center space-x-2">
                 <Search className="h-4 w-4" />
                 <Input
-                  placeholder="Buscar por nome ou email..."
+                  placeholder="Buscar por nome ou ID do usuário..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="max-w-sm"
                 />
+                <Button 
+                  onClick={fetchAvailableUsers}
+                  variant="outline"
+                  size="sm"
+                >
+                  Atualizar Lista
+                </Button>
               </div>
 
               {filteredUsers.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  {searchTerm ? 'Nenhum usuário encontrado com esse termo.' : 'Nenhum usuário disponível para promoção.'}
+                  {searchTerm 
+                    ? 'Nenhum usuário encontrado com esse termo.' 
+                    : availableUsers.length === 0 
+                      ? 'Nenhum usuário disponível para promoção.'
+                      : 'Digite um termo para buscar usuários.'
+                  }
                 </div>
               ) : (
                 <Table>
