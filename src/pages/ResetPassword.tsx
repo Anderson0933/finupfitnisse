@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Dumbbell, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
 const ResetPassword = () => {
@@ -15,27 +15,79 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Verificar se há uma sessão válida para reset de senha
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsValidSession(true);
+      setIsCheckingSession(true);
+      
+      // Verificar se há parâmetros de reset na URL
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
+      const type = searchParams.get('type');
+      
+      console.log('Verificando sessão de reset...', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+      
+      if (type === 'recovery' && accessToken && refreshToken) {
+        try {
+          // Estabelecer sessão com os tokens do link de recovery
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          
+          console.log('Resultado do setSession:', { data, error });
+          
+          if (error) {
+            console.error('Erro ao estabelecer sessão:', error);
+            throw error;
+          }
+          
+          if (data.session) {
+            console.log('Sessão estabelecida com sucesso');
+            setIsValidSession(true);
+          } else {
+            throw new Error('Não foi possível estabelecer a sessão');
+          }
+        } catch (error: any) {
+          console.error('Erro na verificação de sessão:', error);
+          toast({
+            title: "Link inválido ou expirado",
+            description: "Por favor, solicite um novo link de redefinição de senha.",
+            variant: "destructive",
+          });
+          navigate('/auth');
+        }
       } else {
-        toast({
-          title: "Link inválido ou expirado",
-          description: "Por favor, solicite um novo link de redefinição de senha.",
-          variant: "destructive",
-        });
-        navigate('/auth');
+        // Verificar se há uma sessão existente
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Erro ao verificar sessão existente:', error);
+        }
+        
+        if (session) {
+          console.log('Sessão existente encontrada');
+          setIsValidSession(true);
+        } else {
+          console.log('Nenhuma sessão encontrada, redirecionando...');
+          toast({
+            title: "Link inválido ou expirado",
+            description: "Por favor, solicite um novo link de redefinição de senha.",
+            variant: "destructive",
+          });
+          navigate('/auth');
+        }
       }
+      
+      setIsCheckingSession(false);
     };
 
     checkSession();
-  }, [navigate, toast]);
+  }, [navigate, toast, searchParams]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,26 +113,36 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
+      console.log('Tentando atualizar senha...');
+      
       const { error } = await supabase.auth.updateUser({
         password: password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao atualizar senha:', error);
+        throw error;
+      }
+
+      console.log('Senha atualizada com sucesso');
 
       toast({
         title: "Senha atualizada com sucesso!",
         description: "Você será redirecionado para fazer login.",
       });
 
-      // Aguardar um pouco e redirecionar para login
+      // Fazer logout e redirecionar para login
+      await supabase.auth.signOut();
+      
       setTimeout(() => {
         navigate('/auth');
       }, 2000);
 
     } catch (error: any) {
+      console.error('Erro completo:', error);
       toast({
         title: "Erro ao atualizar senha",
-        description: error.message,
+        description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -88,12 +150,22 @@ const ResetPassword = () => {
     }
   };
 
-  if (!isValidSession) {
+  if (isCheckingSession) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-8">
         <div className="text-center text-white">
           <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
-          <p>Verificando link...</p>
+          <p>Verificando link de redefinição...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isValidSession) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-8">
+        <div className="text-center text-white">
+          <p>Redirecionando...</p>
         </div>
       </div>
     );
