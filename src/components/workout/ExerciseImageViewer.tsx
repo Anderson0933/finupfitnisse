@@ -18,7 +18,9 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // SEMPRE carregar imagens quando o componente monta ou exercício muda
+  // SVG placeholder válido e funcional
+  const VALID_PLACEHOLDER_SVG = `data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22600%22%20height%3D%22400%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Crect%20width%3D%22600%22%20height%3D%22400%22%20fill%3D%22%23f3f4f6%22/%3E%3Ctext%20x%3D%22300%22%20y%3D%22200%22%20text-anchor%3D%22middle%22%20fill%3D%22%239ca3af%22%20font-size%3D%2224%22%20font-family%3D%22Arial%22%3EExerc%C3%ADcio%3C/text%3E%3C/svg%3E`;
+
   useEffect(() => {
     console.log(`🖼️ ExerciseImageViewer: Carregando imagens para ${exerciseName}`);
     loadExerciseImages();
@@ -148,10 +150,10 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                       console.error(`❌ Erro ao carregar imagem: ${currentMedia.url}`);
                       const target = e.target as HTMLImageElement;
                       
-                      // Tentar fallback simples
-                      if (!target.src.includes('data:image')) {
-                        console.log(`🔄 Tentando fallback para: ${exerciseName}`);
-                        target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNTAgMTUwSDM1MFYyNTBIMjUwVjE1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHRLEHT+';
+                      // Fallback direto para placeholder confiável
+                      if (!target.src.includes('data:image/svg+xml')) {
+                        console.log(`🔄 Usando placeholder SVG para: ${exerciseName}`);
+                        target.src = VALID_PLACEHOLDER_SVG;
                       }
                     }}
                   />
