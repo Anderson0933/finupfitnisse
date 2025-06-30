@@ -34,9 +34,21 @@ export const useAuth = () => {
     }
 
     try {
-      // Verificar se é admin
+      // Verificar se é admin/master - sempre tem acesso completo
       const isAdmin = user.email === 'casimiroanderson45@gmail.com';
+      
+      // Se é admin, pula todas as verificações e dá acesso total
+      if (isAdmin) {
+        setAuthState(prev => ({
+          ...prev,
+          isAdmin: true,
+          isPromoter: false,
+          hasPremiumAccess: true,
+        }));
+        return;
+      }
 
+      // Para usuários não-admin, verificar normalmente
       // Verificar se é promoter ativo
       const { data: promoterData } = await supabase
         .from('promoters')
@@ -61,7 +73,7 @@ export const useAuth = () => {
 
       setAuthState(prev => ({
         ...prev,
-        isAdmin,
+        isAdmin: false,
         isPromoter,
         hasPremiumAccess,
       }));
