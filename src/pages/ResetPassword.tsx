@@ -25,7 +25,7 @@ const ResetPassword = () => {
       setIsCheckingSession(true);
       
       try {
-        // Primeiro, verificar se há parâmetros de reset na URL
+        // Verificar se há parâmetros de reset na URL
         const accessToken = searchParams.get('access_token');
         const refreshToken = searchParams.get('refresh_token');
         const type = searchParams.get('type');
@@ -33,11 +33,18 @@ const ResetPassword = () => {
         console.log('Parâmetros da URL:', { 
           hasAccessToken: !!accessToken, 
           hasRefreshToken: !!refreshToken, 
-          type 
+          type,
+          fullURL: window.location.href
         });
         
         if (type === 'recovery' && accessToken && refreshToken) {
           console.log('Tentando estabelecer sessão com tokens da URL...');
+          
+          // Primeiro fazer logout de qualquer sessão existente
+          await supabase.auth.signOut();
+          
+          // Aguardar um pouco para garantir que o logout foi processado
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Tentar estabelecer sessão com os tokens
           const { data, error } = await supabase.auth.setSession({
@@ -48,18 +55,32 @@ const ResetPassword = () => {
           console.log('Resultado do setSession:', { 
             hasSession: !!data.session, 
             hasUser: !!data.user, 
-            error: error?.message 
+            error: error?.message,
+            sessionData: data.session
           });
           
           if (error) {
+            console.error('Erro ao estabelecer sessão:', error);
             throw new Error(`Erro ao estabelecer sessão: ${error.message}`);
           }
           
           if (data.session && data.user) {
             console.log('Sessão estabelecida com sucesso para usuário:', data.user.email);
-            setIsValidSession(true);
+            
+            // Verificar se a sessão está realmente ativa
+            const { data: sessionCheck, error: checkError } = await supabase.auth.getSession();
+            console.log('Verificação da sessão:', { 
+              hasSession: !!sessionCheck.session, 
+              error: checkError?.message 
+            });
+            
+            if (sessionCheck.session) {
+              setIsValidSession(true);
+            } else {
+              throw new Error('Sessão não foi estabelecida corretamente após setSession');
+            }
           } else {
-            throw new Error('Sessão não foi estabelecida corretamente');
+            throw new Error('Dados de sessão incompletos');
           }
         } else {
           // Verificar se há uma sessão ativa existente
@@ -75,7 +96,7 @@ const ResetPassword = () => {
             console.log('Sessão existente encontrada para usuário:', session.user.email);
             setIsValidSession(true);
           } else {
-            throw new Error('Nenhuma sessão ativa encontrada');
+            throw new Error('Nenhuma sessão ativa encontrada e parâmetros de reset inválidos');
           }
         }
       } catch (error: any) {
@@ -89,7 +110,7 @@ const ResetPassword = () => {
         // Aguardar um pouco antes de redirecionar para mostrar a mensagem
         setTimeout(() => {
           navigate('/auth');
-        }, 2000);
+        }, 3000);
       } finally {
         setIsCheckingSession(false);
       }
@@ -122,27 +143,46 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      console.log('Tentando atualizar senha...');
+      console.log('Iniciando processo de atualização de senha...');
       
       // Verificar sessão atual antes de tentar atualizar
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError || !session) {
+      console.log('Estado da sessão antes da atualização:', { 
+        hasSession: !!session, 
+        hasUser: !!session?.user,
+        sessionId: session?.access_token?.substring(0, 20) + '...',
+        error: sessionError?.message 
+      });
+      
+      if (sessionError || !session || !session.user) {
+        console.error('Sessão inválida:', { sessionError, hasSession: !!session });
         throw new Error('Sessão não encontrada. Por favor, use um novo link de redefinição.');
       }
       
-      console.log('Sessão ativa confirmada, atualizando senha...');
+      console.log('Sessão ativa confirmada, tentando atualizar senha para usuário:', session.user.email);
       
-      const { error } = await supabase.auth.updateUser({
+      // Tentar atualizar a senha
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         password: password
       });
 
-      if (error) {
-        console.error('Erro ao atualizar senha:', error);
-        throw error;
+      console.log('Resultado da atualização:', { 
+        hasData: !!updateData, 
+        hasUser: !!updateData?.user,
+        error: updateError?.message 
+      });
+
+      if (updateError) {
+        console.error('Erro ao atualizar senha:', updateError);
+        throw updateError;
       }
 
-      console.log('Senha atualizada com sucesso');
+      if (!updateData || !updateData.user) {
+        throw new Error('Resposta inesperada da atualização de senha');
+      }
+
+      console.log('Senha atualizada com sucesso para:', updateData.user.email);
 
       toast({
         title: "Senha atualizada com sucesso!",
@@ -150,6 +190,7 @@ const ResetPassword = () => {
       });
 
       // Fazer logout e redirecionar para login
+      console.log('Fazendo logout...');
       await supabase.auth.signOut();
       
       setTimeout(() => {
@@ -157,7 +198,12 @@ const ResetPassword = () => {
       }, 2000);
 
     } catch (error: any) {
-      console.error('Erro completo:', error);
+      console.error('Erro completo na atualização de senha:', {
+        message: error.message,
+        status: error.status,
+        details: error
+      });
+      
       toast({
         title: "Erro ao atualizar senha",
         description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
