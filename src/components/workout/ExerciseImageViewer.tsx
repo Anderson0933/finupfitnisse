@@ -16,6 +16,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     console.log(`🎬 ExerciseImageViewer: Carregando GIF demonstrativo para ${exerciseName}`);
@@ -25,6 +26,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   const loadExerciseGif = async () => {
     setIsLoading(true);
     setHasError(false);
+    setImageError(false);
     
     try {
       console.log(`🔄 Buscando demonstração em GIF para: ${exerciseName}`);
@@ -46,6 +48,16 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleImageError = () => {
+    console.error(`❌ Erro ao carregar imagem para ${exerciseName}`);
+    setImageError(true);
+  };
+
+  const handleImageLoad = () => {
+    console.log(`✅ GIF carregado com sucesso para ${exerciseName}`);
+    setImageError(false);
   };
 
   const currentMedia = exerciseMedia[0];
@@ -70,7 +82,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   }
 
   // Error state
-  if (hasError || !exerciseMedia || exerciseMedia.length === 0) {
+  if (hasError || !exerciseMedia || exerciseMedia.length === 0 || imageError) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -78,7 +90,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
             <div className="text-center space-y-3">
               <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
               <div className="space-y-1">
-                <p className="text-gray-500 font-medium">Demonstração não disponível</p>
+                <p className="text-gray-500 font-medium">Demonstração temporariamente indisponível</p>
                 <p className="text-sm text-gray-400">{exerciseName}</p>
               </div>
               <Button 
@@ -102,7 +114,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
       <CardContent className="p-0">
         <div className="relative bg-black">
           <div className="aspect-video flex items-center justify-center min-h-[300px]">
-            {currentMedia && (
+            {currentMedia && !imageError && (
               <div className="relative w-full h-full">
                 <img
                   src={currentMedia.url}
@@ -112,13 +124,8 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                   style={{
                     display: isPlaying ? 'block' : 'none'
                   }}
-                  onLoad={() => {
-                    console.log(`✅ GIF carregado: ${currentMedia.url}`);
-                  }}
-                  onError={(e) => {
-                    console.error(`❌ Erro ao carregar GIF: ${currentMedia.url}`);
-                    setHasError(true);
-                  }}
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
                 />
                 
                 {!isPlaying && (

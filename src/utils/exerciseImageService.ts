@@ -4,47 +4,47 @@ import { ExerciseMedia } from '@/types/exercise';
 class ExerciseImageService {
   private exerciseCache = new Map<string, ExerciseMedia[]>();
   
-  // GIFs demonstrativos reais de exercícios
+  // GIFs demonstrativos funcionais de exercícios
   private readonly EXERCISE_GIFS: Record<string, ExerciseMedia[]> = {
     // Exercícios de peitoral
     'supino': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/3o7TKqnN349PBUtGFO/giphy.gif',
+        url: 'https://i.gifer.com/7VsI.gif',
         alt: 'Supino - Demonstração do movimento completo',
-        thumbnail: 'https://media.giphy.com/media/3o7TKqnN349PBUtGFO/200.gif'
+        thumbnail: 'https://i.gifer.com/7VsI.gif'
       }
     ],
     'supino reto': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
+        url: 'https://i.gifer.com/7VsI.gif',
         alt: 'Supino Reto - Execução com barra, movimento de descida e subida',
-        thumbnail: 'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/200.gif'
+        thumbnail: 'https://i.gifer.com/7VsI.gif'
       }
     ],
     'supino inclinado': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/3o6ZtpxSZbQRRnwCKQ/giphy.gif',
+        url: 'https://i.gifer.com/YQq8.gif',
         alt: 'Supino Inclinado - Ângulo de 45°, movimento controlado',
-        thumbnail: 'https://media.giphy.com/media/3o6ZtpxSZbQRRnwCKQ/200.gif'
+        thumbnail: 'https://i.gifer.com/YQq8.gif'
       }
     ],
     'flexao': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/giphy.gif',
+        url: 'https://i.gifer.com/7T4r.gif',
         alt: 'Flexão - Movimento de descida e subida, corpo alinhado',
-        thumbnail: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/200.gif'
+        thumbnail: 'https://i.gifer.com/7T4r.gif'
       }
     ],
     'flexão': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/giphy.gif',
+        url: 'https://i.gifer.com/7T4r.gif',
         alt: 'Flexão de Braço - Cadência controlada, 2 segundos para descer',
-        thumbnail: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/200.gif'
+        thumbnail: 'https://i.gifer.com/7T4r.gif'
       }
     ],
     
@@ -52,17 +52,17 @@ class ExerciseImageService {
     'remada': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/l0HlPystfePnAI3G8/giphy.gif',
+        url: 'https://i.gifer.com/QDg.gif',
         alt: 'Remada - Puxada com cotovelos junto ao corpo, escápulas unidas',
-        thumbnail: 'https://media.giphy.com/media/l0HlPystfePnAI3G8/200.gif'
+        thumbnail: 'https://i.gifer.com/QDg.gif'
       }
     ],
     'puxada': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif',
+        url: 'https://i.gifer.com/2Zy.gif',
         alt: 'Puxada - Movimento amplo, ativação do latíssimo do dorso',
-        thumbnail: 'https://media.giphy.com/media/26tn33aiTi1jkl6H6/200.gif'
+        thumbnail: 'https://i.gifer.com/2Zy.gif'
       }
     ],
     
@@ -70,17 +70,17 @@ class ExerciseImageService {
     'agachamento': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
+        url: 'https://i.gifer.com/7VsF.gif',
         alt: 'Agachamento - Descida até 90°, joelhos alinhados com os pés',
-        thumbnail: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/200.gif'
+        thumbnail: 'https://i.gifer.com/7VsF.gif'
       }
     ],
     'leg press': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/giphy.gif',
+        url: 'https://i.gifer.com/1JjI.gif',
         alt: 'Leg Press - Movimento completo, pés na largura dos ombros',
-        thumbnail: 'https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/200.gif'
+        thumbnail: 'https://i.gifer.com/1JjI.gif'
       }
     ],
     
@@ -88,25 +88,25 @@ class ExerciseImageService {
     'desenvolvimento': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif',
+        url: 'https://i.gifer.com/7VsG.gif',
         alt: 'Desenvolvimento - Movimento vertical, ombros estabilizados',
-        thumbnail: 'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/200.gif'
+        thumbnail: 'https://i.gifer.com/7VsG.gif'
       }
     ],
     'elevacao lateral': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/3oKIPfnmN9NEqiMUDu/giphy.gif',
+        url: 'https://i.gifer.com/2hP.gif',
         alt: 'Elevação Lateral - Movimento controlado até a altura dos ombros',
-        thumbnail: 'https://media.giphy.com/media/3oKIPfnmN9NEqiMUDu/200.gif'
+        thumbnail: 'https://i.gifer.com/2hP.gif'
       }
     ],
     'elevação lateral': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/3oKIPfnmN9NEqiMUDu/giphy.gif',
+        url: 'https://i.gifer.com/2hP.gif',
         alt: 'Elevação Lateral - Evitar usar o impulso, movimento isolado',
-        thumbnail: 'https://media.giphy.com/media/3oKIPfnmN9NEqiMUDu/200.gif'
+        thumbnail: 'https://i.gifer.com/2hP.gif'
       }
     ],
     
@@ -114,25 +114,25 @@ class ExerciseImageService {
     'rosca direta': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/giphy.gif',
+        url: 'https://i.gifer.com/7VsH.gif',
         alt: 'Rosca Direta - Flexão do bíceps, cotovelos fixos',
-        thumbnail: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/200.gif'
+        thumbnail: 'https://i.gifer.com/7VsH.gif'
       }
     ],
     'rosca biceps': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/giphy.gif',
+        url: 'https://i.gifer.com/7VsH.gif',
         alt: 'Rosca Bíceps - Contração máxima no topo do movimento',
-        thumbnail: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/200.gif'
+        thumbnail: 'https://i.gifer.com/7VsH.gif'
       }
     ],
     'triceps': [
       {
         type: 'gif',
-        url: 'https://media.giphy.com/media/3oKIPnKuS9W7IjNkFO/giphy.gif',
+        url: 'https://i.gifer.com/7VsJ.gif',
         alt: 'Tríceps - Extensão completa, movimento controlado',
-        thumbnail: 'https://media.giphy.com/media/3oKIPnKuS9W7IjNkFO/200.gif'
+        thumbnail: 'https://i.gifer.com/7VsJ.gif'
       }
     ]
   };
@@ -179,52 +179,52 @@ class ExerciseImageService {
     'braço': 'arms'
   };
 
-  // GIFs demonstrativos por categoria muscular (URLs do Giphy)
+  // GIFs demonstrativos por categoria muscular
   private readonly CATEGORY_GIFS: Record<string, ExerciseMedia> = {
     chest: {
       type: 'gif',
-      url: 'https://media.giphy.com/media/3o7TKqnN349PBUtGFO/giphy.gif',
+      url: 'https://i.gifer.com/7VsI.gif',
       alt: 'Exercício de Peitoral - Demonstração dos movimentos básicos',
-      thumbnail: 'https://media.giphy.com/media/3o7TKqnN349PBUtGFO/200.gif'
+      thumbnail: 'https://i.gifer.com/7VsI.gif'
     },
     back: {
       type: 'gif',
-      url: 'https://media.giphy.com/media/l0HlPystfePnAI3G8/giphy.gif',
+      url: 'https://i.gifer.com/QDg.gif',
       alt: 'Exercício de Costas - Demonstração da técnica correta',
-      thumbnail: 'https://media.giphy.com/media/l0HlPystfePnAI3G8/200.gif'
+      thumbnail: 'https://i.gifer.com/QDg.gif'
     },
     legs: {
       type: 'gif',
-      url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
+      url: 'https://i.gifer.com/7VsF.gif',
       alt: 'Exercício de Pernas - Demonstração do movimento completo',
-      thumbnail: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/200.gif'
+      thumbnail: 'https://i.gifer.com/7VsF.gif'
     },
     shoulders: {
       type: 'gif',
-      url: 'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif',
+      url: 'https://i.gifer.com/7VsG.gif',
       alt: 'Exercício de Ombros - Demonstração da amplitude correta',
-      thumbnail: 'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/200.gif'
+      thumbnail: 'https://i.gifer.com/7VsG.gif'
     },
     arms: {
       type: 'gif',
-      url: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/giphy.gif',
+      url: 'https://i.gifer.com/7VsH.gif',
       alt: 'Exercício de Braços - Demonstração da execução perfeita',
-      thumbnail: 'https://media.giphy.com/media/l0HlsJ0VqTbOSdRyE/200.gif'
+      thumbnail: 'https://i.gifer.com/7VsH.gif'
     },
     general: {
       type: 'gif',
-      url: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/giphy.gif',
+      url: 'https://i.gifer.com/7T4r.gif',
       alt: 'Demonstração de Exercício - Forma e técnica corretas',
-      thumbnail: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/200.gif'
+      thumbnail: 'https://i.gifer.com/7T4r.gif'
     }
   };
 
   // Fallback final com GIF genérico de exercício
   private readonly FINAL_FALLBACK: ExerciseMedia = {
     type: 'gif',
-    url: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/giphy.gif',
+    url: 'https://i.gifer.com/7T4r.gif',
     alt: 'Demonstração do Exercício - Como executar corretamente',
-    thumbnail: 'https://media.giphy.com/media/SVCSsoKU5v6ZJLa4eq/200.gif'
+    thumbnail: 'https://i.gifer.com/7T4r.gif'
   };
   
   async searchExerciseImages(exerciseName: string): Promise<ExerciseMedia[]> {
