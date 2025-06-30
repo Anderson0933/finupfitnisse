@@ -17,7 +17,6 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   const [exerciseMedia, setExerciseMedia] = useState<ExerciseMedia[]>(media || []);
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [hasImageError, setHasImageError] = useState(false);
 
   // Carregar imagens reais se não foram fornecidas
   useEffect(() => {
@@ -29,25 +28,15 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   const loadExerciseImages = async () => {
     setIsLoading(true);
     setImageError(null);
-    setHasImageError(false);
     
     try {
-      console.log(`Carregando imagens para: ${exerciseName}`);
+      console.log(`🔍 Buscando imagens para: ${exerciseName}`);
       const images = await exerciseImageService.searchExerciseImages(exerciseName);
-      console.log(`Encontradas ${images.length} imagens para ${exerciseName}:`, images);
+      console.log(`✅ Encontradas ${images.length} imagens para ${exerciseName}`);
       setExerciseMedia(images);
     } catch (error) {
-      console.error('Erro ao carregar imagens:', error);
-      setImageError('Não foi possível carregar as imagens do exercício');
-      // Definir fallback direto
-      setExerciseMedia([
-        {
-          type: 'image',
-          url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&crop=center&q=80',
-          alt: `${exerciseName} - Demonstração`,
-          thumbnail: ''
-        }
-      ]);
+      console.error('❌ Erro ao carregar imagens:', error);
+      setImageError('Usando imagem padrão');
     } finally {
       setIsLoading(false);
     }
@@ -57,29 +46,10 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
 
   const nextImage = () => {
     setCurrentIndex((prev) => (prev + 1) % exerciseMedia.length);
-    setHasImageError(false);
   };
 
   const prevImage = () => {
     setCurrentIndex((prev) => (prev - 1 + exerciseMedia.length) % exerciseMedia.length);
-    setHasImageError(false);
-  };
-
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.warn(`Erro ao carregar imagem: ${currentMedia?.url}`);
-    setHasImageError(true);
-    
-    // Tentar carregar uma imagem de fallback mais genérica
-    const target = e.target as HTMLImageElement;
-    const fallbackUrl = 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&crop=center&q=80';
-    
-    if (target.src !== fallbackUrl) {
-      target.src = fallbackUrl;
-    }
   };
 
   // Auto-play para múltiplas imagens
@@ -101,11 +71,13 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
-            <div className="text-center space-y-2">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg h-64 flex items-center justify-center">
+            <div className="text-center space-y-3">
               <RefreshCw className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
-              <p className="text-gray-500">Carregando demonstração...</p>
-              <p className="text-xs text-gray-400">Buscando a melhor imagem para {exerciseName}</p>
+              <div>
+                <p className="font-medium text-blue-700">Carregando demonstração</p>
+                <p className="text-sm text-blue-600">{exerciseName}</p>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -131,7 +103,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                 className="mt-2"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Tentar Carregar
+                Tentar Novamente
               </Button>
             </div>
           </div>
@@ -149,38 +121,33 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
             <div className="aspect-video flex items-center justify-center min-h-[300px]">
               {currentMedia && (
                 <div className="relative w-full h-full">
-                  {hasImageError ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <div className="text-center space-y-2">
-                        <AlertCircle className="h-8 w-8 text-gray-400 mx-auto" />
-                        <p className="text-sm text-gray-500">Imagem não disponível</p>
-                        <p className="text-xs text-gray-400">{exerciseName}</p>
-                      </div>
+                  <img
+                    src={currentMedia.url}
+                    alt={currentMedia.alt}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                    onError={(e) => {
+                      console.warn(`⚠️ Erro ao carregar imagem: ${currentMedia.url}`);
+                      // Tentar uma imagem de fallback mais genérica
+                      const target = e.target as HTMLImageElement;
+                      if (!target.src.includes('placeholder')) {
+                        target.src = 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=600&h=400&fit=crop&q=80';
+                      }
+                    }}
+                  />
+                  
+                  {/* Overlay com tipo de mídia */}
+                  <div className="absolute top-3 left-3 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
+                    {currentMedia.type === 'gif' && '🎬 Demonstração'}
+                    {currentMedia.type === 'image' && '📸 Posição'}
+                    {currentMedia.type === 'video' && '🎥 Vídeo'}
+                  </div>
+                  
+                  {/* Indicador se usando fallback */}
+                  {imageError && (
+                    <div className="absolute top-3 right-3 bg-blue-500 bg-opacity-90 text-white px-2 py-1 rounded text-xs">
+                      💡 Imagem Padrão
                     </div>
-                  ) : (
-                    <>
-                      <img
-                        src={currentMedia.url}
-                        alt={currentMedia.alt}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        onError={handleImageError}
-                        loading="lazy"
-                      />
-                      
-                      {/* Overlay com tipo de mídia */}
-                      <div className="absolute top-3 left-3 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
-                        {currentMedia.type === 'gif' && '🎬 Demonstração'}
-                        {currentMedia.type === 'image' && '📸 Posição'}
-                        {currentMedia.type === 'video' && '🎥 Vídeo'}
-                      </div>
-                      
-                      {/* Indicador de erro de carregamento anterior */}
-                      {imageError && (
-                        <div className="absolute top-3 right-3 bg-yellow-500 bg-opacity-90 text-white px-2 py-1 rounded text-xs">
-                          ⚠️ Fallback
-                        </div>
-                      )}
-                    </>
                   )}
                 </div>
               )}
@@ -218,10 +185,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                   {exerciseMedia.map((_, index) => (
                     <button
                       key={index}
-                      onClick={() => {
-                        setCurrentIndex(index);
-                        setHasImageError(false);
-                      }}
+                      onClick={() => setCurrentIndex(index)}
                       className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${
                         index === currentIndex 
                           ? 'bg-blue-500 scale-125' 
@@ -232,7 +196,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                 </div>
                 
                 <Button
-                  onClick={togglePlay}
+                  onClick={() => setIsPlaying(!isPlaying)}
                   variant="ghost"
                   size="sm"
                   className="text-xs px-3 py-1 h-7"
@@ -256,7 +220,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
             <div className="text-center space-y-2">
               <div className="flex items-center justify-center gap-4 text-sm">
                 <span className="flex items-center gap-1 text-gray-600">
-                  {currentMedia?.type === 'gif' && '🎬 Demonstração Animada'}
+                  {currentMedia?.type === 'gif' && '🎬 Demonstração Animada'}  
                   {currentMedia?.type === 'image' && '📸 Posição Correta'}
                   {currentMedia?.type === 'video' && '🎥 Vídeo Demonstrativo'}
                 </span>
@@ -271,12 +235,6 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                 <p className="text-sm font-medium text-gray-700">{exerciseName}</p>
                 <p className="text-xs text-gray-500">{currentMedia?.alt}</p>
               </div>
-              
-              {imageError && (
-                <div className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
-                  💡 Usando imagem alternativa - algumas imagens podem não estar disponíveis
-                </div>
-              )}
             </div>
           </div>
         </div>

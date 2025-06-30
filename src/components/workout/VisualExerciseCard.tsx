@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 import ExerciseImageViewer from './ExerciseImageViewer';
-import Avatar3DDemo from './Avatar3DDemo';
 import MuscleGroupDiagram from './MuscleGroupDiagram';
 import { EnhancedExercise } from '@/types/exercise';
 
@@ -24,18 +23,6 @@ const VisualExerciseCard = ({
   onToggleVisuals 
 }: VisualExerciseCardProps) => {
   const [activeTab, setActiveTab] = useState('instructions');
-
-  // Determinar tipo de movimento baseado no nome do exercício
-  const getMovementType = (exerciseName: string): 'push' | 'pull' | 'squat' | 'deadlift' | 'lunge' | 'plank' => {
-    const name = exerciseName.toLowerCase();
-    if (name.includes('agachamento') || name.includes('squat')) return 'squat';
-    if (name.includes('supino') || name.includes('flexão') || name.includes('push') || name.includes('peitoral')) return 'push';
-    if (name.includes('puxada') || name.includes('remada') || name.includes('pull') || name.includes('dorsal')) return 'pull';
-    if (name.includes('terra') || name.includes('deadlift') || name.includes('levantamento')) return 'deadlift';
-    if (name.includes('afundo') || name.includes('lunge') || name.includes('passada')) return 'lunge';
-    if (name.includes('prancha') || name.includes('plank') || name.includes('abdominal isométrico')) return 'plank';
-    return 'push'; // default
-  };
 
   return (
     <Card className={`transition-all duration-300 ${
@@ -60,7 +47,7 @@ const VisualExerciseCard = ({
           )}
         </div>
         
-        {/* Informações básicas do exercício com layout melhorado */}
+        {/* Informações básicas do exercício */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-gray-50 rounded-lg text-sm">
           <div className="flex flex-col">
             <span className="text-xs text-gray-500 uppercase tracking-wide">Séries</span>
@@ -85,22 +72,19 @@ const VisualExerciseCard = ({
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-4">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="instructions" className="text-xs px-2">
               📋 Instruções
             </TabsTrigger>
             <TabsTrigger value="visual" className="text-xs px-2">
               🖼️ Visual
             </TabsTrigger>
-            <TabsTrigger value="3d" className="text-xs px-2">
-              🤖 3D Demo
-            </TabsTrigger>
             <TabsTrigger value="muscles" className="text-xs px-2">
               💪 Músculos
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab de Instruções Melhorada */}
+          {/* Tab de Instruções */}
           <TabsContent value="instructions" className="space-y-4 mt-4">
             <div className="space-y-4">
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -135,7 +119,7 @@ const VisualExerciseCard = ({
             </div>
           </TabsContent>
 
-          {/* Tab Visual Melhorada */}
+          {/* Tab Visual */}
           <TabsContent value="visual" className="mt-4">
             {showVisuals ? (
               <ExerciseImageViewer
@@ -157,29 +141,7 @@ const VisualExerciseCard = ({
             )}
           </TabsContent>
 
-          {/* Tab 3D Demo Melhorada */}
-          <TabsContent value="3d" className="mt-4">
-            {showVisuals ? (
-              <Avatar3DDemo
-                exerciseName={exercise.name}
-                movementType={getMovementType(exercise.name)}
-              />
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <div className="bg-gray-100 rounded-lg h-48 flex items-center justify-center">
-                    <div className="space-y-2">
-                      <div className="text-4xl">🤖</div>
-                      <p className="text-gray-500">Demonstração 3D desabilitada</p>
-                      <p className="text-xs text-gray-400">Ative os visuais para ver a animação</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Tab Músculos Melhorada */}
+          {/* Tab Músculos */}
           <TabsContent value="muscles" className="mt-4">
             <MuscleGroupDiagram
               muscleGroups={exercise.muscle_groups}
