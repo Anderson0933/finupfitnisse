@@ -4,7 +4,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Sphere, Box, Cylinder } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, RotateCcw, AlertTriangle } from 'lucide-react';
 import * as THREE from 'three';
 
 interface Avatar3DDemoProps {
@@ -12,226 +12,111 @@ interface Avatar3DDemoProps {
   movementType: 'push' | 'pull' | 'squat' | 'deadlift' | 'lunge' | 'plank';
 }
 
-// Componente do Avatar 3D melhorado com anatomia mais realista
-const EnhancedAvatar = ({ movementType, isPlaying }: { movementType: string, isPlaying: boolean }) => {
+// Componente de fallback quando WebGL falha
+const WebGLFallback = ({ exerciseName }: { exerciseName: string }) => (
+  <div className="h-96 bg-gradient-to-br from-slate-100 via-blue-50 to-purple-50 rounded-xl flex items-center justify-center">
+    <div className="text-center space-y-4 p-8">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto" />
+      <div className="space-y-2">
+        <h3 className="font-semibold text-gray-800">3D não disponível</h3>
+        <p className="text-sm text-gray-600">
+          Seu dispositivo não suporta WebGL ou há um problema de compatibilidade.
+        </p>
+        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+          <p className="text-sm font-medium text-blue-800">
+            Exercício: {exerciseName}
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            Use as outras abas para ver instruções e demonstrações visuais
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Avatar simplificado e mais estável
+const SimpleAvatar = ({ movementType, isPlaying }: { movementType: string, isPlaying: boolean }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const headRef = useRef<THREE.Mesh>(null);
   const torsoRef = useRef<THREE.Mesh>(null);
   const leftArmRef = useRef<THREE.Mesh>(null);
   const rightArmRef = useRef<THREE.Mesh>(null);
   const leftLegRef = useRef<THREE.Mesh>(null);
   const rightLegRef = useRef<THREE.Mesh>(null);
-  
-  const [animationProgress, setAnimationProgress] = useState(0);
 
   useFrame((state) => {
     if (!isPlaying || !groupRef.current) return;
 
     const time = state.clock.getElapsedTime();
-    const speed = 1.2;
-    const progress = (Math.sin(time * speed) + 1) / 2; // 0 to 1
-    setAnimationProgress(progress);
+    const progress = (Math.sin(time * 0.8) + 1) / 2;
 
-    // Animações específicas por tipo de movimento
+    // Animações mais suaves e visíveis
     switch (movementType) {
       case 'squat':
-        animateSquat(progress);
+        if (torsoRef.current && leftLegRef.current && rightLegRef.current) {
+          const squat = progress * 0.6;
+          torsoRef.current.position.y = 1.2 - squat;
+          leftLegRef.current.rotation.x = progress * 0.4;
+          rightLegRef.current.rotation.x = progress * 0.4;
+        }
         break;
       case 'push':
-        animatePush(progress);
+        if (leftArmRef.current && rightArmRef.current) {
+          const push = Math.sin(progress * Math.PI) * 0.3;
+          leftArmRef.current.position.z = push;
+          rightArmRef.current.position.z = push;
+          leftArmRef.current.rotation.x = -progress * 0.2;
+          rightArmRef.current.rotation.x = -progress * 0.2;
+        }
         break;
       case 'pull':
-        animatePull(progress);
-        break;
-      case 'deadlift':
-        animateDeadlift(progress);
-        break;
-      case 'lunge':
-        animateLunge(progress);
-        break;
-      case 'plank':
-        animatePlank(progress);
+        if (leftArmRef.current && rightArmRef.current && torsoRef.current) {
+          const pull = Math.sin(progress * Math.PI) * 0.4;
+          leftArmRef.current.position.z = -pull;
+          rightArmRef.current.position.z = -pull;
+          torsoRef.current.rotation.x = -progress * 0.1;
+        }
         break;
       default:
-        animateIdle(time);
+        // Respiração suave
+        if (groupRef.current) {
+          const breathe = Math.sin(time * 2) * 0.02;
+          groupRef.current.scale.setScalar(1 + breathe);
+        }
     }
   });
 
-  const animateSquat = (progress: number) => {
-    if (!torsoRef.current || !leftLegRef.current || !rightLegRef.current) return;
-    
-    // Descer e subir
-    const squat = Math.sin(progress * Math.PI) * 0.8;
-    torsoRef.current.position.y = 1.2 - squat;
-    
-    // Rotação das pernas
-    const legRotation = progress * 0.6;
-    leftLegRef.current.rotation.x = legRotation;
-    rightLegRef.current.rotation.x = legRotation;
-    
-    // Leve inclinação do torso
-    torsoRef.current.rotation.x = progress * 0.2;
-  };
-
-  const animatePush = (progress: number) => {
-    if (!leftArmRef.current || !rightArmRef.current || !torsoRef.current) return;
-    
-    // Movimento dos braços para frente e para trás
-    const armExtension = Math.sin(progress * Math.PI) * 0.4;
-    leftArmRef.current.position.z = armExtension;
-    rightArmRef.current.position.z = armExtension;
-    
-    // Rotação dos braços
-    leftArmRef.current.rotation.x = -progress * 0.3;
-    rightArmRef.current.rotation.x = -progress * 0.3;
-    
-    // Leve movimento do torso
-    torsoRef.current.position.z = armExtension * 0.3;
-  };
-
-  const animatePull = (progress: number) => {
-    if (!leftArmRef.current || !rightArmRef.current || !torsoRef.current) return;
-    
-    // Movimento de puxar
-    const pullMotion = Math.sin(progress * Math.PI) * 0.5;
-    leftArmRef.current.position.z = -pullMotion;
-    rightArmRef.current.position.z = -pullMotion;
-    
-    // Rotação para simular puxada
-    leftArmRef.current.rotation.x = progress * 0.4;
-    rightArmRef.current.rotation.x = progress * 0.4;
-    
-    // Inclinação do torso
-    torsoRef.current.rotation.x = -progress * 0.2;
-  };
-
-  const animateDeadlift = (progress: number) => {
-    if (!torsoRef.current || !groupRef.current) return;
-    
-    // Flexão do quadril
-    const bend = progress * 0.8;
-    torsoRef.current.rotation.x = bend;
-    groupRef.current.position.y = -bend * 0.3;
-  };
-
-  const animateLunge = (progress: number) => {
-    if (!leftLegRef.current || !rightLegRef.current || !groupRef.current) return;
-    
-    // Movimento de afundo
-    const lunge = Math.sin(progress * Math.PI) * 0.6;
-    leftLegRef.current.position.z = lunge;
-    leftLegRef.current.rotation.x = progress * 0.5;
-    
-    groupRef.current.position.y = -Math.abs(lunge) * 0.4;
-  };
-
-  const animatePlank = (progress: number) => {
-    if (!torsoRef.current) return;
-    
-    // Respiração suave
-    const breathe = Math.sin(progress * Math.PI * 4) * 0.02;
-    torsoRef.current.scale.set(1 + breathe, 1 + breathe, 1);
-  };
-
-  const animateIdle = (time: number) => {
-    if (!groupRef.current) return;
-    
-    // Respiração suave
-    const breathe = Math.sin(time * 2) * 0.01;
-    groupRef.current.scale.setScalar(1 + breathe);
-  };
-
   return (
     <group ref={groupRef}>
-      {/* Cabeça mais realista */}
-      <Sphere ref={headRef} args={[0.22]} position={[0, 2.1, 0]}>
-        <meshStandardMaterial color="#FBBF24" />
+      {/* Cabeça */}
+      <Sphere args={[0.2]} position={[0, 2, 0]}>
+        <meshLambertMaterial color="#FCD34D" />
       </Sphere>
       
-      {/* Pescoço */}
-      <Cylinder args={[0.1, 0.12, 0.15]} position={[0, 1.85, 0]}>
-        <meshStandardMaterial color="#F59E0B" />
+      {/* Torso */}
+      <Box ref={torsoRef} args={[0.6, 0.8, 0.3]} position={[0, 1.2, 0]}>
+        <meshLambertMaterial color="#3B82F6" />
+      </Box>
+      
+      {/* Braços */}
+      <Cylinder ref={leftArmRef} args={[0.06, 0.06, 0.5]} position={[-0.4, 1.3, 0]} rotation={[0, 0, 0.3]}>
+        <meshLambertMaterial color="#8B5CF6" />
+      </Cylinder>
+      <Cylinder ref={rightArmRef} args={[0.06, 0.06, 0.5]} position={[0.4, 1.3, 0]} rotation={[0, 0, -0.3]}>
+        <meshLambertMaterial color="#8B5CF6" />
       </Cylinder>
       
-      {/* Torso mais anatômico */}
-      <Box ref={torsoRef} args={[0.7, 1.0, 0.35]} position={[0, 1.2, 0]}>
-        <meshStandardMaterial color="#4F46E5" />
-      </Box>
+      {/* Pernas */}
+      <Cylinder ref={leftLegRef} args={[0.08, 0.08, 0.7]} position={[-0.15, 0.5, 0]}>
+        <meshLambertMaterial color="#059669" />
+      </Cylinder>
+      <Cylinder ref={rightLegRef} args={[0.08, 0.08, 0.7]} position={[0.15, 0.5, 0]}>
+        <meshLambertMaterial color="#059669" />
+      </Cylinder>
       
-      {/* Ombros */}
-      <Sphere args={[0.15]} position={[-0.45, 1.6, 0]}>
-        <meshStandardMaterial color="#6366F1" />
-      </Sphere>
-      <Sphere args={[0.15]} position={[0.45, 1.6, 0]}>
-        <meshStandardMaterial color="#6366F1" />
-      </Sphere>
-      
-      {/* Braços com articulações */}
-      <group>
-        {/* Braço esquerdo */}
-        <Cylinder ref={leftArmRef} args={[0.08, 0.08, 0.6]} position={[-0.5, 1.3, 0]} rotation={[0, 0, 0.2]}>
-          <meshStandardMaterial color="#7C3AED" />
-        </Cylinder>
-        <Sphere args={[0.09]} position={[-0.5, 1.0, 0]}>
-          <meshStandardMaterial color="#8B5CF6" />
-        </Sphere>
-        <Cylinder args={[0.07, 0.07, 0.5]} position={[-0.5, 0.6, 0]}>
-          <meshStandardMaterial color="#7C3AED" />
-        </Cylinder>
-        
-        {/* Braço direito */}
-        <Cylinder ref={rightArmRef} args={[0.08, 0.08, 0.6]} position={[0.5, 1.3, 0]} rotation={[0, 0, -0.2]}>
-          <meshStandardMaterial color="#7C3AED" />
-        </Cylinder>
-        <Sphere args={[0.09]} position={[0.5, 1.0, 0]}>
-          <meshStandardMaterial color="#8B5CF6" />
-        </Sphere>
-        <Cylinder args={[0.07, 0.07, 0.5]} position={[0.5, 0.6, 0]}>
-          <meshStandardMaterial color="#7C3AED" />
-        </Cylinder>
-      </group>
-      
-      {/* Quadril */}
-      <Box args={[0.6, 0.3, 0.3]} position={[0, 0.55, 0]}>
-        <meshStandardMaterial color="#3730A3" />
-      </Box>
-      
-      {/* Pernas com articulações */}
-      <group>
-        {/* Perna esquerda */}
-        <Cylinder ref={leftLegRef} args={[0.1, 0.1, 0.8]} position={[-0.2, 0.1, 0]}>
-          <meshStandardMaterial color="#059669" />
-        </Cylinder>
-        <Sphere args={[0.08]} position={[-0.2, -0.3, 0]}>
-          <meshStandardMaterial color="#10B981" />
-        </Sphere>
-        <Cylinder args={[0.08, 0.08, 0.7]} position={[-0.2, -0.65, 0]}>
-          <meshStandardMaterial color="#059669" />
-        </Cylinder>
-        
-        {/* Perna direita */}
-        <Cylinder ref={rightLegRef} args={[0.1, 0.1, 0.8]} position={[0.2, 0.1, 0]}>
-          <meshStandardMaterial color="#059669" />
-        </Cylinder>
-        <Sphere args={[0.08]} position={[0.2, -0.3, 0]}>
-          <meshStandardMaterial color="#10B981" />
-        </Sphere>
-        <Cylinder args={[0.08, 0.08, 0.7]} position={[0.2, -0.65, 0]}>
-          <meshStandardMaterial color="#059669" />
-        </Cylinder>
-      </group>
-      
-      {/* Pés */}
-      <Box args={[0.15, 0.05, 0.3]} position={[-0.2, -1.05, 0.1]}>
-        <meshStandardMaterial color="#374151" />
-      </Box>
-      <Box args={[0.15, 0.05, 0.3]} position={[0.2, -1.05, 0.1]}>
-        <meshStandardMaterial color="#374151" />
-      </Box>
-      
-      {/* Plataforma melhorada */}
-      <Cylinder args={[2, 2, 0.1]} position={[0, -1.2, 0]}>
-        <meshStandardMaterial color="#6B7280" />
+      {/* Base */}
+      <Cylinder args={[1.5, 1.5, 0.1]} position={[0, -0.05, 0]}>
+        <meshLambertMaterial color="#6B7280" />
       </Cylinder>
     </group>
   );
@@ -239,7 +124,21 @@ const EnhancedAvatar = ({ movementType, isPlaying }: { movementType: string, isP
 
 const Avatar3DDemo = ({ exerciseName, movementType }: Avatar3DDemoProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true);
+  const [hasWebGL, setHasWebGL] = useState(true);
+
+  // Verificar suporte WebGL
+  useEffect(() => {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) {
+        setHasWebGL(false);
+      }
+    } catch (error) {
+      console.warn('WebGL não suportado:', error);
+      setHasWebGL(false);
+    }
+  }, []);
 
   const toggleAnimation = () => {
     setIsPlaying(!isPlaying);
@@ -262,6 +161,22 @@ const Avatar3DDemo = ({ exerciseName, movementType }: Avatar3DDemoProps) => {
     return descriptions[movementType] || 'Exercício funcional completo';
   };
 
+  if (!hasWebGL) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            🤖 Demonstração 3D
+          </CardTitle>
+          <p className="text-sm text-gray-600">{getMovementDescription()}</p>
+        </CardHeader>
+        <CardContent>
+          <WebGLFallback exerciseName={exerciseName} />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -272,33 +187,35 @@ const Avatar3DDemo = ({ exerciseName, movementType }: Avatar3DDemoProps) => {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Canvas 3D melhorado */}
+        {/* Canvas 3D melhorado com tratamento de erro */}
         <div className="relative h-96 bg-gradient-to-br from-slate-100 via-blue-50 to-purple-50 rounded-xl overflow-hidden shadow-inner">
-          <Canvas camera={{ position: [4, 2, 4], fov: 50 }}>
+          <Canvas 
+            camera={{ position: [3, 2, 3], fov: 60 }}
+            onCreated={({ gl }) => {
+              gl.setClearColor('#f8fafc');
+            }}
+            fallback={<WebGLFallback exerciseName={exerciseName} />}
+          >
             <Suspense fallback={null}>
-              {/* Iluminação cinematográfica */}
-              <ambientLight intensity={0.4} />
+              {/* Iluminação melhorada e mais estável */}
+              <ambientLight intensity={0.6} />
               <directionalLight 
-                position={[10, 10, 5]} 
-                intensity={1.2} 
-                castShadow
-                shadow-mapSize-width={2048}
-                shadow-mapSize-height={2048}
+                position={[5, 5, 5]} 
+                intensity={0.8}
+                castShadow={false}
               />
-              <pointLight position={[-5, 5, -5]} intensity={0.6} color="#FF6B6B" />
-              <pointLight position={[5, 2, 5]} intensity={0.4} color="#4ECDC4" />
+              <pointLight position={[-3, 3, -3]} intensity={0.4} color="#60A5FA" />
               
-              {/* Avatar 3D melhorado */}
-              <EnhancedAvatar movementType={movementType} isPlaying={isPlaying} />
+              {/* Avatar simplificado */}
+              <SimpleAvatar movementType={movementType} isPlaying={isPlaying} />
               
-              {/* Texto informativo flutuante */}
+              {/* Texto do exercício */}
               <Text
-                position={[0, 3.5, 0]}
-                fontSize={0.25}
+                position={[0, 3, 0]}
+                fontSize={0.2}
                 color="#1F2937"
                 anchorX="center"
                 anchorY="middle"
-                font="/fonts/inter-bold.woff"
               >
                 {exerciseName}
               </Text>
@@ -306,8 +223,8 @@ const Avatar3DDemo = ({ exerciseName, movementType }: Avatar3DDemoProps) => {
               {/* Status da animação */}
               {isPlaying && (
                 <Text
-                  position={[0, -2, 0]}
-                  fontSize={0.15}
+                  position={[0, -1.5, 0]}
+                  fontSize={0.12}
                   color="#059669"
                   anchorX="center"
                   anchorY="middle"
@@ -316,50 +233,23 @@ const Avatar3DDemo = ({ exerciseName, movementType }: Avatar3DDemoProps) => {
                 </Text>
               )}
               
-              {/* Controles de câmera aprimorados */}
+              {/* Controles de câmera */}
               <OrbitControls
-                enablePan={true}
+                enablePan={false}
                 enableZoom={true}
                 enableRotate={true}
-                minDistance={3}
-                maxDistance={8}
+                minDistance={2}
+                maxDistance={6}
                 minPolarAngle={Math.PI / 6}
                 maxPolarAngle={Math.PI - Math.PI / 6}
                 autoRotate={!isPlaying}
-                autoRotateSpeed={0.5}
+                autoRotateSpeed={1}
               />
             </Suspense>
           </Canvas>
-          
-          {/* Instruções overlay */}
-          {showInstructions && (
-            <div className="absolute top-3 left-3 bg-black bg-opacity-60 text-white text-xs p-3 rounded-lg backdrop-blur-sm">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="font-medium">Controles:</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 w-5 p-0 text-white hover:text-gray-300"
-                  onClick={() => setShowInstructions(false)}
-                >
-                  ×
-                </Button>
-              </div>
-              <div className="space-y-1 text-xs">
-                <div>🖱️ Arraste: Rotacionar</div>
-                <div>🔍 Scroll: Zoom</div>
-                <div>▶️ Play: Ver movimento</div>
-              </div>
-            </div>
-          )}
-          
-          {/* Indicador de carregamento */}
-          <div className="absolute bottom-3 right-3 bg-white bg-opacity-80 px-2 py-1 rounded text-xs text-gray-600">
-            WebGL Ativo
-          </div>
         </div>
 
-        {/* Controles de animação melhorados */}
+        {/* Controles de animação */}
         <div className="flex justify-center items-center gap-3">
           <Button
             onClick={toggleAnimation}
@@ -368,7 +258,7 @@ const Avatar3DDemo = ({ exerciseName, movementType }: Avatar3DDemoProps) => {
             className="flex items-center gap-2 px-4"
           >
             {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            {isPlaying ? 'Pausar Demonstração' : 'Iniciar Demonstração'}
+            {isPlaying ? 'Pausar' : 'Iniciar'} Demonstração
           </Button>
           
           <Button
@@ -380,43 +270,17 @@ const Avatar3DDemo = ({ exerciseName, movementType }: Avatar3DDemoProps) => {
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
-          
-          <Button
-            onClick={() => setShowInstructions(!showInstructions)}
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            {showInstructions ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            Dicas
-          </Button>
         </div>
 
-        {/* Informações detalhadas do movimento */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg">
-            <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
-              🎯 Tipo de Movimento
-            </h4>
-            <p className="text-sm text-blue-700">
-              {movementType === 'push' && '🔄 Empurrar - Movimento concêntrico'}
-              {movementType === 'pull' && '🔄 Puxar - Movimento excêntrico controlado'}
-              {movementType === 'squat' && '🔄 Agachamento - Movimento vertical'}
-              {movementType === 'deadlift' && '🔄 Levantamento - Articulação do quadril'}
-              {movementType === 'lunge' && '🔄 Afundo - Movimento unilateral'}
-              {movementType === 'plank' && '🔄 Isométrico - Contração estática'}
-            </p>
-          </div>
-          
-          <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg">
-            <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
-              💡 Dica de Execução
-            </h4>
-            <p className="text-sm text-green-700">
-              Observe o ritmo da animação e mantenha o controle durante todo o movimento. 
-              A fase excêntrica (descida) deve ser mais lenta que a concêntrica (subida).
-            </p>
-          </div>
+        {/* Informações do movimento */}
+        <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg">
+          <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+            🎯 Sobre o Movimento
+          </h4>
+          <p className="text-sm text-blue-700">{getMovementDescription()}</p>
+          <p className="text-xs text-blue-600 mt-2">
+            Use os controles para rotacionar a câmera e observe o movimento.
+          </p>
         </div>
       </CardContent>
     </Card>

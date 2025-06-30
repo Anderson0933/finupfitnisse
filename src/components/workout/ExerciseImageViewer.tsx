@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Play, Pause, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, RefreshCw, AlertCircle } from 'lucide-react';
 import { ExerciseMedia } from '@/types/exercise';
 import { exerciseImageService } from '@/utils/exerciseImageService';
 
@@ -17,6 +17,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   const [exerciseMedia, setExerciseMedia] = useState<ExerciseMedia[]>(media || []);
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [hasImageError, setHasImageError] = useState(false);
 
   // Carregar imagens reais se não foram fornecidas
   useEffect(() => {
@@ -28,13 +29,25 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   const loadExerciseImages = async () => {
     setIsLoading(true);
     setImageError(null);
+    setHasImageError(false);
     
     try {
+      console.log(`Carregando imagens para: ${exerciseName}`);
       const images = await exerciseImageService.searchExerciseImages(exerciseName);
+      console.log(`Encontradas ${images.length} imagens para ${exerciseName}:`, images);
       setExerciseMedia(images);
     } catch (error) {
       console.error('Erro ao carregar imagens:', error);
-      setImageError('Erro ao carregar imagens do exercício');
+      setImageError('Não foi possível carregar as imagens do exercício');
+      // Definir fallback direto
+      setExerciseMedia([
+        {
+          type: 'image',
+          url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&crop=center&q=80',
+          alt: `${exerciseName} - Demonstração`,
+          thumbnail: ''
+        }
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -44,24 +57,39 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
 
   const nextImage = () => {
     setCurrentIndex((prev) => (prev + 1) % exerciseMedia.length);
+    setHasImageError(false);
   };
 
   const prevImage = () => {
     setCurrentIndex((prev) => (prev - 1 + exerciseMedia.length) % exerciseMedia.length);
+    setHasImageError(false);
   };
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
   };
 
-  // Auto-play para GIFs
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.warn(`Erro ao carregar imagem: ${currentMedia?.url}`);
+    setHasImageError(true);
+    
+    // Tentar carregar uma imagem de fallback mais genérica
+    const target = e.target as HTMLImageElement;
+    const fallbackUrl = 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&crop=center&q=80';
+    
+    if (target.src !== fallbackUrl) {
+      target.src = fallbackUrl;
+    }
+  };
+
+  // Auto-play para múltiplas imagens
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
     if (isPlaying && exerciseMedia.length > 1) {
       interval = setInterval(() => {
         nextImage();
-      }, 3000); // Troca a cada 3 segundos
+      }, 3000);
     }
     
     return () => {
@@ -76,30 +104,8 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
           <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
             <div className="text-center space-y-2">
               <RefreshCw className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
-              <p className="text-gray-500">Carregando demonstração visual...</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (imageError) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg h-64 flex items-center justify-center">
-            <div className="text-center space-y-3">
-              <p className="text-red-600 font-medium">⚠️ {imageError}</p>
-              <Button 
-                onClick={loadExerciseImages}
-                variant="outline"
-                size="sm"
-                className="text-red-600 border-red-300"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Tentar Novamente
-              </Button>
+              <p className="text-gray-500">Carregando demonstração...</p>
+              <p className="text-xs text-gray-400">Buscando a melhor imagem para {exerciseName}</p>
             </div>
           </div>
         </CardContent>
@@ -110,11 +116,23 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
   if (!exerciseMedia || exerciseMedia.length === 0) {
     return (
       <Card>
-        <CardContent className="p-6 text-center">
-          <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
-            <div className="space-y-2">
-              <p className="text-gray-500">📷 Demonstração visual não disponível</p>
-              <p className="text-xs text-gray-400">Imagens serão adicionadas em breve</p>
+        <CardContent className="p-6">
+          <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg h-64 flex items-center justify-center">
+            <div className="text-center space-y-3">
+              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
+              <div className="space-y-1">
+                <p className="text-gray-500 font-medium">Imagens não disponíveis</p>
+                <p className="text-sm text-gray-400">{exerciseName}</p>
+              </div>
+              <Button 
+                onClick={loadExerciseImages}
+                variant="outline"
+                size="sm"
+                className="mt-2"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Tentar Carregar
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -127,37 +145,42 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
       <CardContent className="p-0">
         <div className="space-y-0">
           {/* Área de exibição principal */}
-          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden group">
             <div className="aspect-video flex items-center justify-center min-h-[300px]">
               {currentMedia && (
-                <div className="relative w-full h-full group">
-                  <img
-                    src={currentMedia.url}
-                    alt={currentMedia.alt}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&crop=center&q=80';
-                    }}
-                  />
-                  
-                  {/* Overlay com tipo de mídia */}
-                  <div className="absolute top-3 left-3 bg-black bg-opacity-60 text-white px-3 py-1 rounded-full text-xs font-medium">
-                    {currentMedia.type === 'gif' && '🎬 Animação'}
-                    {currentMedia.type === 'image' && '📸 Posição'}
-                    {currentMedia.type === 'video' && '🎥 Vídeo'}
-                  </div>
-                  
-                  {/* Controle de play para vídeos */}
-                  {currentMedia.type === 'video' && (
-                    <Button
-                      onClick={togglePlay}
-                      variant="secondary"
-                      size="sm"
-                      className="absolute bottom-3 right-3 opacity-90 hover:opacity-100 bg-black bg-opacity-60 text-white border-0"
-                    >
-                      {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                    </Button>
+                <div className="relative w-full h-full">
+                  {hasImageError ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <div className="text-center space-y-2">
+                        <AlertCircle className="h-8 w-8 text-gray-400 mx-auto" />
+                        <p className="text-sm text-gray-500">Imagem não disponível</p>
+                        <p className="text-xs text-gray-400">{exerciseName}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <img
+                        src={currentMedia.url}
+                        alt={currentMedia.alt}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        onError={handleImageError}
+                        loading="lazy"
+                      />
+                      
+                      {/* Overlay com tipo de mídia */}
+                      <div className="absolute top-3 left-3 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
+                        {currentMedia.type === 'gif' && '🎬 Demonstração'}
+                        {currentMedia.type === 'image' && '📸 Posição'}
+                        {currentMedia.type === 'video' && '🎥 Vídeo'}
+                      </div>
+                      
+                      {/* Indicador de erro de carregamento anterior */}
+                      {imageError && (
+                        <div className="absolute top-3 right-3 bg-yellow-500 bg-opacity-90 text-white px-2 py-1 rounded text-xs">
+                          ⚠️ Fallback
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -170,8 +193,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                   onClick={prevImage}
                   variant="secondary"
                   size="sm"
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-90 hover:opacity-100 transition-opacity bg-white shadow-lg"
-                  disabled={exerciseMedia.length <= 1}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-90 hover:opacity-100 transition-opacity bg-white shadow-lg border"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -179,8 +201,7 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                   onClick={nextImage}
                   variant="secondary"
                   size="sm"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-90 hover:opacity-100 transition-opacity bg-white shadow-lg"
-                  disabled={exerciseMedia.length <= 1}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-90 hover:opacity-100 transition-opacity bg-white shadow-lg border"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -190,14 +211,17 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
 
           {/* Controles inferiores */}
           <div className="p-4 space-y-4">
-            {/* Indicadores de mídia */}
+            {/* Indicadores e controles */}
             {exerciseMedia.length > 1 && (
-              <div className="flex justify-center items-center gap-3">
+              <div className="flex justify-center items-center gap-4">
                 <div className="flex space-x-2">
                   {exerciseMedia.map((_, index) => (
                     <button
                       key={index}
-                      onClick={() => setCurrentIndex(index)}
+                      onClick={() => {
+                        setCurrentIndex(index);
+                        setHasImageError(false);
+                      }}
                       className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${
                         index === currentIndex 
                           ? 'bg-blue-500 scale-125' 
@@ -207,17 +231,16 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                   ))}
                 </div>
                 
-                {/* Auto-play toggle */}
                 <Button
                   onClick={togglePlay}
                   variant="ghost"
                   size="sm"
-                  className="text-xs px-2 py-1 h-6"
+                  className="text-xs px-3 py-1 h-7"
                 >
                   {isPlaying ? (
                     <>
                       <Pause className="h-3 w-3 mr-1" />
-                      Auto
+                      Pausar
                     </>
                   ) : (
                     <>
@@ -244,9 +267,16 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                 )}
               </div>
               
-              <p className="text-xs text-gray-500">
-                {currentMedia?.alt}
-              </p>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-700">{exerciseName}</p>
+                <p className="text-xs text-gray-500">{currentMedia?.alt}</p>
+              </div>
+              
+              {imageError && (
+                <div className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                  💡 Usando imagem alternativa - algumas imagens podem não estar disponíveis
+                </div>
+              )}
             </div>
           </div>
         </div>
