@@ -46,7 +46,14 @@ const AdminPromoterManager = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPromoters(data || []);
+      
+      // Type the data properly to match our interface
+      const typedPromoters: Promoter[] = (data || []).map(promoter => ({
+        ...promoter,
+        status: promoter.status as 'active' | 'inactive' | 'pending'
+      }));
+      
+      setPromoters(typedPromoters);
     } catch (error: any) {
       console.error('Erro ao buscar promoters:', error);
       toast({
@@ -84,7 +91,7 @@ const AdminPromoterManager = () => {
         throw new Error('Usuário não foi criado');
       }
 
-      // 2. Criar registro na tabela promoters
+      // 2. Criar registro na tabela promoters (o promoter_code será gerado automaticamente pelo trigger)
       const { error: promoterError } = await supabase
         .from('promoters')
         .insert({
