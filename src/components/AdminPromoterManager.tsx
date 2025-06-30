@@ -101,6 +101,7 @@ const AdminPromoterManager = () => {
           phone: formData.phone || null,
           user_id: authData.user.id,
           status: 'active',
+          promoter_code: '', // Temporary value, will be overridden by trigger
         });
 
       if (promoterError) throw promoterError;
