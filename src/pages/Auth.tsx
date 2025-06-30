@@ -116,6 +116,8 @@ const Auth = () => {
     }
 
     try {
+      console.log('Enviando email de recuperação para:', email);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
@@ -123,8 +125,8 @@ const Auth = () => {
       if (error) throw error;
 
       toast({
-        title: "Email enviado",
-        description: "Verifique sua caixa de entrada para redefinir sua senha",
+        title: "Email enviado!",
+        description: "Verifique sua caixa de entrada. O link é válido por alguns minutos.",
       });
     } catch (error: any) {
       console.error('Erro ao enviar email:', error);

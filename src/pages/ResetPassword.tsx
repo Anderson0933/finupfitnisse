@@ -6,66 +6,100 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Dumbbell, Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import { Dumbbell, Lock, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 
 const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
+  const [userEmail, setUserEmail] = useState<string>('');
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const checkAuthSession = async () => {
+    const establishSession = async () => {
       try {
-        console.log('=== VERIFICANDO SESSÃO DE RECOVERY ===');
+        console.log('=== INICIANDO PROCESSO DE RECOVERY ===');
         
         const accessToken = searchParams.get('access_token');
         const refreshToken = searchParams.get('refresh_token');
         const type = searchParams.get('type');
+        const tokenHash = searchParams.get('token_hash');
+        const token = searchParams.get('token');
         
-        console.log('Parâmetros:', { type, hasAccess: !!accessToken, hasRefresh: !!refreshToken });
-
-        // Verificar se é um link de recovery
-        if (type !== 'recovery' || !accessToken || !refreshToken) {
-          console.log('Link inválido ou não é de recovery');
-          setIsValidSession(false);
-          return;
-        }
-
-        // Tentar estabelecer sessão com os tokens
-        console.log('Estabelecendo sessão com tokens...');
-        
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
+        console.log('Parâmetros recebidos:', { 
+          type, 
+          hasAccess: !!accessToken, 
+          hasRefresh: !!refreshToken,
+          hasTokenHash: !!tokenHash,
+          hasToken: !!token
         });
 
-        if (sessionError) {
-          console.error('Erro na sessão:', sessionError);
-          setIsValidSession(false);
+        // Método 1: Verificar com tokens da URL (método tradicional)
+        if (type === 'recovery' && accessToken && refreshToken) {
+          console.log('Método 1: Usando access_token e refresh_token');
+          
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (!sessionError && sessionData.session) {
+            console.log('✅ Sessão estabelecida via tokens');
+            setIsValidSession(true);
+            setUserEmail(sessionData.session.user.email || '');
+            return;
+          }
+          
+          console.log('❌ Falha no método 1:', sessionError?.message);
+        }
+
+        // Método 2: Verificar com verifyOtp (mais robusto)
+        if (type === 'recovery' && tokenHash) {
+          console.log('Método 2: Usando verifyOtp com token_hash');
+          
+          const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'recovery'
+          });
+
+          if (!verifyError && verifyData.session) {
+            console.log('✅ Sessão estabelecida via verifyOtp');
+            setIsValidSession(true);
+            setUserEmail(verifyData.session.user.email || '');
+            return;
+          }
+          
+          console.log('❌ Falha no método 2:', verifyError?.message);
+        }
+
+        // Método 3: Verificar se já há uma sessão ativa
+        console.log('Método 3: Verificando sessão existente');
+        const { data: currentSession } = await supabase.auth.getSession();
+        
+        if (currentSession.session) {
+          console.log('✅ Sessão ativa encontrada');
+          setIsValidSession(true);
+          setUserEmail(currentSession.session.user.email || '');
           return;
         }
 
-        if (sessionData.session && sessionData.user) {
-          console.log('✅ Sessão estabelecida com sucesso');
-          setIsValidSession(true);
-        } else {
-          console.log('❌ Falha ao estabelecer sessão');
-          setIsValidSession(false);
-        }
+        // Se chegou até aqui, nenhum método funcionou
+        console.log('❌ Todos os métodos falharam - link inválido ou expirado');
+        setIsValidSession(false);
 
       } catch (error) {
-        console.error('Erro geral:', error);
+        console.error('❌ Erro geral no processo:', error);
         setIsValidSession(false);
       }
     };
 
-    checkAuthSession();
+    establishSession();
   }, [searchParams]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -107,7 +141,7 @@ const ResetPassword = () => {
 
       toast({
         title: "Senha atualizada!",
-        description: "Sua senha foi alterada com sucesso. Você será redirecionado.",
+        description: "Sua senha foi alterada com sucesso. Redirecionando...",
       });
 
       // Redirecionar após sucesso
@@ -118,21 +152,49 @@ const ResetPassword = () => {
     } catch (error: any) {
       console.error('❌ Erro na atualização:', error);
       
-      let errorMessage = "Erro inesperado ao atualizar senha.";
-      
-      if (error.message?.includes('session_not_found')) {
-        errorMessage = "Sessão expirada. Solicite um novo link de redefinição.";
-      } else if (error.message?.includes('invalid_token')) {
-        errorMessage = "Link inválido ou expirado. Solicite um novo link.";
-      }
-      
       toast({
         title: "Erro ao atualizar senha",
-        description: errorMessage,
+        description: "Houve um problema ao atualizar sua senha. Tente novamente.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendLink = async () => {
+    if (!userEmail) {
+      toast({
+        title: "Email não encontrado",
+        description: "Não foi possível identificar seu email. Volte à página de login.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResendLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Novo link enviado!",
+        description: "Verifique sua caixa de entrada para o novo link de redefinição.",
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao reenviar link:', error);
+      toast({
+        title: "Erro ao enviar link",
+        description: "Não foi possível enviar um novo link. Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -175,15 +237,35 @@ const ResetPassword = () => {
                   <AlertCircle className="h-8 w-8 text-red-400" />
                 </div>
               </div>
-              <CardTitle className="text-2xl text-white">Link inválido ou expirado</CardTitle>
+              <CardTitle className="text-2xl text-white">Link expirado</CardTitle>
               <CardDescription className="text-blue-200">
-                O link de redefinição de senha é inválido ou expirou. 
-                Links de recuperação têm validade limitada por segurança.
+                O link de redefinição de senha expirou ou é inválido. 
+                Links têm duração limitada por segurança.
               </CardDescription>
             </CardHeader>
             
             <CardContent>
               <div className="space-y-4">
+                {userEmail && (
+                  <Button 
+                    onClick={handleResendLink}
+                    disabled={resendLoading}
+                    className="w-full h-12 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold"
+                  >
+                    {resendLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Enviando...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Reenviar link</span>
+                      </div>
+                    )}
+                  </Button>
+                )}
+                
                 <Button 
                   onClick={handleRequestNewLink}
                   className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"
