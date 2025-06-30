@@ -117,8 +117,13 @@ const Auth = () => {
       console.log('=== ENVIANDO EMAIL DE RECUPERAÇÃO ===');
       console.log('Email:', email);
       
-      // URL absoluta fixa para evitar problemas de redirecionamento
-      const redirectUrl = 'https://fitaipro.cloud/reset-password';
+      // Detectar ambiente e usar URL apropriada
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+      const redirectUrl = isDevelopment 
+        ? `${window.location.origin}/reset-password`
+        : 'https://fitaipro.cloud/reset-password';
+      
+      console.log('Ambiente detectado:', isDevelopment ? 'Desenvolvimento' : 'Produção');
       console.log('Redirect URL:', redirectUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
