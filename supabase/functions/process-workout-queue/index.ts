@@ -222,7 +222,7 @@ INSTRUÇÕES CRÍTICAS:
           }
         ],
         temperature: 0.1,
-        max_tokens: 25000,
+        max_tokens: 30000,
         top_p: 0.9
       }),
     });
