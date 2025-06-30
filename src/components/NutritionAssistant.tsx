@@ -19,11 +19,6 @@ interface Message {
   timestamp: Date;
 }
 
-interface ConversationMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 const STORAGE_KEY = 'nutrition_assistant_messages';
 
 const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
@@ -94,7 +89,8 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
         throw fetchError;
       }
 
-      const newMessages: ConversationMessage[] = [
+      // Preparar novas mensagens como Json compatível
+      const newMessages = [
         { role: 'user', content: userMessage },
         { role: 'assistant', content: assistantMessage }
       ];
@@ -102,7 +98,7 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
       if (existingConversation) {
         // Verificar se messages é um array, se não, inicializar como array vazio
         const existingMessages = Array.isArray(existingConversation.messages) 
-          ? existingConversation.messages as ConversationMessage[]
+          ? existingConversation.messages as any[]
           : [];
         
         const updatedMessages = [...existingMessages, ...newMessages];
@@ -110,7 +106,7 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
         const { error: updateError } = await supabase
           .from('ai_conversations')
           .update({
-            messages: updatedMessages,
+            messages: updatedMessages as any,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingConversation.id);
@@ -123,7 +119,7 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
           .insert({
             user_id: user.id,
             conversation_type: 'nutrition',
-            messages: newMessages
+            messages: newMessages as any
           });
 
         if (insertError) throw insertError;
