@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +10,8 @@ interface AuthState {
   isAdmin: boolean;
   isPromoter: boolean;
   hasPremiumAccess: boolean;
+  isInTrialPeriod: boolean;
+  trialHoursRemaining: number;
 }
 
 export const useAuth = () => {
@@ -22,6 +23,8 @@ export const useAuth = () => {
     isAdmin: false,
     isPromoter: false,
     hasPremiumAccess: false,
+    isInTrialPeriod: false,
+    trialHoursRemaining: 0,
   });
 
   const checkUserPermissions = async (user: User | null) => {
@@ -32,6 +35,8 @@ export const useAuth = () => {
         isAdmin: false,
         isPromoter: false,
         hasPremiumAccess: false,
+        isInTrialPeriod: false,
+        trialHoursRemaining: 0,
       }));
       return;
     }
@@ -49,9 +54,25 @@ export const useAuth = () => {
           isAdmin: true,
           isPromoter: false,
           hasPremiumAccess: true,
+          isInTrialPeriod: false,
+          trialHoursRemaining: 0,
         }));
         return;
       }
+
+      // Calcular período de teste (24h após criação da conta)
+      const userCreatedAt = new Date(user.created_at);
+      const now = new Date();
+      const hoursElapsed = (now.getTime() - userCreatedAt.getTime()) / (1000 * 60 * 60);
+      const trialHoursRemaining = Math.max(0, 24 - hoursElapsed);
+      const isInTrialPeriod = hoursElapsed < 24;
+
+      console.log('⏰ Verificação de período de teste:', {
+        userCreatedAt: userCreatedAt.toISOString(),
+        hoursElapsed: hoursElapsed.toFixed(2),
+        trialHoursRemaining: trialHoursRemaining.toFixed(2),
+        isInTrialPeriod
+      });
 
       // Para usuários não-admin, verificar normalmente
       console.log('👤 Verificando status de promoter...');
@@ -86,31 +107,35 @@ export const useAuth = () => {
       const hasActiveSubscription = !!subscriptionData;
       console.log('💰 Assinatura ativa:', hasActiveSubscription ? 'Sim' : 'Não');
 
-      const hasPremiumAccess = hasActiveSubscription || isPromoter;
-      console.log('✅ Acesso premium:', hasPremiumAccess ? 'Liberado' : 'Bloqueado');
+      // Determinar acesso premium: assinatura ativa, promoter ativo, ou período de teste
+      const hasPremiumAccess = hasActiveSubscription || isPromoter || isInTrialPeriod;
+      
+      console.log('✅ Decisão de acesso:', {
+        hasActiveSubscription,
+        isPromoter,
+        isInTrialPeriod,
+        hasPremiumAccess: hasPremiumAccess ? 'Liberado' : 'Bloqueado'
+      });
 
       setAuthState(prev => ({
         ...prev,
         isAdmin: false,
         isPromoter,
         hasPremiumAccess,
+        isInTrialPeriod,
+        trialHoursRemaining: Math.round(trialHoursRemaining * 10) / 10, // Arredondar para 1 casa decimal
       }));
 
     } catch (error: any) {
       console.error('💥 Erro ao verificar permissões:', error);
       
-      // Não mostrar toast para erros de permissão para evitar spam
-      // toast({ 
-      //   title: "Erro ao verificar permissões", 
-      //   description: "Algumas funcionalidades podem estar limitadas.", 
-      //   variant: "destructive" 
-      // });
-
       setAuthState(prev => ({
         ...prev,
         isAdmin: false,
         isPromoter: false,
         hasPremiumAccess: false,
+        isInTrialPeriod: false,
+        trialHoursRemaining: 0,
       }));
     }
   };

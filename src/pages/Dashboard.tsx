@@ -5,7 +5,7 @@ import { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText, HelpCircle, Users, Trophy, Crown } from 'lucide-react';
+import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText, HelpCircle, Users, Trophy, Crown, Clock } from 'lucide-react';
 import WorkoutPlanGenerator, { WorkoutPlan } from '@/components/WorkoutPlanGenerator';
 import AIAssistant from '@/components/AIAssistant';
 import ProgressTracker from '@/components/ProgressTracker';
@@ -34,6 +34,8 @@ const Dashboard = () => {
     isAdmin, 
     isPromoter, 
     hasPremiumAccess, 
+    isInTrialPeriod,
+    trialHoursRemaining,
     signOut,
     refreshPermissions 
   } = useAuth();
@@ -60,7 +62,9 @@ const Dashboard = () => {
       user: user?.email, 
       isAdmin, 
       isPromoter, 
-      hasPremiumAccess 
+      hasPremiumAccess,
+      isInTrialPeriod,
+      trialHoursRemaining
     });
 
     if (!isLoading && !user) {
@@ -75,6 +79,8 @@ const Dashboard = () => {
         isAdmin,
         isPromoter,
         hasPremiumAccess,
+        isInTrialPeriod,
+        trialHoursRemaining,
         hasAccess: hasPremiumAccess
       });
 
@@ -117,7 +123,7 @@ const Dashboard = () => {
 
       fetchWorkoutPlan();
     }
-  }, [user, isLoading, isAdmin, isPromoter, hasPremiumAccess, navigate]);
+  }, [user, isLoading, isAdmin, isPromoter, hasPremiumAccess, isInTrialPeriod, trialHoursRemaining, navigate]);
 
   const handleSignOut = async () => {
     try {
@@ -141,6 +147,16 @@ const Dashboard = () => {
     if (isPromoter) {
       return { text: "⭐ Promoter", bgColor: "bg-purple-100", textColor: "text-purple-700" };
     }
+    if (isInTrialPeriod) {
+      const hoursText = trialHoursRemaining < 1 
+        ? `${Math.floor(trialHoursRemaining * 60)}min restantes`
+        : `${Math.floor(trialHoursRemaining)}h restantes`;
+      return { 
+        text: `🔄 Teste Gratuito (${hoursText})`, 
+        bgColor: "bg-blue-100", 
+        textColor: "text-blue-700" 
+      };
+    }
     if (hasPremiumAccess) {
       return { text: "✅ Plano Ativo", bgColor: "bg-green-100", textColor: "text-green-700" };
     }
@@ -159,7 +175,12 @@ const Dashboard = () => {
           <Lock className="h-8 w-8 text-gray-500" />
         </div>
         <h3 className="text-xl font-semibold text-gray-700 mb-2">{title} Bloqueado</h3>
-        <p className="text-gray-600 mb-4">Sua assinatura expirou ou o período de teste acabou. Renove para continuar.</p>
+        <p className="text-gray-600 mb-4">
+          {isInTrialPeriod 
+            ? "Ops! Seu período de teste gratuito expirou." 
+            : "Sua assinatura expirou ou o período de teste acabou. Renove para continuar."
+          }
+        </p>
         <Button 
           onClick={() => {
             const mainTabs = document.querySelector('.main-dashboard-tabs');
@@ -274,10 +295,22 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg md:text-2xl font-bold text-blue-800 mb-2">
-                    {hasPremiumAccess ? "Bem-vindo ao seu centro de fitness!" : "Acesso Bloqueado"}
+                    {hasPremiumAccess 
+                      ? isInTrialPeriod 
+                        ? "Aproveite seu teste gratuito!" 
+                        : "Bem-vindo ao seu centro de fitness!"
+                      : "Acesso Bloqueado"
+                    }
                   </h2>
                   <p className="text-blue-600 text-sm md:text-base">
-                    {hasPremiumAccess ? "Explore nossos assistentes de IA para transformar seus objetivos em resultados" : "Sua assinatura expirou ou o período de teste acabou. Renove para continuar."}
+                    {hasPremiumAccess 
+                      ? isInTrialPeriod
+                        ? `Você tem ${trialHoursRemaining < 1 
+                            ? `${Math.floor(trialHoursRemaining * 60)} minutos` 
+                            : `${Math.floor(trialHoursRemaining)} horas`} restantes de teste gratuito. Explore nossos assistentes de IA!`
+                        : "Explore nossos assistentes de IA para transformar seus objetivos em resultados"
+                      : "Seu período de teste expirou. Assine para continuar aproveitando todos os recursos."
+                    }
                   </p>
                   <div className="mt-2 md:hidden">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusInfo.bgColor} ${statusInfo.textColor}`}>
@@ -292,6 +325,38 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Mostrar alerta quando restam poucas horas de teste */}
+        {isInTrialPeriod && trialHoursRemaining < 6 && (
+          <div className="mb-6 md:mb-8">
+            <Card className="bg-orange-50 border-orange-200 shadow-lg">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center space-x-3">
+                  <Clock className="h-6 w-6 text-orange-600" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-orange-800">
+                      ⏰ Seu teste gratuito está acabando!
+                    </h3>
+                    <p className="text-orange-700 text-sm">
+                      Restam apenas {trialHoursRemaining < 1 
+                        ? `${Math.floor(trialHoursRemaining * 60)} minutos` 
+                        : `${Math.floor(trialHoursRemaining)} horas`} do seu período de teste. 
+                      Assine agora para continuar com acesso total.
+                    </p>
+                    <Button 
+                      onClick={() => setActiveTab('payment')}
+                      className="mt-3 bg-orange-600 hover:bg-orange-700 text-white"
+                      size="sm"
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Assinar Agora
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {hasPremiumAccess && shouldShowChecklist && (
           <div className="mb-6 md:mb-8">
@@ -442,7 +507,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="payment">
-            <PaymentManager user={user} hasActiveSubscription={hasPremiumAccess} />
+            <PaymentManager user={user} hasActiveSubscription={hasPremiumAccess && !isInTrialPeriod} />
           </TabsContent>
           
           <TabsContent value="forum">
