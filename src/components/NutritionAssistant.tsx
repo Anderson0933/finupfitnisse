@@ -69,6 +69,64 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
     }
   }, [messages]);
 
+  const saveConversationToDatabase = async (userMessage: string, assistantMessage: string) => {
+    if (!user) return;
+
+    try {
+      console.log('💾 Salvando conversa de nutrição no banco...');
+      
+      // Buscar conversa existente ou criar nova
+      let { data: existingConversation, error: fetchError } = await supabase
+        .from('ai_conversations')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('conversation_type', 'nutrition')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      const newMessages = [
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: assistantMessage }
+      ];
+
+      if (existingConversation) {
+        // Adicionar mensagens à conversa existente
+        const updatedMessages = [...(existingConversation.messages || []), ...newMessages];
+        
+        const { error: updateError } = await supabase
+          .from('ai_conversations')
+          .update({
+            messages: updatedMessages,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingConversation.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Criar nova conversa
+        const { error: insertError } = await supabase
+          .from('ai_conversations')
+          .insert({
+            user_id: user.id,
+            conversation_type: 'nutrition',
+            messages: newMessages
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      console.log('✅ Conversa de nutrição salva com sucesso');
+    } catch (error: any) {
+      console.error('❌ Erro ao salvar conversa de nutrição:', error);
+      // Não mostrar toast de erro para não atrapalhar a experiência
+    }
+  };
+
   const sendMessage = async () => {
     if (!inputMessage.trim() || !user) return;
 
@@ -80,13 +138,14 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage('');
     setLoading(true);
 
     try {
       const response = await supabase.functions.invoke('nutrition-assistant', {
         body: { 
-          message: inputMessage,
+          message: currentInput,
           userId: user.id,
           conversationHistory: messages.slice(-10).map(m => ({
             role: m.isUser ? 'user' : 'assistant',
@@ -97,14 +156,20 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
 
       if (response.error) throw response.error;
 
+      const assistantResponse = response.data.message || 'Desculpe, não consegui processar sua mensagem.';
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: response.data.message || 'Desculpe, não consegui processar sua mensagem.',
+        content: assistantResponse,
         isUser: false,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Salvar conversa no banco de dados para o onboarding
+      await saveConversationToDatabase(currentInput, assistantResponse);
+
     } catch (error: any) {
       console.error('Erro ao enviar mensagem:', error);
       toast({

@@ -66,7 +66,7 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
       checkCompletedSteps();
       const interval = setInterval(() => {
         checkCompletedSteps();
-      }, 3000); // Reduzido para 3 segundos para ser mais responsivo
+      }, 3000);
 
       return () => clearInterval(interval);
     }
@@ -102,7 +102,7 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
         .limit(1)
         .maybeSingle();
 
-      // Verificar se tem conversas de nutrição - Corrigindo a lógica aqui
+      // Verificar se tem conversas de nutrição
       const { data: nutritionConversations } = await supabase
         .from('ai_conversations')
         .select('id')
@@ -130,10 +130,13 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
             isNowComplete = !!workoutPlan;
             break;
           case 'nutrition-plan':
-            // Se encontrou conversa de nutrição OU se não está nos passos completados mas deveria estar
             isNowComplete = !!nutritionConversations;
+            console.log('🍎 Verificação nutrição:', { 
+              nutritionConversations: !!nutritionConversations,
+              isInDB: completedStepsDB.includes(step.id),
+              shouldComplete: isNowComplete && !completedStepsDB.includes(step.id)
+            });
             
-            // Marcar como completo se detectou atividade mas não está salvo no DB
             if (isNowComplete && !completedStepsDB.includes(step.id)) {
               shouldMarkComplete = true;
             }
@@ -143,13 +146,11 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
             break;
         }
 
-        // Se deve marcar como completo, fazer isso imediatamente
         if (shouldMarkComplete) {
           console.log(`✅ Passo '${step.id}' concluído e será salvo imediatamente.`);
           onStepComplete(step.id);
         }
         
-        // Se já completou mas não está na base ou se acabou de completar
         if (isNowComplete && !completedStepsDB.includes(step.id) && !shouldMarkComplete) {
           console.log(`✅ Passo '${step.id}' concluído e será salvo.`);
           onStepComplete(step.id);
