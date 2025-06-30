@@ -6,7 +6,7 @@ import { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText, HelpCircle, Users, Trophy } from 'lucide-react';
+import { LogOut, Dumbbell, MessageCircle, TrendingUp, Apple, Sparkles, CreditCard, Lock, FileText, HelpCircle, Users, Trophy, Crown } from 'lucide-react';
 import WorkoutPlanGenerator, { WorkoutPlan } from '@/components/WorkoutPlanGenerator';
 import AIAssistant from '@/components/AIAssistant';
 import ProgressTracker from '@/components/ProgressTracker';
@@ -217,6 +217,18 @@ const Dashboard = () => {
               <div className="notification-bell">
                 <NotificationCenter user={user} />
               </div>
+
+              {isAdmin && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/admin')} 
+                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-50 bg-yellow-50/50 text-xs md:text-sm px-2 md:px-4" 
+                  size="sm"
+                >
+                  <Crown className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 text-yellow-600" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Button>
+              )}
 
               <Button variant="outline" onClick={handleSignOut} className="border-blue-200 text-blue-700 hover:bg-blue-50 text-xs md:text-sm px-2 md:px-4" size="sm">
                 <LogOut className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
