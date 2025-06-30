@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { QrCode, CreditCard, Check, RefreshCw, Sparkles, User as UserIcon, Copy, AlertCircle, CheckCircle, History, Calendar } from 'lucide-react';
+import { QrCode, CreditCard, Check, RefreshCw, Sparkles, User as UserIcon, Copy, AlertCircle, CheckCircle, History, Calendar, Clock } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface PaymentManagerProps {
@@ -30,7 +30,48 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
   const [lastVerificationStatus, setLastVerificationStatus] = useState<string | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [autoChecking, setAutoChecking] = useState(false);
   const { toast } = useToast();
+
+  // Polling automático para verificar status do pagamento
+  useEffect(() => {
+    if (!pixData || !user || hasActiveSubscription) return;
+
+    const checkPaymentStatus = async () => {
+      try {
+        setAutoChecking(true);
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('status')
+          .eq('payment_id', pixData.paymentId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (subscription?.status === 'active') {
+          toast({
+            title: "🎉 Pagamento confirmado automaticamente!",
+            description: "Sua assinatura foi ativada. A página será recarregada em 2 segundos.",
+          });
+          
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        }
+      } catch (error) {
+        console.log('Erro no polling (ignorado):', error);
+      } finally {
+        setAutoChecking(false);
+      }
+    };
+
+    // Verificar a cada 15 segundos
+    const interval = setInterval(checkPaymentStatus, 15000);
+    
+    // Verificar imediatamente
+    checkPaymentStatus();
+
+    return () => clearInterval(interval);
+  }, [pixData, user, hasActiveSubscription, toast]);
 
   const formatCPF = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -144,7 +185,7 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
       
       toast({
         title: "PIX gerado com sucesso!",
-        description: "Escaneie o QR Code ou copie o código PIX para realizar o pagamento.",
+        description: "Escaneie o QR Code ou copie o código PIX. O pagamento será confirmado automaticamente.",
       });
     } catch (error: any) {
       console.error('Erro ao gerar PIX:', error);
@@ -431,6 +472,12 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
             <CardDescription className="text-orange-600">
               Escaneie o QR Code ou copie o código PIX abaixo
             </CardDescription>
+            {autoChecking && (
+              <div className="flex items-center justify-center gap-2 text-blue-600 text-sm">
+                <Clock className="h-4 w-4 animate-spin" />
+                <span>Verificando pagamento automaticamente...</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Área do QR Code */}
@@ -487,7 +534,7 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
                 ) : (
                   <>
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Validar Pagamento
+                    Validar Pagamento Manualmente
                   </>
                 )}
               </Button>
@@ -496,7 +543,10 @@ const PaymentManager = ({ user, hasActiveSubscription }: PaymentManagerProps) =>
             <div className="text-center text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg p-4">
               <p className="font-medium">Valor: R$ 69,90</p>
               <p className="mt-2">
-                Após realizar o pagamento via PIX, clique em "Validar Pagamento" para ativar sua assinatura
+                Seu pagamento será confirmado automaticamente em alguns instantes após a realização do PIX.
+              </p>
+              <p className="mt-1 text-xs">
+                Caso não seja confirmado automaticamente, use o botão "Validar Pagamento Manualmente"
               </p>
               {pixData.paymentId && (
                 <p className="mt-1 text-xs text-gray-600">

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -128,17 +127,23 @@ serve(async (req) => {
 
     console.log('Criando cobrança PIX no Asaas (produção)...')
 
-    // Criar cobrança PIX no Asaas (produção) com referência única e SEM notificações automáticas
+    // Criar cobrança PIX no Asaas (produção) com webhook configurado
     const paymentPayload = {
       customer: customerId,
       billingType: 'PIX',
       value: amount,
       dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       description: `Assinatura FitAI Pro - ${userEmail}`,
-      externalReference: externalReference, // Usar referência única para cada cobrança
-      // Desabilitar notificações automáticas do Asaas
+      externalReference: externalReference,
+      // Configurar webhook para notificações automáticas
+      callback: {
+        successUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/asaas-webhook`,
+        autoRedirect: false
+      },
+      // Configurar webhook para eventos específicos
+      webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/asaas-webhook`,
+      // Desabilitar notificações automáticas por email/SMS do Asaas
       disableNotifications: true,
-      // Configurações de webhook e notificação desabilitadas
       enableReminder: false,
       reminderDays: 0
     }
@@ -245,7 +250,7 @@ serve(async (req) => {
         status: 200,
       },
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro geral:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
