@@ -1,50 +1,49 @@
-
 import { ExerciseMedia } from '@/types/exercise';
 
 class ExerciseImageService {
   private exerciseCache = new Map<string, ExerciseMedia[]>();
   
-  // URLs de imagens estáveis e confiáveis
+  // URLs de imagens do Unsplash com IDs específicos e confiáveis
   private readonly RELIABLE_IMAGES: Record<string, ExerciseMedia[]> = {
     // Exercícios de peitoral
     'supino': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/3B82F6/FFFFFF?text=Supino+Reto',
+        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
         alt: 'Supino Reto - Posição Inicial',
-        thumbnail: 'https://via.placeholder.com/150x150/3B82F6/FFFFFF?text=Supino'
+        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
       }
     ],
     'supino reto': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/3B82F6/FFFFFF?text=Supino+Reto',
+        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
         alt: 'Supino Reto - Movimento',
-        thumbnail: 'https://via.placeholder.com/150x150/3B82F6/FFFFFF?text=Supino'
+        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
       }
     ],
     'supino inclinado': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/10B981/FFFFFF?text=Supino+Inclinado',
+        url: 'https://images.unsplash.com/photo-1584380931214-dbb5b72e6232?w=600&h=400&fit=crop',
         alt: 'Supino Inclinado - Posição',
-        thumbnail: 'https://via.placeholder.com/150x150/10B981/FFFFFF?text=Inclinado'
+        thumbnail: 'https://images.unsplash.com/photo-1584380931214-dbb5b72e6232?w=150&h=150&fit=crop'
       }
     ],
     'flexao': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/F59E0B/FFFFFF?text=Flexao+de+Braco',
+        url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
         alt: 'Flexão de Braço - Execução',
-        thumbnail: 'https://via.placeholder.com/150x150/F59E0B/FFFFFF?text=Flexao'
+        thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
       }
     ],
     'flexão': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/F59E0B/FFFFFF?text=Flexao+de+Braco',
+        url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&h=400&fit=crop',
         alt: 'Flexão de Braço - Execução',
-        thumbnail: 'https://via.placeholder.com/150x150/F59E0B/FFFFFF?text=Flexao'
+        thumbnail: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=150&h=150&fit=crop'
       }
     ],
     
@@ -52,17 +51,17 @@ class ExerciseImageService {
     'remada': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/DC2626/FFFFFF?text=Remada+Curvada',
+        url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop',
         alt: 'Remada Curvada - Posição',
-        thumbnail: 'https://via.placeholder.com/150x150/DC2626/FFFFFF?text=Remada'
+        thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop'
       }
     ],
     'puxada': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/7C3AED/FFFFFF?text=Puxada+Frontal',
+        url: 'https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=600&h=400&fit=crop',
         alt: 'Puxada Frontal - Execução',
-        thumbnail: 'https://via.placeholder.com/150x150/7C3AED/FFFFFF?text=Puxada'
+        thumbnail: 'https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=150&h=150&fit=crop'
       }
     ],
     
@@ -70,17 +69,17 @@ class ExerciseImageService {
     'agachamento': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/059669/FFFFFF?text=Agachamento+Livre',
+        url: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=600&h=400&fit=crop',
         alt: 'Agachamento Livre - Movimento',
-        thumbnail: 'https://via.placeholder.com/150x150/059669/FFFFFF?text=Agachamento'
+        thumbnail: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=150&h=150&fit=crop'
       }
     ],
     'leg press': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/B91C1C/FFFFFF?text=Leg+Press',
+        url: 'https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=600&h=400&fit=crop',
         alt: 'Leg Press - Execução',
-        thumbnail: 'https://via.placeholder.com/150x150/B91C1C/FFFFFF?text=Leg+Press'
+        thumbnail: 'https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=150&h=150&fit=crop'
       }
     ],
     
@@ -88,25 +87,25 @@ class ExerciseImageService {
     'desenvolvimento': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/EA580C/FFFFFF?text=Desenvolvimento',
+        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
         alt: 'Desenvolvimento - Posição',
-        thumbnail: 'https://via.placeholder.com/150x150/EA580C/FFFFFF?text=Desenvolvimento'
+        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
       }
     ],
     'elevacao lateral': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/7C2D12/FFFFFF?text=Elevacao+Lateral',
+        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
         alt: 'Elevação Lateral - Movimento',
-        thumbnail: 'https://via.placeholder.com/150x150/7C2D12/FFFFFF?text=Elevacao'
+        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
       }
     ],
     'elevação lateral': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/7C2D12/FFFFFF?text=Elevacao+Lateral',
+        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
         alt: 'Elevação Lateral - Movimento',
-        thumbnail: 'https://via.placeholder.com/150x150/7C2D12/FFFFFF?text=Elevacao'
+        thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
       }
     ],
     
@@ -114,105 +113,156 @@ class ExerciseImageService {
     'rosca direta': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/8B5CF6/FFFFFF?text=Rosca+Direta',
+        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
         alt: 'Rosca Direta - Bíceps',
-        thumbnail: 'https://via.placeholder.com/150x150/8B5CF6/FFFFFF?text=Rosca'
+        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
       }
     ],
     'rosca biceps': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/8B5CF6/FFFFFF?text=Rosca+Biceps',
+        url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
         alt: 'Rosca Bíceps - Execução',
-        thumbnail: 'https://via.placeholder.com/150x150/8B5CF6/FFFFFF?text=Biceps'
+        thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
       }
     ],
     'triceps': [
       {
         type: 'image',
-        url: 'https://via.placeholder.com/600x400/EC4899/FFFFFF?text=Triceps+Testa',
+        url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop',
         alt: 'Tríceps Testa - Posição',
-        thumbnail: 'https://via.placeholder.com/150x150/EC4899/FFFFFF?text=Triceps'
+        thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop'
       }
     ]
   };
 
-  // Fallback geral por categoria
+  // Fallback por categoria com URLs mais confiáveis
   private readonly CATEGORY_FALLBACKS: Record<string, ExerciseMedia> = {
     chest: {
       type: 'image',
-      url: 'https://via.placeholder.com/600x400/3B82F6/FFFFFF?text=Exercicio+de+Peitoral',
+      url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
       alt: 'Exercício de Peitoral',
-      thumbnail: 'https://via.placeholder.com/150x150/3B82F6/FFFFFF?text=Peitoral'
+      thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
     },
     back: {
       type: 'image',
-      url: 'https://via.placeholder.com/600x400/DC2626/FFFFFF?text=Exercicio+de+Costas',
+      url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop',
       alt: 'Exercício de Costas',
-      thumbnail: 'https://via.placeholder.com/150x150/DC2626/FFFFFF?text=Costas'
+      thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop'
     },
     legs: {
       type: 'image',
-      url: 'https://via.placeholder.com/600x400/059669/FFFFFF?text=Exercicio+de+Pernas',
+      url: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=600&h=400&fit=crop',
       alt: 'Exercício de Pernas',
-      thumbnail: 'https://via.placeholder.com/150x150/059669/FFFFFF?text=Pernas'
+      thumbnail: 'https://images.unsplash.com/photo-1566241142205-ec39cb545736?w=150&h=150&fit=crop'
     },
     shoulders: {
       type: 'image',
-      url: 'https://via.placeholder.com/600x400/EA580C/FFFFFF?text=Exercicio+de+Ombros',
+      url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
       alt: 'Exercício de Ombros',
-      thumbnail: 'https://via.placeholder.com/150x150/EA580C/FFFFFF?text=Ombros'
+      thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
     },
     arms: {
       type: 'image',
-      url: 'https://via.placeholder.com/600x400/8B5CF6/FFFFFF?text=Exercicio+de+Bracos',
+      url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&h=400&fit=crop',
       alt: 'Exercício de Braços',
-      thumbnail: 'https://via.placeholder.com/150x150/8B5CF6/FFFFFF?text=Bracos'
+      thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=150&h=150&fit=crop'
     },
     general: {
       type: 'image',
-      url: 'https://via.placeholder.com/600x400/6B7280/FFFFFF?text=Exercicio+Fisico',
+      url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
       alt: 'Exercício Físico',
-      thumbnail: 'https://via.placeholder.com/150x150/6B7280/FFFFFF?text=Exercicio'
+      thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop'
     }
+  };
+
+  // Fallback final sempre funcional
+  private readonly FINAL_FALLBACK: ExerciseMedia = {
+    type: 'image',
+    url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNTAgMTUwSDM1MFYyNTBIMjUwVjE1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHRLEHT+",
+    alt: 'Exercício',
+    thumbnail: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik02MCA2MEg5MFY5MEg2MFY2MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHRLEHT+
   };
   
   async searchExerciseImages(exerciseName: string): Promise<ExerciseMedia[]> {
     const cacheKey = exerciseName.toLowerCase();
     
     if (this.exerciseCache.has(cacheKey)) {
+      console.log(`💾 Cache hit para: ${exerciseName}`);
       return this.exerciseCache.get(cacheKey)!;
     }
     
     console.log(`🔍 Buscando imagens para: ${exerciseName}`);
     
-    // Primeiro tentar busca exata
-    const exactMatch = this.findExactMatch(exerciseName);
-    if (exactMatch) {
-      console.log(`✅ Encontrada imagem específica para: ${exerciseName}`);
-      this.exerciseCache.set(cacheKey, exactMatch);
-      return exactMatch;
+    try {
+      // Tentar busca exata
+      const exactMatch = this.findExactMatch(exerciseName);
+      if (exactMatch) {
+        console.log(`✅ Imagem específica encontrada para: ${exerciseName}`);
+        await this.validateImages(exactMatch);
+        this.exerciseCache.set(cacheKey, exactMatch);
+        return exactMatch;
+      }
+      
+      // Buscar por palavra-chave
+      const keywordMatch = this.findKeywordMatch(exerciseName);
+      if (keywordMatch) {
+        console.log(`✅ Imagem por palavra-chave encontrada para: ${exerciseName}`);
+        await this.validateImages(keywordMatch);
+        this.exerciseCache.set(cacheKey, keywordMatch);
+        return keywordMatch;
+      }
+      
+      // Usar fallback por categoria
+      const category = this.getExerciseCategory(exerciseName);
+      const fallbackImage = this.CATEGORY_FALLBACKS[category];
+      const result = [{
+        ...fallbackImage,
+        alt: `${exerciseName} - ${fallbackImage.alt}`
+      }];
+      
+      console.log(`📂 Usando imagem de categoria (${category}) para: ${exerciseName}`);
+      await this.validateImages(result);
+      this.exerciseCache.set(cacheKey, result);
+      return result;
+      
+    } catch (error) {
+      console.error(`❌ Erro ao buscar imagens para ${exerciseName}:`, error);
+      
+      // Retornar fallback final
+      const finalResult = [{
+        ...this.FINAL_FALLBACK,
+        alt: `${exerciseName} - Demonstração`
+      }];
+      
+      console.log(`🆘 Usando fallback final para: ${exerciseName}`);
+      this.exerciseCache.set(cacheKey, finalResult);
+      return finalResult;
     }
-    
-    // Buscar por palavra-chave
-    const keywordMatch = this.findKeywordMatch(exerciseName);
-    if (keywordMatch) {
-      console.log(`✅ Encontrada imagem por palavra-chave para: ${exerciseName}`);
-      this.exerciseCache.set(cacheKey, keywordMatch);
-      return keywordMatch;
+  }
+
+  private async validateImages(images: ExerciseMedia[]): Promise<void> {
+    for (const image of images) {
+      try {
+        await this.testImageLoad(image.url);
+      } catch (error) {
+        console.warn(`⚠️ Falha ao carregar imagem ${image.url}, usando fallback`);
+        image.url = this.FINAL_FALLBACK.url;
+        image.thumbnail = this.FINAL_FALLBACK.thumbnail;
+      }
     }
-    
-    // Usar fallback por categoria
-    const category = this.getExerciseCategory(exerciseName);
-    const fallbackImage = this.CATEGORY_FALLBACKS[category];
-    const result = [{
-      ...fallbackImage,
-      alt: `${exerciseName} - ${fallbackImage.alt}`
-    }];
-    
-    console.log(`📸 Usando imagem de categoria (${category}) para: ${exerciseName}`);
-    this.exerciseCache.set(cacheKey, result);
-    return result;
+  }
+
+  private testImageLoad(url: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+      img.src = url;
+      
+      // Timeout após 5 segundos
+      setTimeout(() => reject(new Error('Image load timeout')), 5000);
+    });
   }
   
   private findExactMatch(exerciseName: string): ExerciseMedia[] | null {
@@ -223,7 +273,6 @@ class ExerciseImageService {
   private findKeywordMatch(exerciseName: string): ExerciseMedia[] | null {
     const normalizedName = exerciseName.toLowerCase();
     
-    // Buscar por palavras-chave
     for (const [key, images] of Object.entries(this.RELIABLE_IMAGES)) {
       if (normalizedName.includes(key) || key.includes(normalizedName)) {
         return images;
@@ -236,32 +285,27 @@ class ExerciseImageService {
   private getExerciseCategory(exerciseName: string): string {
     const normalizedName = exerciseName.toLowerCase();
     
-    // Peitoral
     if (normalizedName.includes('supino') || normalizedName.includes('flexao') || 
         normalizedName.includes('peitoral') || normalizedName.includes('crucifixo')) {
       return 'chest';
     }
     
-    // Costas
     if (normalizedName.includes('remada') || normalizedName.includes('puxada') || 
         normalizedName.includes('costas') || normalizedName.includes('pull')) {
       return 'back';
     }
     
-    // Pernas
     if (normalizedName.includes('agachamento') || normalizedName.includes('leg') || 
         normalizedName.includes('coxa') || normalizedName.includes('perna') ||
         normalizedName.includes('quadriceps') || normalizedName.includes('gluteo')) {
       return 'legs';
     }
     
-    // Ombros
     if (normalizedName.includes('ombro') || normalizedName.includes('desenvolvimento') ||
         normalizedName.includes('elevacao') || normalizedName.includes('deltoid')) {
       return 'shoulders';
     }
     
-    // Braços
     if (normalizedName.includes('rosca') || normalizedName.includes('triceps') || 
         normalizedName.includes('biceps') || normalizedName.includes('braco')) {
       return 'arms';

@@ -88,29 +88,20 @@ const WorkoutSession = ({ workout, onComplete, onExerciseComplete }: WorkoutSess
     return Math.round((completed / total) * 100);
   };
 
-  // Converter Exercise para EnhancedExercise
-  const convertToEnhancedExercise = (exercise: Exercise): EnhancedExercise => ({
-    ...exercise,
-    visuals: {
-      images: [
-        {
-          type: 'image',
-          url: `https://via.placeholder.com/400x300/3B82F6/ffffff?text=${encodeURIComponent(exercise.name)}+Posição+Inicial`,
-          alt: `${exercise.name} - Posição Inicial`
-        },
-        {
-          type: 'gif',
-          url: `https://via.placeholder.com/400x300/10B981/ffffff?text=${encodeURIComponent(exercise.name)}+Movimento`,
-          alt: `${exercise.name} - Movimento Completo`
-        }
-      ]
-    },
-    muscle_anatomy: {
-      primary: exercise.muscle_groups.slice(0, 2),
-      secondary: exercise.muscle_groups.slice(2, 4),
-      stabilizer: exercise.muscle_groups.slice(4)
-    }
-  });
+  // Converter Exercise para EnhancedExercise SEM criar imagens placeholder
+  const convertToEnhancedExercise = (exercise: Exercise): EnhancedExercise => {
+    console.log(`🔄 Convertendo exercício sem imagens placeholder: ${exercise.name}`);
+    
+    return {
+      ...exercise,
+      // NÃO criar imagens aqui - deixar o ExerciseImageViewer buscar
+      muscle_anatomy: {
+        primary: exercise.muscle_groups.slice(0, 2),
+        secondary: exercise.muscle_groups.slice(2, 4),
+        stabilizer: exercise.muscle_groups.slice(4)
+      }
+    };
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

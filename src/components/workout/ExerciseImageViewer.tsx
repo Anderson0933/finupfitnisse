@@ -14,37 +14,37 @@ interface ExerciseImageViewerProps {
 const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [exerciseMedia, setExerciseMedia] = useState<ExerciseMedia[]>(media || []);
-  const [isLoading, setIsLoading] = useState(false);
+  const [exerciseMedia, setExerciseMedia] = useState<ExerciseMedia[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Carregar imagens quando o componente monta ou exercício muda
+  // SEMPRE carregar imagens quando o componente monta ou exercício muda
   useEffect(() => {
-    if (!media || media.length === 0) {
-      loadExerciseImages();
-    } else {
-      setExerciseMedia(media);
-    }
-  }, [exerciseName, media]);
+    console.log(`🖼️ ExerciseImageViewer: Carregando imagens para ${exerciseName}`);
+    loadExerciseImages();
+  }, [exerciseName]);
 
   const loadExerciseImages = async () => {
     setIsLoading(true);
     setHasError(false);
     
     try {
-      console.log(`🔍 Carregando imagens para: ${exerciseName}`);
+      console.log(`🔄 Iniciando carregamento de imagens para: ${exerciseName}`);
       const images = await exerciseImageService.searchExerciseImages(exerciseName);
+      
+      console.log(`📥 Imagens recebidas para ${exerciseName}:`, images);
       
       if (images && images.length > 0) {
         console.log(`✅ ${images.length} imagens carregadas para ${exerciseName}`);
         setExerciseMedia(images);
         setCurrentIndex(0);
+        setHasError(false);
       } else {
-        console.warn(`⚠️ Nenhuma imagem encontrada para ${exerciseName}`);
+        console.error(`❌ Nenhuma imagem retornada para ${exerciseName}`);
         setHasError(true);
       }
     } catch (error) {
-      console.error('❌ Erro ao carregar imagens:', error);
+      console.error(`💥 Erro crítico ao carregar imagens para ${exerciseName}:`, error);
       setHasError(true);
     } finally {
       setIsLoading(false);
@@ -141,12 +141,17 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
                     alt={currentMedia.alt}
                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
+                    onLoad={() => {
+                      console.log(`✅ Imagem carregada com sucesso: ${currentMedia.url}`);
+                    }}
                     onError={(e) => {
-                      console.warn(`⚠️ Erro ao carregar imagem: ${currentMedia.url}`);
+                      console.error(`❌ Erro ao carregar imagem: ${currentMedia.url}`);
                       const target = e.target as HTMLImageElement;
-                      // Fallback para uma imagem mais básica
-                      if (!target.src.includes('via.placeholder.com')) {
-                        target.src = `https://via.placeholder.com/600x400/6B7280/FFFFFF?text=${encodeURIComponent(exerciseName)}`;
+                      
+                      // Tentar fallback simples
+                      if (!target.src.includes('data:image')) {
+                        console.log(`🔄 Tentando fallback para: ${exerciseName}`);
+                        target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNTAgMTUwSDM1MFYyNTBIMjUwVjE1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHRLEHT+';
                       }
                     }}
                   />
@@ -186,7 +191,6 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
 
           {/* Controles inferiores */}
           <div className="p-4 space-y-4">
-            {/* Indicadores e controles */}
             {exerciseMedia.length > 1 && (
               <div className="flex justify-center items-center gap-4">
                 <div className="flex space-x-2">
@@ -224,7 +228,6 @@ const ExerciseImageViewer = ({ exerciseName, media }: ExerciseImageViewerProps) 
               </div>
             )}
 
-            {/* Informações da mídia */}
             <div className="text-center space-y-2">
               <div className="flex items-center justify-center gap-4 text-sm">
                 <span className="flex items-center gap-1 text-gray-600">
