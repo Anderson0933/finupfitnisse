@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -48,15 +47,7 @@ export const LoginForm = ({ onToggleMode, onForgotPassword }: LoginFormProps) =>
   };
 
   const handleForgotPassword = () => {
-    if (!email) {
-      toast({
-        title: "Erro",
-        description: "Por favor, insira seu email primeiro",
-        variant: "destructive",
-      });
-      return;
-    }
-    onForgotPassword(email);
+    window.location.href = '/forgot-password';
   };
 
   return (

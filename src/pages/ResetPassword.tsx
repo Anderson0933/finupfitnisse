@@ -15,79 +15,39 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
-  const [userEmail, setUserEmail] = useState<string>('');
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkResetSession = async () => {
+    const checkSession = async () => {
       try {
         console.log('=== VERIFICANDO SESSÃO DE RESET ===');
-        console.log('URL completa:', window.location.href);
         
-        // Verificar se há uma sessão ativa
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        // Verificar se há uma sessão válida
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (sessionError) {
-          console.error('❌ Erro ao obter sessão:', sessionError);
+        if (error) {
+          console.error('❌ Erro ao verificar sessão:', error);
           setIsValidSession(false);
           return;
         }
 
-        if (sessionData.session && sessionData.session.user) {
-          console.log('✅ Sessão válida encontrada para reset');
+        if (session?.user) {
+          console.log('✅ Sessão válida encontrada');
           setIsValidSession(true);
-          setUserEmail(sessionData.session.user.email || '');
           return;
         }
 
-        // Se não há sessão, tentar processar tokens da URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        
-        // Combinar parâmetros da query e hash
-        const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
-        const type = urlParams.get('type') || hashParams.get('type');
-
-        console.log('Parâmetros encontrados:', { 
-          accessToken: accessToken ? 'presente' : 'ausente',
-          refreshToken: refreshToken ? 'presente' : 'ausente',
-          type 
-        });
-
-        if (type === 'recovery' && accessToken && refreshToken) {
-          console.log('🔄 Tentando estabelecer sessão com tokens...');
-          
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-
-          if (error) {
-            console.error('❌ Erro ao estabelecer sessão:', error);
-            setIsValidSession(false);
-            return;
-          }
-
-          if (data.session && data.session.user) {
-            console.log('✅ Sessão estabelecida com sucesso');
-            setIsValidSession(true);
-            setUserEmail(data.session.user.email || '');
-            return;
-          }
-        }
-
-        console.log('❌ Nenhuma sessão válida para reset encontrada');
+        console.log('❌ Nenhuma sessão válida encontrada');
         setIsValidSession(false);
 
-      } catch (error: any) {
-        console.error('❌ Erro na verificação de sessão:', error);
+      } catch (error) {
+        console.error('❌ Erro na verificação:', error);
         setIsValidSession(false);
       }
     };
 
-    checkResetSession();
+    checkSession();
   }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -121,7 +81,7 @@ const ResetPassword = () => {
       });
 
       if (error) {
-        console.error('❌ Erro updateUser:', error);
+        console.error('❌ Erro ao atualizar senha:', error);
         throw error;
       }
 
@@ -129,22 +89,20 @@ const ResetPassword = () => {
 
       toast({
         title: "Senha atualizada!",
-        description: "Sua senha foi alterada com sucesso. Redirecionando...",
+        description: "Sua senha foi alterada com sucesso.",
       });
 
-      // Fazer logout para forçar novo login
-      await supabase.auth.signOut();
-
+      // Redirecionar para login
       setTimeout(() => {
         navigate('/auth');
       }, 2000);
 
     } catch (error: any) {
-      console.error('❌ Erro na atualização:', error);
+      console.error('❌ Erro:', error);
       
       toast({
         title: "Erro ao atualizar senha",
-        description: error.message || "Houve um problema ao atualizar sua senha. Tente novamente.",
+        description: error.message || "Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -154,10 +112,10 @@ const ResetPassword = () => {
 
   if (isValidSession === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
         <div className="text-center text-white">
-          <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-lg">Verificando link de redefinição...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Verificando...</p>
         </div>
       </div>
     );
@@ -165,7 +123,7 @@ const ResetPassword = () => {
 
   if (!isValidSession) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
@@ -177,25 +135,32 @@ const ResetPassword = () => {
           </div>
 
           <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
-            <CardHeader className="text-center pb-4">
+            <CardHeader className="text-center">
               <div className="flex items-center justify-center mb-4">
                 <div className="p-3 bg-red-500/20 backdrop-blur-sm rounded-xl border border-red-400/30">
                   <AlertCircle className="h-8 w-8 text-red-400" />
                 </div>
               </div>
-              <CardTitle className="text-2xl text-white">Link inválido ou expirado</CardTitle>
+              <CardTitle className="text-2xl text-white">Link inválido</CardTitle>
               <CardDescription className="text-blue-200">
-                O link de redefinição de senha expirou ou é inválido. 
-                Solicite um novo link usando a opção "Esqueci minha senha".
+                O link de redefinição expirou ou é inválido.
               </CardDescription>
             </CardHeader>
             
-            <CardContent>
+            <CardContent className="space-y-4">
               <Button 
-                onClick={() => navigate('/auth')}
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"
+                onClick={() => navigate('/forgot-password')}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"
               >
                 Solicitar novo link
+              </Button>
+              
+              <Button 
+                variant="ghost"
+                onClick={() => navigate('/auth')}
+                className="w-full text-gray-300 hover:text-white hover:bg-white/10"
+              >
+                Voltar ao login
               </Button>
             </CardContent>
           </Card>
@@ -205,7 +170,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
@@ -214,46 +179,42 @@ const ResetPassword = () => {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">FitAI Pro</h1>
-          <p className="text-blue-200">Redefinir senha</p>
         </div>
 
         <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
-          <CardHeader className="text-center pb-4">
+          <CardHeader className="text-center">
             <div className="flex items-center justify-center mb-4">
               <div className="p-3 bg-green-500/20 backdrop-blur-sm rounded-xl border border-green-400/30">
                 <CheckCircle className="h-8 w-8 text-green-400" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-white">Criar nova senha</CardTitle>
+            <CardTitle className="text-2xl text-white">Nova senha</CardTitle>
             <CardDescription className="text-blue-200">
               Digite sua nova senha abaixo
             </CardDescription>
-            {userEmail && (
-              <p className="text-sm text-gray-400 mt-2">Para: {userEmail}</p>
-            )}
           </CardHeader>
           
           <CardContent>
-            <form onSubmit={handleResetPassword} className="space-y-5">
+            <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-300">Nova senha</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder="Digite sua nova senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-1 focus:ring-green-400"
+                    className="pl-10 pr-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-1 focus:ring-green-400"
                     required
                     minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
@@ -261,64 +222,37 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-300">Confirmar senha</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirme sua nova senha"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 pr-10 h-12 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-1 focus:ring-green-400"
+                    className="pl-10 pr-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-1 focus:ring-green-400"
                     required
                     minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
-
-              {password && (
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-xs">
-                    <div className={`h-2 w-full rounded-full ${
-                      password.length >= 8 ? 'bg-green-500' : 
-                      password.length >= 6 ? 'bg-yellow-500' : 'bg-red-500'
-                    }`} />
-                    <span className={
-                      password.length >= 8 ? 'text-green-400' : 
-                      password.length >= 6 ? 'text-yellow-400' : 'text-red-400'
-                    }>
-                      {password.length >= 8 ? 'Forte' : 
-                       password.length >= 6 ? 'Média' : 'Fraca'}
-                    </span>
-                  </div>
-                </div>
-              )}
               
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold"
+                className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold"
                 disabled={loading || !password || !confirmPassword}
               >
                 {loading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Atualizando...</span>
-                  </div>
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Atualizando...
+                  </>
                 ) : 'Atualizar senha'}
-              </Button>
-              
-              <Button 
-                type="button"
-                variant="ghost"
-                onClick={() => navigate('/auth')}
-                className="w-full text-gray-300 hover:text-white hover:bg-white/10"
-              >
-                Voltar ao login
               </Button>
             </form>
           </CardContent>
