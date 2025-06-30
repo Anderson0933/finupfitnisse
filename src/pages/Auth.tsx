@@ -116,22 +116,55 @@ const Auth = () => {
     try {
       console.log('=== ENVIANDO EMAIL DE RECUPERAÇÃO ===');
       console.log('Email:', email);
+      console.log('URL atual:', window.location.href);
+      console.log('Origin:', window.location.origin);
+      console.log('Hostname:', window.location.hostname);
       
-      // Detectar ambiente e usar URL apropriada
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
-      const redirectUrl = isDevelopment 
-        ? `${window.location.origin}/reset-password`
-        : 'https://fitaipro.cloud/reset-password';
+      // Múltiplas estratégias para URL de redirecionamento
+      let redirectUrl;
+      
+      // Estratégia 1: Detectar ambiente automaticamente
+      const isDevelopment = window.location.hostname === 'localhost' || 
+                           window.location.hostname.includes('127.0.0.1') ||
+                           window.location.hostname.includes('lovable.app');
+      
+      if (isDevelopment) {
+        redirectUrl = `${window.location.origin}/reset-password`;
+      } else {
+        // Para produção, usar domínio específico
+        redirectUrl = 'https://fitaipro.cloud/reset-password';
+      }
       
       console.log('Ambiente detectado:', isDevelopment ? 'Desenvolvimento' : 'Produção');
-      console.log('Redirect URL:', redirectUrl);
+      console.log('Redirect URL escolhida:', redirectUrl);
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // Tentar enviar email com a URL detectada
+      let { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
 
+      // Se falhar e estivermos em produção, tentar URLs alternativas
+      if (error && !isDevelopment) {
+        console.log('Primeira tentativa falhou, tentando URL alternativa...');
+        console.error('Erro primeira tentativa:', error);
+        
+        // Tentar com URL do origin atual
+        const alternativeUrl = `${window.location.origin}/reset-password`;
+        console.log('Tentando URL alternativa:', alternativeUrl);
+        
+        const result = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: alternativeUrl,
+        });
+        
+        error = result.error;
+        
+        if (!error) {
+          console.log('✅ Sucesso com URL alternativa');
+        }
+      }
+
       if (error) {
-        console.error('Erro do Supabase:', error);
+        console.error('❌ Erro final do Supabase:', error);
         throw error;
       }
 
@@ -143,9 +176,20 @@ const Auth = () => {
       });
     } catch (error: any) {
       console.error('❌ Erro ao enviar email:', error);
+      
+      let errorMessage = "Erro ao enviar email de recuperação";
+      
+      if (error.message?.includes('rate limit')) {
+        errorMessage = "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.";
+      } else if (error.message?.includes('invalid')) {
+        errorMessage = "Email inválido ou não encontrado no sistema.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erro",
-        description: error.message || "Erro ao enviar email de recuperação",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -153,20 +197,20 @@ const Auth = () => {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+      <Card className="w-full max-w-md backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-2xl font-bold text-center text-white">
             {isLogin ? 'Entrar' : 'Criar Conta'}
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-blue-200">
             {promoterCode && !isLogin 
               ? 'Complete seu cadastro como promoter'
               : isLogin 
@@ -179,16 +223,16 @@ const Auth = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nome Completo</Label>
+                <Label htmlFor="fullName" className="text-gray-300">Nome Completo</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     id="fullName"
                     type="text"
                     placeholder="Seu nome completo"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-1 focus:ring-green-400"
                     required
                   />
                 </div>
@@ -196,38 +240,38 @@ const Auth = () => {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-gray-300">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-1 focus:ring-green-400"
                   required
                 />
               </div>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-gray-300">Senha</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Sua senha"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
+                  className="pl-10 pr-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-1 focus:ring-green-400"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -236,22 +280,22 @@ const Auth = () => {
 
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Label htmlFor="confirmPassword" className="text-gray-300">Confirmar Senha</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirme sua senha"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 pr-10"
+                    className="pl-10 pr-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-1 focus:ring-green-400"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -261,7 +305,7 @@ const Auth = () => {
 
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold" 
               disabled={isLoading}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -272,7 +316,7 @@ const Auth = () => {
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full"
+                className="w-full text-gray-300 hover:text-white hover:bg-white/10"
                 onClick={handleForgotPassword}
               >
                 Esqueci minha senha
@@ -284,7 +328,7 @@ const Auth = () => {
             <Button
               variant="link"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm"
+              className="text-sm text-blue-300 hover:text-blue-100"
             >
               {isLogin 
                 ? 'Não tem uma conta? Criar conta'
