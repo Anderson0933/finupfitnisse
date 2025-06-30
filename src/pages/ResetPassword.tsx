@@ -5,12 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Dumbbell, Lock, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Dumbbell, Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
 const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,88 +18,76 @@ const ResetPassword = () => {
   const [userEmail, setUserEmail] = useState<string>('');
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
+    const checkResetSession = async () => {
       try {
-        console.log('=== VERIFICANDO CALLBACK DE AUTH ===');
+        console.log('=== VERIFICANDO SESSÃO DE RESET ===');
         console.log('URL completa:', window.location.href);
-        console.log('Hash:', window.location.hash);
-        console.log('Search:', window.location.search);
-
-        // Verificar se há hash na URL (formato antigo)
-        const hash = window.location.hash.substring(1);
-        const hashParams = new URLSearchParams(hash);
         
-        // Verificar se há parâmetros de query (formato novo)
-        const queryParams = new URLSearchParams(window.location.search);
+        // Verificar se há uma sessão ativa
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
-        // Combinar ambos os tipos de parâmetros
-        const allParams = new URLSearchParams();
-        hashParams.forEach((value, key) => allParams.set(key, value));
-        queryParams.forEach((value, key) => allParams.set(key, value));
-
-        console.log('Parâmetros encontrados:', Object.fromEntries(allParams));
-
-        const accessToken = allParams.get('access_token');
-        const refreshToken = allParams.get('refresh_token');
-        const type = allParams.get('type');
-        const error = allParams.get('error');
-        const errorDescription = allParams.get('error_description');
-
-        // Se há erro na URL
-        if (error) {
-          console.error('❌ Erro na URL:', error, errorDescription);
+        if (sessionError) {
+          console.error('❌ Erro ao obter sessão:', sessionError);
           setIsValidSession(false);
           return;
         }
 
-        // Se não é recovery, verificar se é magic link ou outra forma
-        if (type !== 'recovery' && !accessToken) {
-          console.log('❌ Não é recovery e não há access token');
-          setIsValidSession(false);
-          return;
-        }
-
-        // Se temos tokens, tentar estabelecer sessão
-        if (accessToken && refreshToken) {
-          console.log('🔄 Estabelecendo sessão com tokens...');
-          
-          const { data, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-
-          if (!sessionError && data.session) {
-            console.log('✅ Sessão estabelecida com sucesso');
-            setIsValidSession(true);
-            setUserEmail(data.session.user.email || '');
-            return;
-          } else {
-            console.error('❌ Erro ao estabelecer sessão:', sessionError);
-          }
-        }
-
-        // Verificar se já existe uma sessão ativa
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData.session) {
-          console.log('✅ Sessão ativa encontrada');
+        if (sessionData.session && sessionData.session.user) {
+          console.log('✅ Sessão válida encontrada para reset');
           setIsValidSession(true);
           setUserEmail(sessionData.session.user.email || '');
           return;
         }
 
-        console.log('❌ Nenhuma sessão válida encontrada');
+        // Se não há sessão, tentar processar tokens da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        // Combinar parâmetros da query e hash
+        const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
+        const type = urlParams.get('type') || hashParams.get('type');
+
+        console.log('Parâmetros encontrados:', { 
+          accessToken: accessToken ? 'presente' : 'ausente',
+          refreshToken: refreshToken ? 'presente' : 'ausente',
+          type 
+        });
+
+        if (type === 'recovery' && accessToken && refreshToken) {
+          console.log('🔄 Tentando estabelecer sessão com tokens...');
+          
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (error) {
+            console.error('❌ Erro ao estabelecer sessão:', error);
+            setIsValidSession(false);
+            return;
+          }
+
+          if (data.session && data.session.user) {
+            console.log('✅ Sessão estabelecida com sucesso');
+            setIsValidSession(true);
+            setUserEmail(data.session.user.email || '');
+            return;
+          }
+        }
+
+        console.log('❌ Nenhuma sessão válida para reset encontrada');
         setIsValidSession(false);
 
       } catch (error: any) {
-        console.error('❌ Erro no callback:', error);
+        console.error('❌ Erro na verificação de sessão:', error);
         setIsValidSession(false);
       }
     };
 
-    handleAuthCallback();
+    checkResetSession();
   }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -165,14 +152,6 @@ const ResetPassword = () => {
     }
   };
 
-  const handleRequestNewLink = async () => {
-    navigate('/auth');
-    toast({
-      title: "Solicite um novo link",
-      description: "Use a opção 'Esqueci minha senha' na página de login.",
-    });
-  };
-
   if (isValidSession === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-8">
@@ -213,7 +192,7 @@ const ResetPassword = () => {
             
             <CardContent>
               <Button 
-                onClick={handleRequestNewLink}
+                onClick={() => navigate('/auth')}
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"
               >
                 Solicitar novo link
