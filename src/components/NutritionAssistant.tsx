@@ -19,6 +19,11 @@ interface Message {
   timestamp: Date;
 }
 
+interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 const STORAGE_KEY = 'nutrition_assistant_messages';
 
 const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
@@ -89,14 +94,18 @@ const NutritionAssistant = ({ user }: NutritionAssistantProps) => {
         throw fetchError;
       }
 
-      const newMessages = [
+      const newMessages: ConversationMessage[] = [
         { role: 'user', content: userMessage },
         { role: 'assistant', content: assistantMessage }
       ];
 
       if (existingConversation) {
-        // Adicionar mensagens à conversa existente
-        const updatedMessages = [...(existingConversation.messages || []), ...newMessages];
+        // Verificar se messages é um array, se não, inicializar como array vazio
+        const existingMessages = Array.isArray(existingConversation.messages) 
+          ? existingConversation.messages as ConversationMessage[]
+          : [];
+        
+        const updatedMessages = [...existingMessages, ...newMessages];
         
         const { error: updateError } = await supabase
           .from('ai_conversations')
