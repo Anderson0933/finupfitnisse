@@ -437,6 +437,45 @@ export type Database = {
         }
         Relationships: []
       }
+      promoters: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          promoter_code: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          phone?: string | null
+          promoter_code: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          promoter_code?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           affiliate_id: string | null
@@ -902,7 +941,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      generate_promoter_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       has_active_subscription: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
+      has_premium_access: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
+      is_active_promoter: {
         Args: { user_uuid: string }
         Returns: boolean
       }

@@ -1,0 +1,362 @@
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Edit, Trash2, User } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface Promoter {
+  id: string;
+  user_id: string;
+  promoter_code: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  status: 'active' | 'inactive' | 'pending';
+  created_at: string;
+}
+
+interface NewPromoterData {
+  full_name: string;
+  email: string;
+  phone: string;
+  company: string;
+  password: string;
+}
+
+const AdminPromoterManager = () => {
+  const [promoters, setPromoters] = useState<Promoter[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newPromoter, setNewPromoter] = useState<NewPromoterData>({
+    full_name: '',
+    email: '',
+    phone: '',
+    company: '',
+    password: ''
+  });
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchPromoters();
+  }, []);
+
+  const fetchPromoters = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('promoters')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPromoters(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar promoters:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar lista de promoters",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createPromoter = async () => {
+    if (!newPromoter.full_name || !newPromoter.email || !newPromoter.password) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Primeiro criar a conta de usuário
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: newPromoter.email,
+        password: newPromoter.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: newPromoter.full_name
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error('Usuário não foi criado');
+      }
+
+      // Depois criar o registro de promoter
+      const { error: promoterError } = await supabase
+        .from('promoters')
+        .insert({
+          user_id: authData.user.id,
+          full_name: newPromoter.full_name,
+          email: newPromoter.email,
+          phone: newPromoter.phone || null,
+          company: newPromoter.company || null,
+          status: 'active'
+        });
+
+      if (promoterError) throw promoterError;
+
+      toast({
+        title: "Sucesso",
+        description: "Promoter criado com sucesso!",
+      });
+
+      setNewPromoter({
+        full_name: '',
+        email: '',
+        phone: '',
+        company: '',
+        password: ''
+      });
+      setIsDialogOpen(false);
+      fetchPromoters();
+    } catch (error: any) {
+      console.error('Erro ao criar promoter:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao criar promoter",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updatePromoterStatus = async (promoterId: string, newStatus: 'active' | 'inactive') => {
+    try {
+      const { error } = await supabase
+        .from('promoters')
+        .update({ status: newStatus })
+        .eq('id', promoterId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: `Status do promoter atualizado para ${newStatus}`,
+      });
+
+      fetchPromoters();
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar status do promoter",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deletePromoter = async (promoterId: string, userId: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir este promoter?')) return;
+
+    try {
+      // Primeiro deletar o registro de promoter
+      const { error: promoterError } = await supabase
+        .from('promoters')
+        .delete()
+        .eq('id', promoterId);
+
+      if (promoterError) throw promoterError;
+
+      // Depois deletar o usuário
+      const { error: userError } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (userError) console.warn('Aviso ao deletar usuário:', userError);
+
+      toast({
+        title: "Sucesso",
+        description: "Promoter excluído com sucesso!",
+      });
+
+      fetchPromoters();
+    } catch (error) {
+      console.error('Erro ao excluir promoter:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir promoter",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      active: 'default',
+      inactive: 'secondary',
+      pending: 'outline'
+    } as const;
+
+    return <Badge variant={variants[status as keyof typeof variants]}>{status}</Badge>;
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Carregando...</div>;
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Gerenciar Promoters</h1>
+          <p className="text-muted-foreground">Administre os promoters do FitAI</p>
+        </div>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Promoter
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Novo Promoter</DialogTitle>
+              <DialogDescription>
+                Criar uma nova conta de promoter com acesso total ao FitAI
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="full_name">Nome Completo *</Label>
+                <Input
+                  id="full_name"
+                  value={newPromoter.full_name}
+                  onChange={(e) => setNewPromoter({...newPromoter, full_name: e.target.value})}
+                  placeholder="Nome completo do promoter"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newPromoter.email}
+                  onChange={(e) => setNewPromoter({...newPromoter, email: e.target.value})}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Senha *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newPromoter.password}
+                  onChange={(e) => setNewPromoter({...newPromoter, password: e.target.value})}
+                  placeholder="Senha para a conta"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  value={newPromoter.phone}
+                  onChange={(e) => setNewPromoter({...newPromoter, phone: e.target.value})}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+              <div>
+                <Label htmlFor="company">Empresa</Label>
+                <Input
+                  id="company"
+                  value={newPromoter.company}
+                  onChange={(e) => setNewPromoter({...newPromoter, company: e.target.value})}
+                  placeholder="Nome da empresa"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={createPromoter}>Criar Promoter</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4">
+        {promoters.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <User className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Nenhum promoter cadastrado ainda</p>
+            </CardContent>
+          </Card>
+        ) : (
+          promoters.map((promoter) => (
+            <Card key={promoter.id}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      {promoter.full_name}
+                      {getStatusBadge(promoter.status)}
+                    </CardTitle>
+                    <CardDescription>
+                      {promoter.email} • Código: {promoter.promoter_code}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select
+                      value={promoter.status}
+                      onValueChange={(value) => updatePromoterStatus(promoter.id, value as 'active' | 'inactive')}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Ativo</SelectItem>
+                        <SelectItem value="inactive">Inativo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deletePromoter(promoter.id, promoter.user_id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              {(promoter.phone || promoter.company) && (
+                <CardContent>
+                  <div className="text-sm text-muted-foreground">
+                    {promoter.phone && <p>Telefone: {promoter.phone}</p>}
+                    {promoter.company && <p>Empresa: {promoter.company}</p>}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AdminPromoterManager;
