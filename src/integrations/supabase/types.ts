@@ -441,6 +441,7 @@ export type Database = {
         Row: {
           company: string | null
           created_at: string
+          deactivated_at: string | null
           email: string
           full_name: string
           id: string
@@ -453,6 +454,7 @@ export type Database = {
         Insert: {
           company?: string | null
           created_at?: string
+          deactivated_at?: string | null
           email: string
           full_name: string
           id?: string
@@ -465,6 +467,7 @@ export type Database = {
         Update: {
           company?: string | null
           created_at?: string
+          deactivated_at?: string | null
           email?: string
           full_name?: string
           id?: string
@@ -932,6 +935,10 @@ export type Database = {
           status: string
           position_in_queue: number
         }[]
+      }
+      cleanup_expired_accounts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       delete_user_queue_items: {
         Args: { p_user_id: string }

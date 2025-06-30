@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +29,8 @@ const Dashboard = () => {
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [isPromoter, setIsPromoter] = useState(false);
   const [isInTrialPeriod, setIsInTrialPeriod] = useState(false);
+  const [isExPromoter, setIsExPromoter] = useState(false);
+  const [exPromoterDeactivatedAt, setExPromoterDeactivatedAt] = useState<Date | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -80,23 +81,45 @@ const Dashboard = () => {
       console.log(`👤 Usuário logado: ${currentUser.email}`);
 
       try {
-        // Verificar se é promoter ativo primeiro
-        console.log('🎯 Verificando se usuário é promoter...');
+        // Verificar status de promoter (ativo ou inativo)
+        console.log('🎯 Verificando status de promoter...');
         const { data: promoterData } = await supabase
           .from('promoters')
-          .select('status')
+          .select('status, deactivated_at')
           .eq('user_id', currentUser.id)
-          .eq('status', 'active')
           .maybeSingle();
 
         if (promoterData) {
-          console.log('✅ Usuário é promoter ativo - acesso gratuito permanente');
-          setIsPromoter(true);
-          setHasActiveSubscription(false);
-          setIsInTrialPeriod(false);
+          if (promoterData.status === 'active') {
+            console.log('✅ Usuário é promoter ativo - acesso gratuito permanente');
+            setIsPromoter(true);
+            setIsExPromoter(false);
+            setHasActiveSubscription(false);
+            setIsInTrialPeriod(false);
+          } else if (promoterData.status === 'inactive' && promoterData.deactivated_at) {
+            console.log('⚠️ Usuário é ex-promoter, verificando período de carência...');
+            const deactivatedAt = new Date(promoterData.deactivated_at);
+            const now = new Date();
+            const hoursSinceDeactivation = (now.getTime() - deactivatedAt.getTime()) / (1000 * 60 * 60);
+
+            setIsPromoter(false);
+            setIsExPromoter(true);
+            setExPromoterDeactivatedAt(deactivatedAt);
+
+            if (hoursSinceDeactivation <= 24) {
+              console.log('🎉 Ex-promoter ainda em período de carência (24h)');
+              setIsInTrialPeriod(true);
+              setHasActiveSubscription(false);
+            } else {
+              console.log('❌ Ex-promoter fora do período de carência');
+              setIsInTrialPeriod(false);
+              setHasActiveSubscription(false);
+            }
+          }
         } else {
           console.log('🔍 Verificando assinatura e período de teste...');
           setIsPromoter(false);
+          setIsExPromoter(false);
           
           const { data: subscription } = await supabase
             .from('subscriptions')
@@ -174,6 +197,8 @@ const Dashboard = () => {
           setHasActiveSubscription(false);
           setIsPromoter(false);
           setIsInTrialPeriod(false);
+          setIsExPromoter(false);
+          setExPromoterDeactivatedAt(null);
           navigate('/auth');
         } else if (_event === 'SIGNED_IN' && !user) {
            console.log('👤 Usuário logado via listener, reinicializando...');
@@ -196,6 +221,26 @@ const Dashboard = () => {
   };
 
   const hasAccess = hasActiveSubscription || isInTrialPeriod || isPromoter;
+
+  const getStatusInfo = () => {
+    if (isPromoter) {
+      return { text: "⭐ Promoter", bgColor: "bg-purple-100", textColor: "text-purple-700" };
+    }
+    if (isExPromoter && isInTrialPeriod) {
+      const hoursLeft = exPromoterDeactivatedAt ? 
+        Math.max(0, 24 - Math.floor((new Date().getTime() - exPromoterDeactivatedAt.getTime()) / (1000 * 60 * 60))) : 0;
+      return { text: `⏰ Carência (${hoursLeft}h restantes)`, bgColor: "bg-orange-100", textColor: "text-orange-700" };
+    }
+    if (isInTrialPeriod && !hasActiveSubscription && !isPromoter) {
+      return { text: "🎉 Gratuito", bgColor: "bg-blue-100", textColor: "text-blue-700" };
+    }
+    if (hasActiveSubscription) {
+      return { text: "✅ Plano Ativo", bgColor: "bg-green-100", textColor: "text-green-700" };
+    }
+    return { text: "⚠️ Bloqueado", bgColor: "bg-red-100", textColor: "text-red-700" };
+  };
+
+  const statusInfo = getStatusInfo();
 
   const LockedFeature = ({ children, title }: { children: React.ReactNode, title: string }) => {
     if (hasAccess) {
@@ -250,7 +295,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
-      {/* Componentes de Onboarding */}
       <OnboardingTour 
         isOpen={shouldShowTour || false}
         onClose={markTourAsCompleted}
@@ -283,18 +327,9 @@ const Dashboard = () => {
             <div className="flex items-center space-x-2 md:space-x-4">
               <div className="text-right hidden md:block">
                 <p className="text-blue-800 font-medium text-sm md:text-base">Olá, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}</p>
-                {isPromoter && (
-                  <span className="text-purple-700 text-xs md:text-sm font-medium bg-purple-100 px-2 py-1 rounded-full">⭐ Promoter</span>
-                )}
-                {isInTrialPeriod && !hasActiveSubscription && !isPromoter && (
-                  <span className="text-blue-700 text-xs md:text-sm font-medium bg-blue-100 px-2 py-1 rounded-full">🎉 Gratuito</span>
-                )}
-                {hasActiveSubscription && (
-                  <span className="text-green-700 text-xs md:text-sm font-medium bg-green-100 px-2 py-1 rounded-full">✅ Plano Ativo</span>
-                )}
-                {!hasAccess && (
-                  <span className="text-red-700 text-xs md:text-sm font-medium bg-red-100 px-2 py-1 rounded-full">⚠️ Bloqueado</span>
-                )}
+                <span className={`text-xs md:text-sm font-medium px-2 py-1 rounded-full ${statusInfo.bgColor} ${statusInfo.textColor}`}>
+                  {statusInfo.text}
+                </span>
               </div>
 
               <div className="notification-bell">
@@ -323,10 +358,9 @@ const Dashboard = () => {
                     {hasAccess ? "Explore nossos assistentes de IA para transformar seus objetivos em resultados" : "Sua assinatura expirou ou o período de teste acabou. Renove para continuar."}
                   </p>
                   <div className="mt-2 md:hidden">
-                    {isPromoter && (<span className="text-purple-700 text-xs font-medium bg-purple-100 px-2 py-1 rounded-full">⭐ Promoter</span>)}
-                    {isInTrialPeriod && !hasActiveSubscription && !isPromoter && (<span className="text-blue-700 text-xs font-medium bg-blue-100 px-2 py-1 rounded-full">🎉 Gratuito</span>)}
-                    {hasActiveSubscription && (<span className="text-green-700 text-xs font-medium bg-green-100 px-2 py-1 rounded-full">✅ Plano Ativo</span>)}
-                    {!hasAccess && (<span className="text-red-700 text-xs font-medium bg-red-100 px-2 py-1 rounded-full">⚠️ Bloqueado</span>)}
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusInfo.bgColor} ${statusInfo.textColor}`}>
+                      {statusInfo.text}
+                    </span>
                   </div>
                 </div>
                 <div className="hidden md:block">
@@ -337,7 +371,6 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Checklist de Onboarding */}
         {hasAccess && shouldShowChecklist && (
           <div className="mb-6 md:mb-8">
             <OnboardingChecklist
@@ -351,7 +384,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Componente Dica do Dia */}
         {hasAccess && (
           <div className="mb-6 md:mb-8">
             <DailyTip />
