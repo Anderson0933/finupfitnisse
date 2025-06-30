@@ -24,66 +24,75 @@ const ResetPassword = () => {
     const checkSession = async () => {
       setIsCheckingSession(true);
       
-      // Verificar se há parâmetros de reset na URL
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-      const type = searchParams.get('type');
-      
-      console.log('Verificando sessão de reset...', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
-      
-      if (type === 'recovery' && accessToken && refreshToken) {
-        try {
-          // Estabelecer sessão com os tokens do link de recovery
+      try {
+        // Primeiro, verificar se há parâmetros de reset na URL
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        const type = searchParams.get('type');
+        
+        console.log('Parâmetros da URL:', { 
+          hasAccessToken: !!accessToken, 
+          hasRefreshToken: !!refreshToken, 
+          type 
+        });
+        
+        if (type === 'recovery' && accessToken && refreshToken) {
+          console.log('Tentando estabelecer sessão com tokens da URL...');
+          
+          // Tentar estabelecer sessão com os tokens
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
           
-          console.log('Resultado do setSession:', { data, error });
+          console.log('Resultado do setSession:', { 
+            hasSession: !!data.session, 
+            hasUser: !!data.user, 
+            error: error?.message 
+          });
           
           if (error) {
-            console.error('Erro ao estabelecer sessão:', error);
-            throw error;
+            throw new Error(`Erro ao estabelecer sessão: ${error.message}`);
           }
           
-          if (data.session) {
-            console.log('Sessão estabelecida com sucesso');
+          if (data.session && data.user) {
+            console.log('Sessão estabelecida com sucesso para usuário:', data.user.email);
             setIsValidSession(true);
           } else {
-            throw new Error('Não foi possível estabelecer a sessão');
+            throw new Error('Sessão não foi estabelecida corretamente');
           }
-        } catch (error: any) {
-          console.error('Erro na verificação de sessão:', error);
-          toast({
-            title: "Link inválido ou expirado",
-            description: "Por favor, solicite um novo link de redefinição de senha.",
-            variant: "destructive",
-          });
-          navigate('/auth');
-        }
-      } else {
-        // Verificar se há uma sessão existente
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Erro ao verificar sessão existente:', error);
-        }
-        
-        if (session) {
-          console.log('Sessão existente encontrada');
-          setIsValidSession(true);
         } else {
-          console.log('Nenhuma sessão encontrada, redirecionando...');
-          toast({
-            title: "Link inválido ou expirado",
-            description: "Por favor, solicite um novo link de redefinição de senha.",
-            variant: "destructive",
-          });
-          navigate('/auth');
+          // Verificar se há uma sessão ativa existente
+          console.log('Verificando sessão existente...');
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('Erro ao verificar sessão existente:', error);
+            throw new Error(`Erro ao verificar sessão: ${error.message}`);
+          }
+          
+          if (session && session.user) {
+            console.log('Sessão existente encontrada para usuário:', session.user.email);
+            setIsValidSession(true);
+          } else {
+            throw new Error('Nenhuma sessão ativa encontrada');
+          }
         }
+      } catch (error: any) {
+        console.error('Erro na verificação de sessão:', error);
+        toast({
+          title: "Link inválido ou expirado",
+          description: "Por favor, solicite um novo link de redefinição de senha.",
+          variant: "destructive",
+        });
+        
+        // Aguardar um pouco antes de redirecionar para mostrar a mensagem
+        setTimeout(() => {
+          navigate('/auth');
+        }, 2000);
+      } finally {
+        setIsCheckingSession(false);
       }
-      
-      setIsCheckingSession(false);
     };
 
     checkSession();
@@ -114,6 +123,15 @@ const ResetPassword = () => {
 
     try {
       console.log('Tentando atualizar senha...');
+      
+      // Verificar sessão atual antes de tentar atualizar
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('Sessão não encontrada. Por favor, use um novo link de redefinição.');
+      }
+      
+      console.log('Sessão ativa confirmada, atualizando senha...');
       
       const { error } = await supabase.auth.updateUser({
         password: password
