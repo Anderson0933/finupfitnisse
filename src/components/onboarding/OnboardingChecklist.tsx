@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,11 +66,11 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
       checkCompletedSteps();
       const interval = setInterval(() => {
         checkCompletedSteps();
-      }, 5000); // Check every 5 seconds
+      }, 3000); // Reduzido para 3 segundos para ser mais responsivo
 
       return () => clearInterval(interval);
     }
-  }, [user, isVisible, completedStepsDB]); // Adicionado completedStepsDB para reavaliar
+  }, [user, isVisible, completedStepsDB]);
 
   const checkCompletedSteps = async () => {
     if (!user) return;
@@ -101,7 +102,7 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
         .limit(1)
         .maybeSingle();
 
-      // Verificar se tem conversas de nutrição
+      // Verificar se tem conversas de nutrição - Corrigindo a lógica aqui
       const { data: nutritionConversations } = await supabase
         .from('ai_conversations')
         .select('id')
@@ -110,11 +111,12 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
         .limit(1)
         .maybeSingle();
 
-      const currentSteps = steps; // Use a snapshot of current steps state
       const newStepStates: { id: string; completed: boolean }[] = [];
 
-      for (const step of currentSteps) {
+      for (const step of steps) {
         let isNowComplete = false;
+        let shouldMarkComplete = false;
+        
         switch (step.id) {
           case 'complete-profile':
             isNowComplete = !!(
@@ -128,19 +130,35 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
             isNowComplete = !!workoutPlan;
             break;
           case 'nutrition-plan':
+            // Se encontrou conversa de nutrição OU se não está nos passos completados mas deveria estar
             isNowComplete = !!nutritionConversations;
+            
+            // Marcar como completo se detectou atividade mas não está salvo no DB
+            if (isNowComplete && !completedStepsDB.includes(step.id)) {
+              shouldMarkComplete = true;
+            }
             break;
           case 'record-progress':
             isNowComplete = !!progressData;
             break;
         }
 
-        if (isNowComplete && !completedStepsDB.includes(step.id)) {
+        // Se deve marcar como completo, fazer isso imediatamente
+        if (shouldMarkComplete) {
+          console.log(`✅ Passo '${step.id}' concluído e será salvo imediatamente.`);
+          onStepComplete(step.id);
+        }
+        
+        // Se já completou mas não está na base ou se acabou de completar
+        if (isNowComplete && !completedStepsDB.includes(step.id) && !shouldMarkComplete) {
           console.log(`✅ Passo '${step.id}' concluído e será salvo.`);
           onStepComplete(step.id);
         }
         
-        newStepStates.push({ id: step.id, completed: completedStepsDB.includes(step.id) || isNowComplete });
+        newStepStates.push({ 
+          id: step.id, 
+          completed: completedStepsDB.includes(step.id) || isNowComplete 
+        });
       }
 
       setSteps(prevSteps => 
@@ -154,18 +172,22 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
     }
   };
 
-  const handleStepAction = (step: OnboardingStep) => {
+  const handleStepAction = async (step: OnboardingStep) => {
     console.log(`🎯 Executando ação para: ${step.id}`);
     
     switch (step.id) {
       case 'complete-profile':
-        onSwitchTab('progress'); // Onde tem formulário de perfil
+        onSwitchTab('progress');
         break;
       case 'first-workout':
         onSwitchTab('workout');
         break;
       case 'nutrition-plan':
         onSwitchTab('nutrition');
+        // Para nutrição, aguardar um pouco mais antes de verificar
+        setTimeout(() => {
+          checkCompletedSteps();
+        }, 2000);
         break;
       case 'record-progress':
         onSwitchTab('progress');
@@ -174,7 +196,7 @@ const OnboardingChecklist = ({ user, isVisible, onClose, onSwitchTab, completedS
         break;
     }
 
-    // Recheck steps after a short delay to catch immediate updates
+    // Verificar passos após um pequeno delay para mudanças imediatas
     setTimeout(() => {
       checkCompletedSteps();
     }, 1000);

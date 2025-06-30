@@ -76,6 +76,8 @@ export const useOnboarding = (user: User | null) => {
     if (!user || !onboardingState) return;
 
     const previousState = onboardingState;
+    
+    // Atualizar estado otimisticamente
     setOnboardingState(current => current ? { ...current, ...updates } : null);
 
     const { error } = await supabase
@@ -86,6 +88,7 @@ export const useOnboarding = (user: User | null) => {
     if (error) {
       console.error('Error updating onboarding status:', error);
       toast({ title: 'Erro ao salvar seu progresso', variant: 'destructive' });
+      // Reverter estado em caso de erro
       setOnboardingState(previousState);
     }
   };
@@ -98,6 +101,7 @@ export const useOnboarding = (user: User | null) => {
   const markStepAsCompleted = (stepId: string) => {
     if (!onboardingState || onboardingState.completed_checklist_steps.includes(stepId)) return;
     
+    console.log(`📝 Marcando passo '${stepId}' como completado`);
     const newSteps = [...onboardingState.completed_checklist_steps, stepId];
     updateOnboardingStatus({ completed_checklist_steps: newSteps });
   };
@@ -135,4 +139,3 @@ export const useOnboarding = (user: User | null) => {
     resetOnboarding,
   };
 };
-
