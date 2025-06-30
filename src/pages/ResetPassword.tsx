@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Dumbbell, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Dumbbell, Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
 const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
@@ -16,6 +16,7 @@ const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [errorType, setErrorType] = useState<'expired' | 'invalid' | 'network' | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -23,76 +24,103 @@ const ResetPassword = () => {
   useEffect(() => {
     const handlePasswordRecovery = async () => {
       try {
-        console.log('=== INICIANDO PROCESSO DE RECOVERY ===');
+        console.log('=== INICIANDO VERIFICAÇÃO DO LINK ===');
         
         const accessToken = searchParams.get('access_token');
         const refreshToken = searchParams.get('refresh_token');
         const type = searchParams.get('type');
         
-        console.log('Parâmetros URL:', { 
+        console.log('Parâmetros da URL:', { 
           hasAccessToken: !!accessToken, 
           hasRefreshToken: !!refreshToken, 
           type,
-          fullUrl: window.location.href
+          accessTokenLength: accessToken?.length,
+          refreshTokenLength: refreshToken?.length
         });
 
-        if (type !== 'recovery' || !accessToken || !refreshToken) {
-          throw new Error('Link de recuperação inválido ou expirado');
+        // Verificar se os parâmetros básicos estão presentes
+        if (type !== 'recovery') {
+          throw new Error('INVALID_TYPE');
         }
 
-        console.log('Estabelecendo sessão com tokens...');
+        if (!accessToken || !refreshToken) {
+          throw new Error('MISSING_TOKENS');
+        }
+
+        // Verificar se os tokens têm o formato esperado
+        if (accessToken.length < 20 || refreshToken.length < 20) {
+          throw new Error('MALFORMED_TOKENS');
+        }
+
+        console.log('Tentando estabelecer sessão...');
         
-        // Primeiro, vamos garantir que não há sessão ativa
+        // Limpar qualquer sessão existente primeiro
         await supabase.auth.signOut();
         
-        // Aguardar um momento para garantir que a sessão foi limpa
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Aguardar um momento para garantir limpeza
+        await new Promise(resolve => setTimeout(resolve, 200));
         
-        // Estabelecer nova sessão com os tokens
+        // Tentar estabelecer sessão com os tokens
         const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
 
-        console.log('Resultado setSession:', { 
+        console.log('Resultado da tentativa de sessão:', { 
           hasSession: !!sessionData.session,
           hasUser: !!sessionData.user,
-          error: sessionError?.message 
+          errorMessage: sessionError?.message,
+          errorCode: sessionError?.status
         });
 
         if (sessionError) {
-          throw new Error(`Erro ao estabelecer sessão: ${sessionError.message}`);
+          // Categorizar o tipo de erro
+          if (sessionError.message?.includes('expired') || sessionError.message?.includes('invalid_token')) {
+            throw new Error('TOKEN_EXPIRED');
+          } else if (sessionError.message?.includes('invalid')) {
+            throw new Error('INVALID_TOKEN');
+          } else {
+            throw new Error(`SESSION_ERROR: ${sessionError.message}`);
+          }
         }
 
         if (!sessionData.session || !sessionData.user) {
-          throw new Error('Não foi possível estabelecer sessão válida');
+          throw new Error('NO_SESSION_CREATED');
         }
 
-        // Verificar se a sessão está realmente ativa
-        const { data: currentSession } = await supabase.auth.getSession();
-        console.log('Verificação final da sessão:', { 
-          hasCurrentSession: !!currentSession.session,
-          sessionId: currentSession.session?.user?.id
-        });
+        // Verificar se a sessão persiste
+        const { data: currentSession, error: getSessionError } = await supabase.auth.getSession();
+        
+        if (getSessionError) {
+          console.error('Erro ao verificar sessão:', getSessionError);
+          throw new Error('SESSION_VERIFICATION_FAILED');
+        }
 
         if (!currentSession.session) {
-          throw new Error('Sessão não persistiu após estabelecimento');
+          throw new Error('SESSION_NOT_PERSISTENT');
         }
 
-        setIsValidSession(true);
         console.log('✅ Sessão estabelecida com sucesso!');
+        setIsValidSession(true);
+        setErrorType(null);
 
       } catch (error: any) {
         console.error('❌ Erro no processo de recovery:', error);
+        
+        const errorMessage = error.message || error.toString();
+        
+        // Categorizar erro para UI apropriada
+        if (errorMessage.includes('TOKEN_EXPIRED') || errorMessage.includes('expired')) {
+          setErrorType('expired');
+        } else if (errorMessage.includes('INVALID') || errorMessage.includes('MISSING') || errorMessage.includes('MALFORMED')) {
+          setErrorType('invalid');
+        } else {
+          setErrorType('network');
+        }
+        
         setIsValidSession(false);
         
-        toast({
-          title: "Link inválido ou expirado",
-          description: error.message || "Por favor, solicite um novo link de redefinição de senha.",
-          variant: "destructive",
-        });
-        
-        setTimeout(() => navigate('/auth'), 3000);
+        // Não redirecionar automaticamente - deixar o usuário ver o erro
       } finally {
         setIsCheckingSession(false);
       }
@@ -127,33 +155,16 @@ const ResetPassword = () => {
     try {
       console.log('=== INICIANDO ATUALIZAÇÃO DE SENHA ===');
       
-      // Verificar sessão antes de tentar atualizar
-      const { data: currentSession } = await supabase.auth.getSession();
-      console.log('Sessão atual antes da atualização:', { 
-        hasSession: !!currentSession.session,
-        userId: currentSession.session?.user?.id 
-      });
-
-      if (!currentSession.session) {
-        throw new Error('Sessão não encontrada. Tente acessar o link novamente.');
-      }
-
-      console.log('Tentando atualizar senha...');
-      
       const { data, error } = await supabase.auth.updateUser({
         password: password
       });
 
       console.log('Resultado updateUser:', { 
         success: !!data.user, 
-        error: error?.message,
-        errorCode: error?.status
+        error: error?.message
       });
 
       if (error) {
-        if (error.message?.includes('session_not_found') || error.status === 403) {
-          throw new Error('Sessão expirada. Por favor, solicite um novo link de redefinição.');
-        }
         throw error;
       }
 
@@ -177,24 +188,22 @@ const ResetPassword = () => {
     } catch (error: any) {
       console.error('❌ Erro na atualização de senha:', error);
       
-      let errorMessage = "Ocorreu um erro inesperado. Tente novamente.";
-      
-      if (error.message?.includes('session_not_found') || error.status === 403) {
-        errorMessage = "Sessão expirada. Por favor, solicite um novo link de redefinição.";
-      } else if (error.message?.includes('weak_password')) {
-        errorMessage = "A senha é muito fraca. Use uma senha mais forte.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
       toast({
         title: "Erro ao atualizar senha",
-        description: errorMessage,
+        description: error.message || "Ocorreu um erro inesperado. Tente solicitar um novo link.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRequestNewLink = () => {
+    navigate('/auth');
+    toast({
+      title: "Solicite um novo link",
+      description: "Use a opção 'Esqueci minha senha' na página de login.",
+    });
   };
 
   if (isCheckingSession) {
@@ -211,8 +220,58 @@ const ResetPassword = () => {
   if (!isValidSession) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-8">
-        <div className="text-center text-white">
-          <p>Redirecionando...</p>
+        <div className="w-full max-w-md">
+          {/* Header com logo */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center mb-4">
+              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                <Dumbbell className="h-10 w-10 text-white" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">FitAI Pro</h1>
+            <p className="text-blue-200">Redefinir senha</p>
+          </div>
+
+          <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+            <CardHeader className="text-center pb-4">
+              <div className="flex items-center justify-center mb-4">
+                <div className="p-3 bg-red-500/20 backdrop-blur-sm rounded-xl border border-red-400/30">
+                  <AlertCircle className="h-8 w-8 text-red-400" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl text-white">
+                {errorType === 'expired' ? 'Link expirado' : 
+                 errorType === 'invalid' ? 'Link inválido' : 
+                 'Erro de conexão'}
+              </CardTitle>
+              <CardDescription className="text-blue-200">
+                {errorType === 'expired' ? 
+                  'O link de redefinição de senha expirou. Links de recuperação são válidos por apenas alguns minutos.' :
+                 errorType === 'invalid' ?
+                  'O link de redefinição de senha é inválido ou foi usado anteriormente.' :
+                  'Ocorreu um erro ao processar o link. Tente novamente.'}
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="space-y-4">
+                <Button 
+                  onClick={handleRequestNewLink}
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  Solicitar novo link
+                </Button>
+                
+                <Button 
+                  variant="ghost"
+                  onClick={() => navigate('/auth')}
+                  className="w-full text-gray-300 hover:text-white hover:bg-white/10"
+                >
+                  Voltar ao login
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
