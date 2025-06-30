@@ -24,18 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tables } from '@/integrations/supabase/types';
 
-interface Promoter {
-  id: string;
-  user_id: string;
-  promoter_code: string;
-  full_name: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  status: 'active' | 'inactive' | 'pending';
-  created_at: string;
-}
+type Promoter = Tables<'promoters'>;
 
 interface NewPromoterData {
   full_name: string;
@@ -213,7 +204,7 @@ const AdminPromoterManager = () => {
       pending: 'outline'
     } as const;
 
-    return <Badge variant={variants[status as keyof typeof variants]}>{status}</Badge>;
+    return <Badge variant={variants[status as keyof typeof variants] || 'outline'}>{status}</Badge>;
   };
 
   if (isLoading) {
