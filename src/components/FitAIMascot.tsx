@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Zap, ArrowRight, MessageCircle } from 'lucide-react';
-import fitaiMascot from '@/assets/fitai-mascot.png';
+import fitaiMascot from '@/assets/fitai-mascot-transparent.png';
 
 interface FitAIMascotProps {
   variant?: 'hero' | 'floating' | 'cta' | 'small';
@@ -50,26 +50,26 @@ const FitAIMascot = ({
           alt="FitAI Mascot"
           className={`${variants[variant]} object-contain transition-transform duration-300 ${
             isHovered ? 'scale-110' : 'scale-100'
-          } drop-shadow-2xl`}
+          } filter drop-shadow-lg`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         />
         
-        {/* Efeito de brilho */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        {/* Efeito de brilho sutil */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         
         {/* Animação de flutuação */}
         <div className="absolute inset-0 animate-float"></div>
       </div>
 
-      {/* Balão de fala */}
+      {/* Balão de fala com melhor design */}
       {variant === 'floating' && (
-        <div className="absolute -top-20 -left-48 w-48 bg-white rounded-xl p-3 shadow-xl border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute -top-20 -left-48 w-48 bg-white/95 backdrop-blur-sm rounded-xl p-3 shadow-2xl border-0 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-105">
           <div className="flex items-start gap-2">
             <MessageCircle className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
             <p className="text-sm text-gray-700 font-medium">{message}</p>
           </div>
-          <div className="absolute -bottom-2 right-8 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
+          <div className="absolute -bottom-2 right-8 w-4 h-4 bg-white/95 backdrop-blur-sm border-0 transform rotate-45"></div>
         </div>
       )}
 
