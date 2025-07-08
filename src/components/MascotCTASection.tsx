@@ -53,7 +53,7 @@ const MascotCTASection = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Lado esquerdo - Mascote e CTA */}
           <div className="text-center lg:text-left">
-            <div className="flex justify-center lg:justify-start mb-8">
+            <div className="flex justify-center lg:justify-start mb-6">
               <FitAIMascot 
                 variant="cta" 
                 message="Pronto para transformar seu corpo com IA?"

@@ -67,8 +67,8 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Enhanced Content */}
           <div className="text-center lg:text-left animate-fade-in">
-            {/* Mascote Hero */}
-            <div className="flex justify-center lg:justify-start mb-6">
+            {/* Mascote Hero - Mais discreto */}
+            <div className="flex justify-center lg:justify-start mb-4">
               <FitAIMascot 
                 variant="hero" 
                 message="Oi! Sou o FitAI, seu personal trainer IA! 💪"
