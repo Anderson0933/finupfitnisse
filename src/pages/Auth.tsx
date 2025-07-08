@@ -7,6 +7,7 @@ import { usePasswordReset } from '@/hooks/usePasswordReset';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { SignupForm } from '@/components/auth/SignupForm';
 import { Loader2 } from 'lucide-react';
+import FloatingMascot from '@/components/FloatingMascot';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -73,6 +74,7 @@ const Auth = () => {
           )}
         </CardContent>
       </Card>
+      <FloatingMascot />
     </div>
   );
 };

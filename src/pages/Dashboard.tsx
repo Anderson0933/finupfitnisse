@@ -23,6 +23,7 @@ import ChallengeCenter from '@/components/ChallengeCenter';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useToast } from '@/hooks/use-toast';
+import FloatingMascot from '@/components/FloatingMascot';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -523,6 +524,7 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+      <FloatingMascot />
     </div>
   );
 };
