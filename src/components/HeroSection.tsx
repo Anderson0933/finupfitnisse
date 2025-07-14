@@ -4,7 +4,6 @@ import { Play, Star, Users, Trophy, Zap, ArrowRight, Clock, Target, Brain } from
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import FitAIMascot from './FitAIMascot';
 
 const HeroSection = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -67,14 +66,6 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Enhanced Content */}
           <div className="text-center lg:text-left animate-fade-in">
-            {/* Mascote Hero - Mais discreto */}
-            <div className="flex justify-center lg:justify-start mb-4">
-              <FitAIMascot 
-                variant="hero" 
-                message="Oi! Sou o FitAI, seu personal trainer IA! 💪"
-              />
-            </div>
-            
             {/* Enhanced Badge */}
             <div className="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-sm font-medium mb-8 border border-blue-200">
               <Brain className="h-5 w-5 mr-2" />
